@@ -1,19 +1,25 @@
-import Animated from 'react-native-reanimated';
+import { Image } from "react-native";
+import Animated from "react-native-reanimated";
 
 export function HelloWave() {
   return (
-    <Animated.Text
+    <Animated.View
       style={{
-        fontSize: 28,
-        lineHeight: 32,
+        width: 28,
+        height: 28,
         marginTop: -6,
         animationName: {
-          '50%': { transform: [{ rotate: '25deg' }] },
+          "50%": { transform: [{ rotate: "25deg" }] },
         },
         animationIterationCount: 4,
-        animationDuration: '300ms',
-      }}>
-      👋
-    </Animated.Text>
+        animationDuration: "300ms",
+      }}
+    >
+      <Image
+        source={require("../assets/icons/wave-hand.png")}
+        style={{ width: 28, height: 28 }}
+        resizeMode="contain"
+      />
+    </Animated.View>
   );
 }
