@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Builds
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment — never commit real credentials (see VERCEL_MIGRATION_PLAN.md §6.2)
+.env
+.env.*
+!.env.example
+!env.example
+
+# Databases — local dev only, never deployed (§1.2 #8)
+*.db
+*.sqlite
+*.sqlite3
+
+# Test / tooling caches
+.pytest_cache/
+.ruff_cache/
+coverage/
+.turbo/
+
+# Vercel
+.vercel/
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+
+# Local artifacts
+kickbacks-v2.vsix

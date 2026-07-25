@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  /* Typography — three voices: UI sans / editorial serif / data mono */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Surfaces — near-black layered dark */
+  --color-bg-base: #0B0C0E;
+  --color-bg-surface: #14161A;
+  --color-bg-elevated: #1C1F26;
+  --color-border-subtle: #262A33;
+
+  /* Text — warm whites */
+  --color-text-primary: #F4F2EC;
+  --color-text-secondary: #9BA1AC;
+  --color-text-tertiary: #5C6370;
+
+  /* Accent — volt: a signal, not a wash */
+  --color-volt: #C8F04B;
+  --color-volt-ink: #11130A;
+
+  /* Editorial — sand, for words that matter */
+  --color-sand: #E8DCC8;
+
+  /* Data hues — metric contexts only */
+  --color-sleep: #8B93F8;
+  --color-activity: #F0854B;
+  --color-hrv: #E86A8A;
+
+  --color-danger: #E5484D;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-base text-text-primary antialiased font-sans;
+  }
+}
+
+/* ---------- Signature elements ---------- */
+
+/* The Yard Line — 1px volt gradient rule under headers and on artifacts */
+.yard-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-volt), transparent);
+}
+
+/* Film grain — one notch from invisible, hero/artifact surfaces only */
+.grain {
+  position: relative;
+}
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise {
+  animation: rise 300ms ease-out both;
+}
+
+@keyframes disclosure {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-disclosure {
+  animation: disclosure 250ms ease-out both;
+}
+
+@keyframes fill-bar {
+  from { width: 0; }
+}
+.animate-fill {
+  animation: fill-bar 800ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise, .animate-disclosure, .animate-fill {
+    animation: none;
+  }
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-bg-elevated rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-border-subtle;
+}
