@@ -1,5 +1,5 @@
 import { verifyAdmin } from "@/lib/auth";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 
 const MAX_PROMPT_LENGTH = 280;
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Find or create the room doc by room_id field
-  const roomsSnap = await adminDb
+  const roomsSnap = await getAdminDb()
     .collection("rooms")
     .where("room_id", "==", roomId)
     .limit(1)
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
           .replace(/_/g, " ")
           .replace(/\b\w/g, (c: string) => c.toUpperCase())
       : null;
-    await adminDb.collection("rooms").add({
+    await getAdminDb().collection("rooms").add({
       room_id: roomId,
       name:
         roomId === "global"

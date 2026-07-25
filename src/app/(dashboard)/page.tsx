@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import {
   CalendarDays,
   ShieldAlert,
@@ -74,7 +74,7 @@ function getInitials(name: string): string {
 }
 
 async function getSignupOverview() {
-  const profilesSnap = await adminDb.collection("profiles").get();
+  const profilesSnap = await getAdminDb().collection("profiles").get();
 
   const users: SignupUser[] = profilesSnap.docs.map((doc) => {
     const data = doc.data();

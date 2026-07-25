@@ -1,5 +1,5 @@
 import { verifyAdmin } from "@/lib/auth";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -15,18 +15,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete user's messages
-    const messagesSnap = await adminDb
+    const messagesSnap = await getAdminDb()
         .collection("messages")
         .where("user_id", "==", userId)
         .get();
 
-    const batch = adminDb.batch();
+    const batch = getAdminDb().batch();
     messagesSnap.docs.forEach((doc) => {
         batch.delete(doc.ref);
     });
 
     // Delete user's check-ins
-    const checkinsSnap = await adminDb
+    const checkinsSnap = await getAdminDb()
         .collection("checkins")
         .where("user_id", "==", userId)
         .get();
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Delete user's game plans
-    const gameplansSnap = await adminDb
+    const gameplansSnap = await getAdminDb()
         .collection("gameplans")
         .where("user_id", "==", userId)
         .get();
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Delete user profile
-    batch.delete(adminDb.collection("profiles").doc(userId));
+    batch.delete(getAdminDb().collection("profiles").doc(userId));
 
     await batch.commit();
 

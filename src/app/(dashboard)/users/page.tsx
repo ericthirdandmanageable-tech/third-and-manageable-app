@@ -1,6 +1,6 @@
 import CopyEmailButton from "@/components/CopyEmailButton";
 import StatusBadge from "@/components/StatusBadge";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { Flame, Search, Shield, Users } from "lucide-react";
 import UserActions from "./UserActions";
 import VerifyButton from "./VerifyButton";
@@ -51,7 +51,7 @@ function isNewUser(dateStr: string): boolean {
 }
 
 async function getUsers(search?: string): Promise<Profile[]> {
-  const snap = await adminDb.collection("profiles").get();
+  const snap = await getAdminDb().collection("profiles").get();
   let users = snap.docs.map((d) => ({
     id: d.id,
     display_name: d.data().display_name || "Unknown",

@@ -1,5 +1,5 @@
 import StatCard from "@/components/StatCard";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { CalendarDays, ClipboardList, Star, Users } from "lucide-react";
 
 const ACTION_LABELS: Record<string, string> = {
@@ -11,7 +11,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 async function getGamePlanData() {
-    const snap = await adminDb.collection("completions").get();
+    const snap = await getAdminDb().collection("completions").get();
     const all = snap.docs.map((d) => ({
         id: d.id, user_id: d.data().user_id || "", action_id: d.data().action_id || "",
         date: d.data().date || "", completed_at: d.data().completed_at || "",

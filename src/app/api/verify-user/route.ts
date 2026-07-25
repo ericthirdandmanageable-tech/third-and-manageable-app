@@ -1,5 +1,5 @@
 import { verifyAdmin } from "@/lib/auth";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    await adminDb.collection("profiles").doc(userId).update({ verified });
+    await getAdminDb().collection("profiles").doc(userId).update({ verified });
 
     return NextResponse.json({ success: true, verified });
 }

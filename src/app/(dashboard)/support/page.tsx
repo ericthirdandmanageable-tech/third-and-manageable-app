@@ -1,5 +1,5 @@
 import StatusBadge from "@/components/StatusBadge";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import UpdateStatusButton from "./UpdateStatusButton";
 
 interface SupportRequest {
@@ -13,8 +13,8 @@ interface SupportRequest {
 }
 
 async function getSupportRequests(): Promise<SupportRequest[]> {
-    const snap = await adminDb.collection("support_requests").get();
-    const profilesSnap = await adminDb.collection("profiles").get();
+    const snap = await getAdminDb().collection("support_requests").get();
+    const profilesSnap = await getAdminDb().collection("profiles").get();
     const profileMap = new Map<string, string>();
     profilesSnap.docs.forEach((d) => {
         profileMap.set(d.id, d.data().display_name || "Unknown");

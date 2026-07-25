@@ -1,5 +1,5 @@
 import { verifyAdmin } from "@/lib/auth";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         updateData.banned_at = banned ? new Date().toISOString() : null;
     }
 
-    await adminDb.collection("profiles").doc(userId).update(updateData);
+    await getAdminDb().collection("profiles").doc(userId).update(updateData);
 
     return NextResponse.json({ success: true, banned, banType });
 }

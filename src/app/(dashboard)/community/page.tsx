@@ -1,5 +1,5 @@
 import PromptEditor from "@/components/PromptEditor";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { Hash, MessageCircle, MessagesSquare, Shield } from "lucide-react";
 import MessageModeration from "./MessageModeration";
 
@@ -26,8 +26,8 @@ interface Room {
 
 async function getCommunityData() {
   const [roomsSnap, messagesSnap] = await Promise.all([
-    adminDb.collection("rooms").get(),
-    adminDb.collection("messages").get(),
+    getAdminDb().collection("rooms").get(),
+    getAdminDb().collection("messages").get(),
   ]);
 
   const messageCounts = new Map<string, number>();

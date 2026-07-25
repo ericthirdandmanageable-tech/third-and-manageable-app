@@ -1,5 +1,5 @@
 import StatCard from "@/components/StatCard";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { CalendarDays, Heart, Smile, Users } from "lucide-react";
 
 interface CheckIn {
@@ -14,8 +14,8 @@ interface CheckIn {
 
 async function getCheckInData() {
     const [checkinsSnap, profilesSnap] = await Promise.all([
-        adminDb.collection("checkins").get(),
-        adminDb.collection("profiles").get(),
+        getAdminDb().collection("checkins").get(),
+        getAdminDb().collection("profiles").get(),
     ]);
 
     const profileMap = new Map<string, string>();
