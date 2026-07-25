@@ -10,6 +10,34 @@ Companion documents: `FEATURE_ANALYSIS.md` (feature/architecture inventory), `WE
 
 ---
 
+## 0. Current Status — read this first
+
+**All five scoping questions are resolved.** Decisions, in one place:
+
+| Decision | Answer |
+|---|---|
+| Backend | Bridge FastAPI onto Vercel Python first, then port to TypeScript route-by-route behind it (§2.2, §7.1) |
+| Repo shape | **One** Next.js app, **one** Vercel project, no monorepo (§2.0) |
+| Vercel plan | Pro, already held (§5) |
+| Firestore data | **Retain** the CWRU pilot data; scripted export in Phase 3 (§7.2) |
+| Weekly actions | **Fifteen categorized habits** — admin's taxonomy wins, backend's `a1`–`a4` is replaced (§6.5) |
+
+### Phase 0 progress
+
+- [x] **Step 1 — `git init`.** Repo created on `main`; initial commit `479ceeb`, 143 files. Root `.gitignore` excludes `node_modules/`, `.venv/`, `dist/`, `*.db`, `.env`.
+- [x] **§6.2 credential sanitization** — done *before* the first commit, so nothing sensitive is in history. **Rotation at the source is still outstanding and is on you** (see §6.2).
+- [ ] **Step 2** — promote `third-and-manageable-admin-main/` to repo root.
+- [ ] **Step 3** — provision Neon Postgres via Vercel Marketplace.
+- [ ] **Step 4** — port SQLAlchemy schema → Drizzle in `lib/db/`.
+- [ ] **Step 5** — first deploy (admin only, still on Firestore) to prove the pipeline.
+
+### Blocked on you
+
+1. **Rotate the leaked credentials** — admin password, and revoke + reissue the Firebase service-account key (§6.2).
+2. **Re-authenticate the Vercel MCP against the Pro account** — this session's was on personal Hobby (`list_teams` returned empty). Needed before step 3 or resources land in the wrong account.
+
+---
+
 ## 1. Complete Service & Dependency Inventory
 
 Every external dependency found across `third-and-manageable-admin-main/`, `web-prototype/`, `backend/`, `render.yaml`, and the shipped iOS bundle described in `FEATURE_ANALYSIS.md`.
