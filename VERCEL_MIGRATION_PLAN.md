@@ -26,15 +26,19 @@ Companion documents: `FEATURE_ANALYSIS.md` (feature/architecture inventory), `WE
 
 - [x] **Step 1 — `git init`.** Repo created on `main`; initial commit `479ceeb`, 143 files. Root `.gitignore` excludes `node_modules/`, `.venv/`, `dist/`, `*.db`, `.env`.
 - [x] **§6.2 credential sanitization** — done *before* the first commit, so nothing sensitive is in history. **Rotation at the source is still outstanding and is on you** (see §6.2).
-- [ ] **Step 2** — promote `third-and-manageable-admin-main/` to repo root.
-- [ ] **Step 3** — provision Neon Postgres via Vercel Marketplace.
+- [x] **Step 2 — promote the admin app to the repo root.** Commit `27f496c`; pure `git mv`, no source changes. Three scoping fixes the move forced: `tsconfig`/`eslint` now exclude `web-prototype/` and `backend/` (the root `**/*.ts` include would otherwise typecheck the Vite SPA's 32 files); `next.config.ts` pins `turbopack.root` (a lockfile in a parent directory was winning workspace-root inference); the admin `.gitignore` folded into the root one.
+  - Follow-on commit `0230ae1` — **`firebase-admin` now initialises lazily** (`adminDb` → `getAdminDb()`, 12 files). It ran `cert()`/`initializeApp()` at module scope, and since Next imports every route module during page-data collection, a build failed outright without the service-account vars. Builds no longer need runtime secrets — which is what lets step 5 proceed while the §6.2 rotation is still pending. Whole module dies at Phase 3 step 20.
+  - `next build` passes: 19 routes, every Firestore-backed page/route correctly `ƒ` (dynamic); only `/login` and `/_not-found` prerender.
+- [~] **Step 3 — provision Neon Postgres.** Vercel project **created and linked**: `ling-iq/third-and-manageable` (`prj_QaCgXSSn1sXJSob2T0qhYSLiJ1ek`). CLI scope switched off the personal Hobby account onto the **LingIQ** team. `vercel integration add neon` returns `action_required` — **blocked on you**, see below.
+  - ⚠️ `vercel link` auto-detected `backend/` and wrote a `vercel.json` rewriting **`/(.*)` → the FastAPI service**, which would have shadowed the entire admin app. **Deleted.** Worth knowing for Phase 2 step 11: Vercel detects and bridges the FastAPI service natively, so §2.2 is less work than assumed — but that config must not land until step 11.
 - [ ] **Step 4** — port SQLAlchemy schema → Drizzle in `lib/db/`.
 - [ ] **Step 5** — first deploy (admin only, still on Firestore) to prove the pipeline.
 
 ### Blocked on you
 
 1. **Rotate the leaked credentials** — admin password, and revoke + reissue the Firebase service-account key (§6.2).
-2. **Re-authenticate the Vercel MCP against the Pro account** — this session's was on personal Hobby (`list_teams` returned empty). Needed before step 3 or resources land in the wrong account.
+2. **Accept Neon's marketplace terms** — <https://vercel.com/ling-iq/~/integrations/accept-terms/neon?source=cli>. A legal acceptance, so it cannot be automated. Then re-run `vercel integration add neon` to finish step 3 and auto-inject `DATABASE_URL`.
+3. ~~**Re-authenticate the Vercel MCP against the Pro account**~~ — **done.** CLI is on the `ling-iq` team scope (`vercel switch ling-iq`).
 
 ---
 
