@@ -31,8 +31,24 @@ Companion documents: `FEATURE_ANALYSIS.md` (feature/architecture inventory), `WE
   - `next build` passes: 19 routes, every Firestore-backed page/route correctly `ƒ` (dynamic); only `/login` and `/_not-found` prerender.
 - [~] **Step 3 — provision Neon Postgres.** Vercel project **created and linked**: `ling-iq/third-and-manageable` (`prj_QaCgXSSn1sXJSob2T0qhYSLiJ1ek`). CLI scope switched off the personal Hobby account onto the **LingIQ** team. `vercel integration add neon` returns `action_required` — **blocked on you**, see below.
   - ⚠️ `vercel link` auto-detected `backend/` and wrote a `vercel.json` rewriting **`/(.*)` → the FastAPI service**, which would have shadowed the entire admin app. **Deleted.** Worth knowing for Phase 2 step 11: Vercel detects and bridges the FastAPI service natively, so §2.2 is less work than assumed — but that config must not land until step 11.
-- [ ] **Step 4** — port SQLAlchemy schema → Drizzle in `lib/db/`.
-- [ ] **Step 5** — first deploy (admin only, still on Firestore) to prove the pipeline.
+- [x] **Step 4 — SQLAlchemy → Drizzle.** Commit `80a7e11`. 12 tables in `src/lib/db/schema.ts`; the models were already the post-Alembic state, so the three revisions replay as one baseline (`drizzle/0000_*.sql`), not three migrations. All 8 `index=True` columns carried over. §3 columns added: `users.{suspended,banned,chat_banned,verification_requested,streak}`, `check_ins.mood`, `forums.{daily_prompt,daily_prompt_author,daily_prompt_updated_at}`, `action_completions.category`. `getDb()` is lazy, same build-time reason as `getAdminDb()`. **Not yet applied to a database** — that needs step 3's Neon.
+  - Timestamps are `timestamp` *without* time zone, matching SQLAlchemy's naive `DateTime`. The Phase 2 bridge shares this database, so the types must agree. Revisit at step 16.
+- [~] **Step 5 — first deploy.** Pipeline **proven** (build + deploy + routes served), then **the deployment was removed**. See below.
+
+#### ⚠️ Step 5 outcome — production went public, and was taken down
+
+`vercel deploy` without `--prod` still shipped to **production**: Vercel auto-promotes a project's *first* deployment. It was reachable with no Deployment Protection, and **§6.1 was confirmed exploitable in the wild** — `curl -H 'Cookie: admin_session=authenticated' .../users` was served the dashboard instead of being redirected to `/login`. It returned 500 only because the Firebase vars are unset; with them set, that response is every user's email and journal entries.
+
+Deployment `dpl_5ow9wGMVv7hzvAAUURiVednVXdU3` removed; both URLs now 404. **No data was exposed** — Firestore was unreachable for the whole window, and `ADMIN_PASSWORD` was unset.
+
+Related, found while checking: `/api/login` compares `password === process.env.ADMIN_PASSWORD`. With the env var unset, a POST that **omits** `password` compares `undefined === undefined` and **succeeds**. Fix alongside §6.1.
+
+**Step 5 does not complete until §6.1 is fixed.** Before any redeploy, in order:
+1. Rewrite admin auth — signed session (`iron-session` or JWT), per-admin accounts, hashed passwords. This was Phase 3 step 21; **it has to move to Phase 0**, because the portal cannot be internet-reachable without it.
+2. Turn on Deployment Protection (Vercel Authentication) for the project, production included.
+3. Set `ADMIN_PASSWORD` + `FIREBASE_*` in Vercel — **rotated values only** (§6.2).
+
+Project settings note: `vercel link` pinned the framework preset to **Services** (FastAPI residue). `vercel.json` now pins `"framework": "nextjs"` to override it.
 
 ### Blocked on you
 
