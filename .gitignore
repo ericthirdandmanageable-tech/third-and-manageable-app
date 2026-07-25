@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+.pnp
+.pnp.*
 .venv/
 __pycache__/
 *.py[cod]
@@ -10,6 +12,7 @@ build/
 .next/
 out/
 *.tsbuildinfo
+next-env.d.ts
 
 # Environment — never commit real credentials (see VERCEL_MIGRATION_PLAN.md §6.2)
 .env
@@ -21,6 +24,10 @@ out/
 *.db
 *.sqlite
 *.sqlite3
+
+# Secrets — service-account keys and certs must never be committed (§6.2)
+*-firebase-adminsdk-*.json
+*.pem
 
 # Test / tooling caches
 .pytest_cache/

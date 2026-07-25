@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Reference dirs, deleted at the end of Phase 1 / Phase 2 (see VERCEL_MIGRATION_PLAN.md §4).
+    "web-prototype/**",
+    "backend/**",
   ]),
 ]);
 
