@@ -15,12 +15,12 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const NAV_ITEMS = [
-    { href: "/", label: "Overview", icon: BarChart3 },
-    { href: "/users", label: "Users", icon: Users },
-    { href: "/support", label: "Support", icon: LifeBuoy },
-    { href: "/community", label: "Community", icon: MessageCircle },
-    { href: "/checkins", label: "Check-Ins", icon: Heart },
-    { href: "/gameplans", label: "Game Plans", icon: ClipboardList },
+    { href: "/admin", label: "Overview", icon: BarChart3 },
+    { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/support", label: "Support", icon: LifeBuoy },
+    { href: "/admin/community", label: "Community", icon: MessageCircle },
+    { href: "/admin/checkins", label: "Check-Ins", icon: Heart },
+    { href: "/admin/gameplans", label: "Game Plans", icon: ClipboardList },
 ];
 
 export default function Sidebar() {

@@ -1,12 +1,28 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-export default function LoginPage() {
+const ADMIN_HOME = "/admin";
+
+/**
+ * Where to land after signing in. The proxy puts the blocked path in `?next`,
+ * but it arrives from the URL bar and is therefore attacker-controlled: only a
+ * same-origin path under /admin is honoured, so this cannot be turned into an
+ * open redirect. Anything else falls back to the dashboard.
+ */
+function safeNext(raw: string | null): string {
+    if (!raw || !raw.startsWith("/admin") || raw.startsWith("//")) {
+        return ADMIN_HOME;
+    }
+    return raw;
+}
+
+function LoginForm() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const next = safeNext(useSearchParams().get("next"));
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,7 +37,7 @@ export default function LoginPage() {
             });
 
             if (res.ok) {
-                router.push("/");
+                router.push(next);
                 router.refresh();
             } else {
                 setError(
@@ -79,5 +95,15 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    // `useSearchParams` opts the subtree into client rendering; the boundary
+    // keeps the rest of the page prerenderable.
+    return (
+        <Suspense>
+            <LoginForm />
+        </Suspense>
     );
 }

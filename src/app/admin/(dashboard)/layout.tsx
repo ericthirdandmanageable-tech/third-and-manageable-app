@@ -8,7 +8,7 @@ export default async function DashboardLayout({
     children: React.ReactNode;
 }) {
     const isAdmin = await verifyAdmin();
-    if (!isAdmin) redirect("/login");
+    if (!isAdmin) redirect("/admin/login");
 
     return (
         <div className="flex min-h-screen">
