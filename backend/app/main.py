@@ -1,9 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import inspect, text
 
 from app.config import settings
-from app.database import Base, engine, SessionLocal
 from app.routes import auth, profile, checkins, gameplan, clipboard, community, misc
 
 
@@ -17,30 +15,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.on_event("startup")
-def on_startup():
-    # Alembic owns the schema. For a brand-new dev DB (no tables, no
-    # alembic_version), create_all + stamp head (create_all produces the
-    # current schema, i.e. head) so `alembic history` and future autogenerate
-    # work against the file. Existing DBs: Alembic-driven.
-    insp = inspect(engine)
-    has_tables = bool(insp.get_table_names())
-    has_version = insp.has_table("alembic_version")
-    if not has_tables and not has_version:
-        Base.metadata.create_all(bind=engine)
-        with engine.begin() as conn:
-            conn.execute(text(
-                "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"
-            ))
-            conn.execute(text(
-                "INSERT INTO alembic_version (version_num) VALUES ('7d2e5f8a1c34')"
-            ))
-    db = SessionLocal()
-    try:
-        community.seed_forums(db)
-    finally:
-        db.close()
+# No `@app.on_event("startup")` schema work. It used to run `create_all` +
+# `alembic stamp` + `seed_forums` on boot, which on Fluid Compute means on every
+# cold start — one of the two blockers §2.2 names for the bridge. Drizzle owns
+# the schema and `python -m app.seed` owns the seed data; both are explicit
+# release steps now (VERCEL_MIGRATION_PLAN.md Phase 2 step 11).
 
 
 @app.get("/health")

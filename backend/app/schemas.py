@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -25,8 +26,10 @@ class AuthOut(BaseModel):
 
 
 class UserOut(BaseModel):
-    id: int
-    email: EmailStr
+    id: UUID
+    # Still exposed on the wire — the client contract is unchanged — but it is
+    # now assembled from `user_emails`, because `users` no longer stores one.
+    email: Optional[EmailStr] = None
     display_name: str
     school: Optional[str] = None
     status: Optional[str] = None
@@ -35,6 +38,18 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def from_user(cls, user) -> "UserOut":
+        return cls(
+            id=user.id,
+            email=user.primary_email,
+            display_name=user.display_name,
+            school=user.school,
+            status=user.status,
+            headline=user.headline,
+            verified=user.verified,
+        )
 
 
 AuthOut.model_rebuild()
@@ -53,7 +68,7 @@ class IntakeIn(BaseModel):
 
 
 class ProfileOut(BaseModel):
-    user_id: int
+    user_id: UUID
     intake_done: bool = False
     intake_answers: Optional[dict] = None
     skill_map: list[dict] = []
@@ -78,8 +93,9 @@ class CheckInIn(BaseModel):
 
 
 class CheckInOut(BaseModel):
-    id: int
-    date: str
+    id: UUID
+    # Serialises as YYYY-MM-DD; it is a calendar day, not an instant.
+    date: date
     prompt_id: str
     option: str
     journal: Optional[str] = None
@@ -145,7 +161,7 @@ class ClipboardChatIn(BaseModel):
 
 
 class ClipboardMessageOut(BaseModel):
-    id: int
+    id: UUID
     role: str
     text: str
     persona: str
@@ -176,7 +192,7 @@ class ForumOut(BaseModel):
 
 
 class PostOut(BaseModel):
-    id: int
+    id: UUID
     forum_id: str
     author_name: str
     flair: str
@@ -198,17 +214,17 @@ class PostIn(BaseModel):
 
 class CommentIn(BaseModel):
     body: str = Field(min_length=1)
-    parent_id: Optional[int] = None
+    parent_id: Optional[UUID] = None
 
 
 class VoteIn(BaseModel):
     target_type: Literal["post", "comment"]
-    target_id: int
+    target_id: UUID
     value: int = 1  # 1 upvote, -1 removes
 
 
 class CommentOut(BaseModel):
-    id: int
+    id: UUID
     author_name: str
     body: str
     upvotes: int

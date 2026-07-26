@@ -69,4 +69,4 @@ def update_profile(body: ProfileUpdateIn, user: User = Depends(get_current_user)
         user.headline = body.headline or None
     db.commit()
     db.refresh(user)
-    return UserOut.model_validate(user)
+    return UserOut.from_user(user)

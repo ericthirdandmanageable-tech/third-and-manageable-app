@@ -12,7 +12,7 @@ router = APIRouter(prefix="/check-ins", tags=["check-ins"])
 
 @router.get("/today", response_model=CheckInOut | None)
 def todays_check_in(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    today = date.today().isoformat()
+    today = date.today()
     ci = db.query(CheckIn).filter(CheckIn.user_id == user.id, CheckIn.date == today).first()
     if not ci:
         return None
@@ -21,7 +21,7 @@ def todays_check_in(user: User = Depends(get_current_user), db: Session = Depend
 
 @router.post("", response_model=CheckInOut)
 def submit_check_in(body: CheckInIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    today = date.today().isoformat()
+    today = date.today()
     if db.query(CheckIn).filter(CheckIn.user_id == user.id, CheckIn.date == today).first():
         raise HTTPException(status_code=409, detail="Already checked in today")
     ci = CheckIn(
@@ -41,7 +41,7 @@ def submit_check_in(body: CheckInIn, user: User = Depends(get_current_user), db:
 
 @router.patch("/today", response_model=CheckInOut)
 def update_todays_check_in(body: CheckInUpdateIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    today = date.today().isoformat()
+    today = date.today()
     ci = db.query(CheckIn).filter(CheckIn.user_id == user.id, CheckIn.date == today).first()
     if not ci:
         raise HTTPException(status_code=404, detail="No check-in today to edit")

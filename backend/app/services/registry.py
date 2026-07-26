@@ -85,12 +85,43 @@ JOURNEY_PHASES = [
     {"id": "commitment", "name": "Commitment", "start_day": 61, "end_day": 90},
 ]
 
+# §6.5 — the admin's fifteen categorized habits, not the backend's old generic
+# `a1`-`a4`. The two were different models, and the admin's won: the retained
+# CWRU Firestore `completions` already use these keys, so the pilot data
+# migrates cleanly and it was the backend that was the outlier.
+#
+# `category` is stored on every `action_completions` row because the admin
+# groups by it. It is always the segment before the first hyphen, but derive it
+# through `category_for_action` rather than re-splitting the string at each
+# call site — an unknown id must be rejected, not silently invent a category.
+ACTION_CATEGORIES = ["career", "routine", "mindset", "social", "wellness"]
+
 WEEKLY_ACTIONS = [
-    {"id": "a1", "kind": "REFLECTION", "text": "Write down 3 wins from this week"},
-    {"id": "a2", "kind": "SKILL REP", "text": "Rewrite one resume bullet in civilian language"},
-    {"id": "a3", "kind": "WORLD REP", "text": "Message one former teammate who's working"},
-    {"id": "a4", "kind": "SKILL REP", "text": "Read one path page — the day-in-the-life section"},
+    {"id": "career-explore", "category": "career", "kind": "WORLD REP", "text": "Career Exploration"},
+    {"id": "career-network", "category": "career", "kind": "WORLD REP", "text": "Networking"},
+    {"id": "career-resume", "category": "career", "kind": "SKILL REP", "text": "Resume & LinkedIn"},
+    {"id": "routine-morning", "category": "routine", "kind": "HABIT", "text": "Morning Routine"},
+    {"id": "routine-exercise", "category": "routine", "kind": "HABIT", "text": "Exercise"},
+    {"id": "routine-sleep", "category": "routine", "kind": "HABIT", "text": "Sleep Hygiene"},
+    {"id": "mindset-journal", "category": "mindset", "kind": "REFLECTION", "text": "Journaling"},
+    {"id": "mindset-gratitude", "category": "mindset", "kind": "REFLECTION", "text": "Gratitude"},
+    {"id": "mindset-meditation", "category": "mindset", "kind": "REFLECTION", "text": "Meditation"},
+    {"id": "social-connect", "category": "social", "kind": "WORLD REP", "text": "Social Connection"},
+    {"id": "social-mentor", "category": "social", "kind": "WORLD REP", "text": "Mentorship"},
+    {"id": "social-community", "category": "social", "kind": "WORLD REP", "text": "Community"},
+    {"id": "wellness-therapy", "category": "wellness", "kind": "HABIT", "text": "Therapy"},
+    {"id": "wellness-nutrition", "category": "wellness", "kind": "HABIT", "text": "Nutrition"},
+    {"id": "wellness-hobby", "category": "wellness", "kind": "HABIT", "text": "New Hobby"},
 ]
+
+_ACTIONS_BY_ID = {a["id"]: a for a in WEEKLY_ACTIONS}
+
+
+def category_for_action(action_id):
+    """The action's category, or None if the id is not in the taxonomy."""
+    action = _ACTIONS_BY_ID.get(action_id)
+    return action["category"] if action else None
+
 
 def get_path(path_id):
     return next((p for p in WORK_PATHS if p["id"] == path_id), None)

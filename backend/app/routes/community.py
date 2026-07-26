@@ -1,17 +1,18 @@
 from datetime import datetime, timezone
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_verified
-from app.database import get_db, User, Forum, Post, Comment, Vote
+from app.database import get_db, User, Forum, Post, Comment, PostVote, CommentVote
 from app.schemas import ForumOut, PostOut, PostIn, CommentIn, CommentOut, VoteIn
 
 router = APIRouter(prefix="/community", tags=["community"])
 
 
 def _time_ago(created_at: datetime) -> str:
-    delta = datetime.utcnow() - created_at
+    delta = datetime.now(timezone.utc) - created_at
     if delta.days > 0:
         return f"{delta.days}d"
     hours = delta.seconds // 3600
@@ -22,7 +23,7 @@ def _time_ago(created_at: datetime) -> str:
 
 
 def _comment_tree(comments: list[Comment]) -> list[CommentOut]:
-    by_parent: dict[int | None, list[Comment]] = {}
+    by_parent: dict[UUID | None, list[Comment]] = {}
     for c in comments:
         by_parent.setdefault(c.parent_id, []).append(c)
 
@@ -42,14 +43,8 @@ def _comment_tree(comments: list[Comment]) -> list[CommentOut]:
 
 
 @router.get("/forums", response_model=list[ForumOut])
-def list_forums():
-    from app.database import SessionLocal
-    db = SessionLocal()
-    try:
-        forums = db.query(Forum).all()
-        return [ForumOut.model_validate(f) for f in forums]
-    finally:
-        db.close()
+def list_forums(db: Session = Depends(get_db)):
+    return [ForumOut.model_validate(f) for f in db.query(Forum).all()]
 
 
 @router.get("/forums/{forum_id}/posts", response_model=list[PostOut])
@@ -109,7 +104,7 @@ def create_post(forum_id: str, body: PostIn, user: User = Depends(require_verifi
 
 
 @router.get("/posts/{post_id}", response_model=dict)
-def get_post(post_id: int, db: Session = Depends(get_db)):
+def get_post(post_id: UUID, db: Session = Depends(get_db)):
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -128,7 +123,7 @@ def get_post(post_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/posts/{post_id}/comments", response_model=CommentOut)
-def add_comment(post_id: int, body: CommentIn, user: User = Depends(require_verified), db: Session = Depends(get_db)):
+def add_comment(post_id: UUID, body: CommentIn, user: User = Depends(require_verified), db: Session = Depends(get_db)):
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -158,16 +153,19 @@ def add_comment(post_id: int, body: CommentIn, user: User = Depends(require_veri
 
 @router.post("/vote")
 def vote(body: VoteIn, user: User = Depends(require_verified), db: Session = Depends(get_db)):
-    existing = (
-        db.query(Vote)
-        .filter(Vote.user_id == user.id, Vote.target_type == body.target_type, Vote.target_id == body.target_id)
-        .first()
-    )
-    target_cls = Post if body.target_type == "post" else Comment
-    target = db.get(target_cls, body.target_id)
-    if not target:
+    # The polymorphic `votes` table is gone: each target now has its own table
+    # with a real foreign key, so a vote cannot point at a deleted row or at
+    # the wrong kind of row that happens to share an id.
+    if body.target_type == "post":
+        target = db.get(Post, body.target_id)
+        vote_cls, key = PostVote, {"post_id": body.target_id}
+    else:
+        target = db.get(Comment, body.target_id)
+        vote_cls, key = CommentVote, {"comment_id": body.target_id}
+    if not target or target.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Target not found")
 
+    existing = db.get(vote_cls, (user.id, body.target_id))
     if existing:
         # toggle off: remove the user's prior vote and decrement
         db.delete(existing)
@@ -175,7 +173,7 @@ def vote(body: VoteIn, user: User = Depends(require_verified), db: Session = Dep
         db.commit()
         return {"upvotes": target.upvotes, "voted": False}
 
-    db.add(Vote(user_id=user.id, target_type=body.target_type, target_id=body.target_id, value=1))
+    db.add(vote_cls(user_id=user.id, value=1, **key))
     target.upvotes = (target.upvotes or 0) + 1
     db.commit()
     return {"upvotes": target.upvotes, "voted": True}
@@ -208,14 +206,8 @@ def seed_forums(db: Session):
     for s in standalone:
         db.add(Forum(id=s["id"], title=s["title"], category=s["category"], description=s["description"], icon=s["icon"]))
 
-    # seed one example post in Corporate Athletes
-    db.add(Post(
-        forum_id="path-nine_to_five",
-        author_id=1,
-        author_name="MK",
-        flair="WIN",
-        title="Got the offer. 4 months after my last game.",
-        body="Former D1 mid. Today I signed for an ops role. The interview was just film study on their company. Your discipline got you here.",
-        upvotes=212,
-    ))
+    # The old seed inserted an example post with `author_id=1`. `posts.author_id`
+    # is now a UUID with a real foreign key to `users`, and no such user exists —
+    # it was only ever writable because the column had no integrity behind it.
+    # Forums seed; demo content does not.
     db.commit()

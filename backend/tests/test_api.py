@@ -74,6 +74,7 @@ def test_commit_and_toggle_action(client, auth_headers):
 
     # toggle an action on, then off
     aid = gp["weekly_actions"][0]["id"]
+    assert aid == "career-explore", "§6.5: the admin's fifteen habits, not a1-a4"
     client.post("/game-plan/actions/toggle", json={"action_id": aid}, headers=auth_headers)
     gp2 = client.get("/game-plan", headers=auth_headers).json()
     assert aid in gp2["completed_action_ids"]
@@ -117,8 +118,7 @@ def test_checkin(client, auth_headers):
 def test_unverified_user_cannot_post(client):
     """The verified-athlete gate: an unverified account must be blocked from
     writing to Community (REDESIGN_BRIEF safety constraint)."""
-    from app.database import User
-    from tests.conftest import TestingSession
+    from tests.conftest import TestingSession, user_by_email
 
     r = client.post("/auth/register", json={
         "email": "unverified@test.dev", "password": "password123", "display_name": "UV",
@@ -126,7 +126,7 @@ def test_unverified_user_cannot_post(client):
     tok = r.json()["access_token"]
     # force-verify off for this user directly in the DB
     db = TestingSession()
-    u = db.query(User).filter(User.email == "unverified@test.dev").first()
+    u = user_by_email(db, "unverified@test.dev")
     u.verified = False
     db.commit()
     db.close()
@@ -143,8 +143,8 @@ def test_unverified_user_cannot_post(client):
 def test_journey_derived_from_check_ins(client):
     """Day/streak must come from real check-in rows, not a hardcoded constant."""
     from datetime import date, timedelta
-    from app.database import User, CheckIn
-    from tests.conftest import TestingSession
+    from app.database import CheckIn
+    from tests.conftest import TestingSession, user_by_email
 
     r = client.post("/auth/register", json={
         "email": "journey@test.dev", "password": "password123", "display_name": "J",
@@ -157,10 +157,10 @@ def test_journey_derived_from_check_ins(client):
 
     # Seed 3 consecutive days ending today, directly in the DB
     db = TestingSession()
-    uid = db.query(User).filter(User.email == "journey@test.dev").first().id
+    uid = user_by_email(db, "journey@test.dev").id
     for i in (2, 1, 0):
         db.add(CheckIn(
-            user_id=uid, date=(date.today() - timedelta(days=i)).isoformat(),
+            user_id=uid, date=date.today() - timedelta(days=i),
             prompt_id="p1", prompt_question="q", option="ok",
         ))
     db.commit()
@@ -175,7 +175,7 @@ def test_journey_derived_from_check_ins(client):
     # A gap breaks the streak but not the count
     db = TestingSession()
     db.add(CheckIn(
-        user_id=uid, date=(date.today() - timedelta(days=10)).isoformat(),
+        user_id=uid, date=date.today() - timedelta(days=10),
         prompt_id="p1", prompt_question="q", option="ok",
     ))
     db.commit()

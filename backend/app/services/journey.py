@@ -6,6 +6,7 @@ Day number and streak come from the athlete's actual check-in rows:
   (yesterday counts while today is still open)
 """
 from datetime import date, timedelta
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -15,12 +16,13 @@ from app.services.registry import JOURNEY_PHASES, get_phase_for_day
 TOTAL_DAYS = 90
 
 
-def _check_in_dates(db: Session, user_id: int) -> set[date]:
+def _check_in_dates(db: Session, user_id: UUID) -> set[date]:
+    # `check_ins.date` is a real `date` column now, so no string parsing.
     rows = db.query(CheckIn.date).filter(CheckIn.user_id == user_id).all()
-    return {date.fromisoformat(r[0]) for r in rows}
+    return {r[0] for r in rows}
 
 
-def journey_for(db: Session, user_id: int) -> dict:
+def journey_for(db: Session, user_id: UUID) -> dict:
     dates = _check_in_dates(db, user_id)
     today = date.today()
 
