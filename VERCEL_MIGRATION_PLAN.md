@@ -68,6 +68,25 @@ The signed shared-password session in Phase 0 is a bootstrap control, not the fi
 
 **Committed since:** `d53d186` dependency remediation · `ea2f93f` FastAPI bridge on the UUID/timestamptz baseline · `7235b14` Phase 1 step 6.
 
+### Phase 1 progress — complete
+
+Steps 6–10 are all done; **`web-prototype/` is deleted.** The athlete app is the
+product surface at `/`, the admin portal lives at `/admin/*` behind the proxy
+gate, and both build from one Next.js app in one Vercel project.
+
+- **28 routes** build clean: 11 athlete URLs (+ a catch-all), 7 admin, 9 API, plus `ƒ Proxy (Middleware)`.
+- **Verified against a running production build**, not the diff: every athlete route 200s, `/nope` 404s, all six privileged admin paths 307 to `/admin/login`, the §6.1 forged `admin_session=authenticated` cookie still redirects, and `POST /api/login {}` does not authenticate.
+- **111 automated checks**: 25 Vitest (proxy matcher, admin session, registry parity) + 86 pytest. `tsc`, `eslint`, `drizzle-kit check`, and `npm run check:audit` (0 vulnerabilities) all clean.
+- Fonts are self-hosted; zero requests to Google's font CDN.
+- What the port could not carry over verbatim — UUID ids, prerender-safe storage access, the lost `navigate(state)` channel, revocable sign-out, and five more — is in **§4.1**. Read that before reviewing the diff.
+
+**Not done, and deliberately so:** athlete pages are still client components
+fetching from the browser, and athlete auth is still a bearer token while the
+admin uses a signed cookie. Both convert alongside the Phase 2 Route Handlers.
+
+**Blocked:** step 10's redeploy, like step 5's smoke deployment, needs the §6.2
+rotation first.
+
 Project settings note: `vercel link` pinned the framework preset to **Services** before the service topology was intentional. The project setting and `vercel.json` now both pin **Next.js**. Phase 2 deliberately switches the same project to Services with explicit Next.js + FastAPI configuration, then returns it to a Next.js-only preset and removes every Python/service-binding residue at cutover.
 
 ### Blocked on you
@@ -107,7 +126,7 @@ Every external dependency found across `third-and-manageable-admin-main/`, `web-
 | 1 | **Render Web Service** `third-and-manageable-api` | `render.yaml:2-11` | FastAPI/Uvicorn REST API | Free tier — **spins down after 15 min idle, ~50s cold start**. $7/mo to fix | ✅ **Migratable** — port to Next.js Route Handlers (recommended), or run as a Vercel Python Function (bridge) |
 | 2 | **Render PostgreSQL** `tm-db` | `render.yaml:18-22` | Primary relational store | Free tier — **free Postgres instances are deleted after 30 days**; $7/mo Basic after | ✅ **Migratable** — Neon Postgres via Vercel Marketplace (free tier, native integration) |
 | 3 | **Next.js admin app** | `third-and-manageable-admin-main/` | Operator dashboard | Not deployed anywhere yet | ✅ **Native** — Next 16.2.12 / React 19.2.3 / Tailwind 4, zero-config on Vercel |
-| 4 | **Vite SPA** `web-prototype` | `web-prototype/` | Redesigned athlete app | Not deployed anywhere (local `vite dev` only) | ✅ **Migratable** — port into Next.js App Router (recommended) or ship as static SPA |
+| 4 | ~~**Vite SPA** `web-prototype`~~ | ~~`web-prototype/`~~ | Redesigned athlete app | Was never deployed (local `vite dev` only) | ✅ **Done** — ported into the App Router at Phase 1 step 7; directory deleted at step 10 |
 | 5 | **Expo / EAS Build** | iOS bundle, `FEATURE_ANALYSIS.md` §5.1 | Native iOS build + App Store submission | EAS free tier / $99/yr Apple Developer | ❌ **Cannot move.** Vercel does not build native binaries. EAS + Apple stay |
 
 ### 1.2 Data Stores
@@ -134,7 +153,7 @@ Every external dependency found across `third-and-manageable-admin-main/`, `web-
 |---|---|---|---|
 | 14 | **Google Gemini API** | `backend/app/services/gemini.py`, `google-generativeai==0.8.3`, model `gemini-1.5-flash` | ✅ **Route through Vercel AI Gateway** — one key, unified billing, observability, provider failover. **Also: `gemini-1.5-flash` is retired — the model ID must be bumped regardless of this migration** |
 | 15 | **Gemini in-app (mobile)** | Original Expo bundle calls Gemini client-side | ⚠️ **Security issue independent of hosting** — an in-app LLM key is extractable from the bundle. Move behind the server `/clipboard` endpoint |
-| 16 | **Google Fonts CDN** | `web-prototype/index.html` `<link>` — Inter, Instrument Serif, JetBrains Mono | ✅ **Eliminable** — `next/font/google` self-hosts at build time. Removes a render-blocking third-party request |
+| 16 | ~~**Google Fonts CDN**~~ | ~~`web-prototype/index.html` `<link>`~~ — Inter, Instrument Serif, JetBrains Mono | ✅ **Eliminated** at Phase 1 step 8. `next/font/google` self-hosts all three (plus Raleway for the admin); the `<link>` and both preconnects are gone |
 
 ### 1.5 Platform Capabilities Currently Unserved
 
@@ -161,12 +180,12 @@ Nothing provides these today; Vercel covers them at no added vendor cost.
 
 **One Next.js app. One Vercel project. One database. One language after the bridge.**
 
-`web-prototype` was a design spike built in a vacuum — it is not a second product to be merged. It contributes screens, design system, and data registries, which get rebuilt on the Next.js foundation that `third-and-manageable-admin-main` already provides. Both are Next 16 / React 19 / Tailwind 4, so component code moves nearly verbatim; the router is the only real work.
+`web-prototype` was a design spike built in a vacuum — it was not a second product to be merged. It contributed screens, design system, and data registries, which were rebuilt on the Next.js foundation that `third-and-manageable-admin-main` already provides. Both were Next 16 / React 19 / Tailwind 4, so component markup moved nearly verbatim. **Done at Phase 1 steps 7–10**; the router was the bulk of the work, but not all of it — see §4.1.
 
 ```
 3rd_and_manageable/
 ├── app/
-│   ├── (athlete)/    check-in · game-plan · clipboard · community · progress · profile · support
+│   ├── (athlete)/    check-in · game-plan · clipboard · community · progress · profile · support · onboarding
 │   ├── admin/        dashboard · users · checkins · community · support · gameplans
 │   │                 (proxy.ts-gated; authoritative checks remain server-side)
 │   └── api/          Route Handlers — ported from FastAPI
@@ -301,11 +320,11 @@ The baseline has never been applied, so it must encode the intended invariants n
 | Directory | Role | Deleted at |
 |---|---|---|
 | `third-and-manageable-admin-main/` | **The foundation.** Promoted to repo root in Phase 0 | — (becomes the app) |
-| `web-prototype/` | Reference for screens, design system, data registries, and the API contract (`src/lib/api.ts`) | **End of Phase 1**, once all 14 routes exist under `app/(athlete)/` and the registries are lifted into `lib/core/` |
+| ~~`web-prototype/`~~ | Reference for screens, design system, data registries, and the API contract (`src/lib/api.ts`) | ~~End of Phase 1~~ — **deleted** at step 10. Screens are in `src/app/(athlete)/`, registries in `src/lib/core/`, the API contract in `src/lib/athlete/api.ts` |
 | `backend/` | Reference for API semantics + the running FastAPI bridge | **End of Phase 2** (step 16), once every route handler is ported and the Vitest suite passes |
 | `render.yaml` | — | Phase 2 step 11, when the bridge goes live |
 
-Rationale: the port is verified *against* these directories, not from memory. `web-prototype/src/lib/api.ts` is the endpoint checklist and `backend/tests/` is the behavioral spec — deleting either early would mean porting blind. Keeping them costs nothing but disk.
+Rationale: the port is verified *against* these directories, not from memory — deleting either early would mean porting blind. `web-prototype/` has served its purpose and is gone; its API client survives as `src/lib/athlete/api.ts`, which is now the Phase 2 endpoint checklist. `backend/tests/` remains the behavioral spec and stays until cutover.
 
 ### Phase 0 — Foundation and safe deployment prerequisites
 1. `git init` at the repo root. **This directory is not a git repository** — Vercel's Git integration, preview deploys, and rollbacks all require one. `web-prototype/` and `backend/` are included in this commit per the lifecycle table above; `node_modules/`, `.venv/`, `dist/`, `*.db`, and `.env` are gitignored.
@@ -326,10 +345,39 @@ Rationale: the port is verified *against* these directories, not from memory. `w
 
 ### Phase 1 — Situate the prototype (goal #1)
 6. ~~Move the existing admin pages under `app/admin/`; add `proxy.ts` gating `/admin/*`.~~ — **done.** Pages live in an `admin/(dashboard)` route group so the layout's redirect does not wrap `/admin/login` and send it to itself; `/admin/login` is excluded from the matcher by negative lookahead for the same reason, matching `login` exactly so a future `/admin/login-history` stays gated. The matcher is a prefix now, so a new admin page is protected when it is added rather than when someone remembers to extend a list. The login page honours the proxy's `?next=`, restricted to same-origin `/admin` paths. `/` redirects to `/admin` until step 7 replaces it. Proxy remains an optimistic routing layer only — layouts, server actions, and Route Handlers repeat authoritative authentication and role checks.
-7. Port `web-prototype`'s 14 react-router routes into `app/(athlete)/`. Same React 19 + Tailwind 4 versions, so component code moves nearly verbatim; the router is the only real work.
-8. Google Fonts `<link>` → `next/font/google` (self-hosted Inter / Instrument Serif / JetBrains Mono).
-9. Lift `src/data/*` registries and `lib/journeyMath.ts` into `lib/core/` — the single source of truth, imported by pages and Route Handlers alike.
-10. Redeploy. `VITE_API_URL` → `NEXT_PUBLIC_API_URL`, still pointing at FastAPI. **Delete `web-prototype/`** — its content now lives in `app/(athlete)/` and `lib/core/`.
+7. ~~Port `web-prototype`'s 14 react-router routes into `app/(athlete)/`.~~ — **done.** It was **12 page components / 11 addressable URLs plus a catch-all**, not 14 routes; the count in this plan was wrong. Structure: `(athlete)/layout.tsx` provides only the auth context, and `(athlete)/(shell)/` adds the sidebar/tab chrome, so `/onboarding` gets the session without the chrome — the split the prototype achieved by keeping it out of `MainLayout`. `/` is now the athlete check-in; the step 6 redirect placeholder is deleted. Component markup moved close to verbatim; the substantive changes were all forced, and are listed in §4.1.
+8. ~~Google Fonts `<link>` → `next/font/google`~~ — **done.** Inter / Instrument Serif / JetBrains Mono are self-hosted and bound to the Tailwind `--font-{sans,serif,mono}` tokens; Raleway is retained as `--font-admin` so the admin portal keeps the typeface it shipped with. Verified against a production server: four `woff2` files served from `/_next/static/media/`, zero requests to `fonts.googleapis.com` or `fonts.gstatic.com`, and both preconnects gone.
+9. ~~Lift `src/data/*` registries and `lib/journeyMath.ts` into `lib/core/`.~~ — **done**, as `journey`, `actions`, `journey-math`, `paths`, `skills`, `checkin`, `personas`, `community`. `lib/core/actions.ts` is the TS source of truth for the fifteen habits (§6.5). The registries carry lucide icon *names* rather than components, matching what the backend already serialises, so `lib/core` stays importable from a Route Handler without dragging `lucide-react` into a server bundle; `components/athlete/icons.tsx` resolves a name to a glyph. `tests/core-registry.test.ts` parses `services/registry.py` and fails on any drift in the action, path, or phase registries — mutation-verified in both directions.
+10. ~~Redeploy. `VITE_API_URL` → `NEXT_PUBLIC_API_URL`. **Delete `web-prototype/`.**~~ — **directory deleted**, `NEXT_PUBLIC_API_URL` documented in `env.example`, and the `tsconfig`/`eslint`/manifest-guard exclusions for it removed. Its brand favicon survives as `src/app/icon.svg`. **The redeploy itself remains blocked on credential rotation** (§6.2), like the step 5 smoke deployment.
+
+### 4.1 What the athlete port could not carry over verbatim
+
+Step 7 was billed as "component code moves nearly verbatim; the router is the
+only real work." That held for markup. Everything below is a change the port
+*forced* — recorded here because each one is a behavioural difference, not a
+refactor, and reviewing the diff alone would not make them obvious.
+
+| What | Why it could not move as-is |
+|---|---|
+| **Integer ids → UUID strings** | The prototype's `api.ts` typed every id as `number`, and the post page called `Number(postId)` on the route param. Against the §3.1 baseline those are `NaN` on every real id. All ids are strings now and the conversions are gone. |
+| **`localStorage` at render time** | Vite only ever rendered in a browser. App Router client components *prerender on the server*, where `localStorage` does not exist — the auth context and both hooks would have thrown at build, and any signed-in athlete would have hydrated against signed-out HTML. State now starts at its signed-out default and storage is read in an effect. |
+| **`navigate(path, { state })`** | react-router carried the artifact "Share to forum" draft in navigation state. `next/navigation` moves URLs only. The draft goes through `sessionStorage` (`lib/athlete/forum-draft.ts`), cleared on read, rather than a query string that would put a paragraph of body text into history and any shared link. |
+| **`useSearchParams` needs a boundary** | `/game-plan` reads `?retake=1`, which opts its subtree into client rendering; it is wrapped in `<Suspense>` so the rest of the route still prerenders. The param is now cleared with `router.replace` after the intake opens, so a refresh cannot reopen it. |
+| **Sign-out was local-only** | The prototype's `signOut` cleared `localStorage`. That makes a token unreachable from one browser, not invalid. It now calls `/auth/logout`, which bumps `auth_version` and kills the token everywhere — the revocation path added when the bridge was ported. |
+| **`getTodaysPrompt()` read the clock at module scope** | Evaluated once during prerender and again on the client, it disagrees across any day boundary the build straddles. It takes the date as an argument now, and the check-in card only renders after mount. |
+| **Effects that set state synchronously** | The React Compiler lint rules that ship with `eslint-config-next` 16 reject it, and they were right to: the profile page kept four form fields in an effect synced from `user`, which silently discarded whatever the athlete had typed if a background `/auth/me` refresh landed mid-edit. Edits are one nullable `form` object now, seeded when editing opens. Data fetches moved into cancellable async effects, which also closes the unmount race. |
+| **404 loses the tab bar** | react-router matched `*` *inside* the layout. `app/not-found.tsx` is the root boundary and covers `/admin/*` too, so it cannot assume the athlete shell or its auth context. It is a self-contained page with a link home. |
+
+Two dependencies came with the port: `clsx` (already used throughout the
+prototype's markup) and `html-to-image` (the artifact PNG export). Both are
+zero-dependency, so `npm audit --omit=dev` stays at 0.
+
+Deliberately unchanged: these pages are still client components that fetch from
+the browser, and athlete auth is still a client-held bearer token while the
+admin uses a signed cookie. Converting data fetching to server components and
+unifying the two auth mechanisms is its own step, alongside the Phase 2 Route
+Handlers — doing it inside the router move would have made any bug ambiguous
+between the two changes, against a backend that is about to be replaced anyway.
 
 ### Phase 2 — Migrate the backend (goal #2)
 
@@ -337,7 +385,7 @@ Rationale: the port is verified *against* these directories, not from memory. `w
 
 11. **Bridge:** configure Next.js and FastAPI as Services in the **existing single Vercel project**, with shared deployments/env and a private Next.js → FastAPI Service Binding. Apply the two §2.2 fixes (move startup migration/seed work to an explicit release step; use Neon's pooler endpoint). **Delete `render.yaml`. Render bill → $0**, and the 30-day free-Postgres deletion clock stops.
 12. Port `backend/app/services/{skills,journey,registry}.py` → `lib/core/`. Pure functions with 3 registry-contract tests already covering them — port the tests first.
-13. Port the 7 route modules to Route Handlers under `app/api/`, one at a time, cutting traffic over per route while the Python bridge serves the rest. The API contract is fully specified by `web-prototype/src/lib/api.ts` (148 lines, every endpoint typed) — that file is the porting checklist.
+13. Port the 7 route modules to Route Handlers under `app/api/`, one at a time, cutting traffic over per route while the Python bridge serves the rest. The API contract is fully specified by `src/lib/athlete/api.ts` (ported from the prototype's client at step 7, every endpoint typed) — that file is the porting checklist.
 14. Gemini → Vercel AI Gateway. Keep `SAFETY_TEMPLATE` and `_summarize_adaptation` verbatim; **bump off the retired `gemini-1.5-flash`.**
 15. Port the 20 pytest cases to Vitest. Do not retire a Python route until its replacement passes.
 16. Cut over the final route, then remove all FastAPI residue in one verified change: **`backend/`**, Python lock/requirements and build commands, Services entry/binding/route configuration, bridge-only env vars, include/exclude globs, health checks, generated caches, and any Vercel project framework/preset overrides. Rebuild and inspect the deployment manifest to prove the project is Next.js-only. **One project, one deployment, one language.**

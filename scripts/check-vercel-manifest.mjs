@@ -53,8 +53,10 @@ const forbidden = [
             ) || /\.tsbuildinfo$/i.test(path),
     },
     {
+        // `web-prototype/` was the other entry here until Phase 1 step 10
+        // deleted it. `backend/` stays until the Phase 2 bridge retirement.
         description: "reference application not part of the current deployment",
-        matches: (path) => /^(?:backend|web-prototype)\//.test(path),
+        matches: (path) => /^backend\//.test(path),
     },
     {
         description: "local tooling or non-runtime business artifact",
