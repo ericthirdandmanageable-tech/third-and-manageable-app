@@ -1,10 +1,12 @@
 import os
 import re
 
-# Resolve the frontend paths.ts relative to this backend/ dir.
+# Resolve the frontend paths.ts relative to this backend/ dir. It moved from
+# `web-prototype/src/data/` to `src/lib/core/` at Phase 1 steps 9-10, when the
+# prototype was absorbed and deleted.
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_PATHS = os.path.normpath(
-    os.path.join(BACKEND_DIR, "..", "web-prototype", "src", "data", "paths.ts")
+    os.path.join(BACKEND_DIR, "..", "src", "lib", "core", "paths.ts")
 )
 
 
@@ -12,13 +14,18 @@ def _frontend_path_ids():
     """Parse path ids out of the frontend WORK_PATHS registry.
 
     The frontend registry is the canonical content source; this test asserts
-    the backend registry mirrors it. We parse the id: '...' lines rather than
-    import TS.
+    the backend registry mirrors it. We parse the `id:` lines rather than
+    import TS. `tests/core-registry.test.ts` checks the same agreement from
+    the other side, and additionally pins order, names, and fit ratings — but
+    this suite has to stand on its own, because pytest runs without Vitest.
     """
     with open(FRONTEND_PATHS) as f:
         src = f.read()
-    # ids are declared as  id: 'consulting',  inside each registry entry.
-    return set(re.findall(r"^\s*id:\s*'([a-z0-9_]+)'\s*,", src, flags=re.M))
+    # ids are declared as  id: "consulting",  inside each registry entry, and
+    # never inside the interface (`id: string;` has no quotes and no comma).
+    ids = set(re.findall(r"""^\s*id:\s*["']([a-z0-9_]+)["']\s*,""", src, flags=re.M))
+    assert ids, f"parsed no path ids from {FRONTEND_PATHS} — has its shape changed?"
+    return ids
 
 
 def _backend_path_ids():
