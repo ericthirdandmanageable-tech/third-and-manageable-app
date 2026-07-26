@@ -64,7 +64,9 @@ The signed shared-password session in Phase 0 is a bootstrap control, not the fi
 - Bootstrap auth now fails closed unless a 16+ byte password and 32+ byte signing secret exist. It uses constant-time password comparison and an 8-hour signed `HttpOnly; SameSite=Strict` session whose key changes when either secret rotates. The old `admin_session=authenticated` cookie is ignored and cleared.
 - `src/proxy.ts` gates the current admin page routes; dashboard layouts and all seven privileged handlers keep their independent server-side checks.
 - Unit, build, and live regression checks prove missing configuration → 503/no cookie, old/forged/tampered cookies → redirect, wrong password → 401, and a valid signed cookie is the only token that reaches the data layer.
-- Next.js is updated from 16.1.6 to 16.2.12 and Firebase Admin from 13.6.1 to 14.2.0. This removed the audit's critical production findings, but `npm audit --omit=dev` still reports 16 transitive/runtime entries (10 high, 5 moderate, 1 low), mainly in Firebase/Google and current Next image/CSS dependencies. Do not use npm's suggested downgrade to Next 9/Firebase 10; remove Firebase at the compatibility gate, take upstream patches, and complete an applicability/risk review before go-live.
+- Next.js is updated from 16.1.6 to 16.2.12 and Firebase Admin from 13.6.1 to 14.2.0, which removed the critical production findings. The remaining 16 were then cleared with `overrides` — see technical go-live blocker 1 above, which is now closed.
+
+**Committed since:** `d53d186` dependency remediation · `ea2f93f` FastAPI bridge on the UUID/timestamptz baseline · `7235b14` Phase 1 step 6.
 
 Project settings note: `vercel link` pinned the framework preset to **Services** before the service topology was intentional. The project setting and `vercel.json` now both pin **Next.js**. Phase 2 deliberately switches the same project to Services with explicit Next.js + FastAPI configuration, then returns it to a Next.js-only preset and removes every Python/service-binding residue at cutover.
 
@@ -84,8 +86,13 @@ Project settings note: `vercel link` pinned the framework preset to **Services**
 
 ### Technical go-live blockers
 
-1. **Production dependency audit is not clean.** Critical findings are gone after the Next/Firebase upgrades, but the remaining current-version findings need upstream updates, Firebase removal, or a documented applicability/risk decision. HIPAA go-live cannot rely on an unexplained `npm audit` exception list.
-2. **The FastAPI bridge still models integer IDs and naive timestamps.** Before it touches the revised baseline, update SQLAlchemy/Pydantic/JWT subjects to UUIDs and UTC-aware datetimes, then run the shared contract suite.
+1. ~~**Production dependency audit is not clean.**~~ — **resolved.** `npm audit --omit=dev` reports **0**, down from 16 (10 high, 5 moderate, 1 low). Every finding was transitive under `firebase-admin` or `next`, both already on their latest release, so npm's own suggested fix was a downgrade to `firebase-admin@10.3.0` / `next@9.3.3` — which this plan rules out. `overrides` pin the patched transitive versions instead: postcss and sharp under `next`; uuid and the brace-expansion/minimatch/glob/rimraf/gaxios/`@tootallnate/once` chain under `firebase-admin`. The whole `firebase-admin` block disappears at the §2.3 retirement gate.
+   - `npm run check:audit` fails the production audit at `--audit-level=low`, so this cannot silently regress into the unexplained exception list §6.8 prohibits. Re-check the overrides on every `next`/`firebase-admin` bump and drop entries upstream has caught up to.
+   - **Residual, dev-only:** the full audit is 63 → 17. What remains is a single `ajv` ReDoS (`GHSA-2g4f-4pwh-qvx6`, moderate, `$data` schemas) reached only through `@vercel/static-config`, which validates *our own* config at build time and is not attacker-controlled. It is not overridable globally — forcing ajv 8 breaks ESLint's own, unaffected, ajv 6 — and npm's nested override syntax does not match this graph. Dev tooling does not ship: the manifest guard proves the upload is runtime source only.
+2. ~~**The FastAPI bridge still models integer IDs and naive timestamps.**~~ — **resolved.** The bridge is ported onto the §3.1 baseline: UUID primary keys and JWT subjects, `timestamptz` everywhere via a `UtcDateTime` decorator that rejects naive values at the boundary, `date` for `check_ins.date` and `action_completions.week_of`, email in `user_emails` and the password hash in `password_credentials`, and the polymorphic `votes` table split into FK-backed `post_votes`/`comment_votes`. Startup no longer runs `create_all` + `alembic stamp` + `seed_forums` (§2.2 blocker 1) — Drizzle owns the schema, `python -m app.seed` owns seed data, and Alembic is deleted.
+   - Shared contract suite: **20 → 86 tests.** `tests/test_schema_contract.py` parses the generated baseline SQL and fails if a bridge column is missing from it, compiles to an incompatible type, is a naive datetime, or is an integer primary key — each verified by mutation. SQLite foreign keys are enforced in tests, so the suite no longer passes on constraints Postgres would reject.
+   - Defects the baseline exposed and this fixed: §6.3 moderation flags now actually lock accounts; `week_of` held a bare ISO week *number*, so the same week of different years collided; `/game-plan` reported every action ever completed as done this week; `seed_forums` inserted a post with `author_id=1`, writable only because the column had no integrity behind it; tokens could not be revoked (now `auth_version` + `/auth/logout`).
+   - §6.5 is resolved **in the bridge** — `action_completions.category` is NOT NULL, which forced it. See §6.5.
 
 ---
 
@@ -220,8 +227,8 @@ Vercel's Python runtime serves ASGI apps. `api/index.py` re-exporting `app` from
 
 Two required fixes before that works:
 
-- `backend/app/main.py:21-43` runs `create_all` + `alembic stamp` + `seed_forums` inside `@app.on_event("startup")`. On serverless that fires on **every cold start**. Move to a build-step migration + one-off seed script.
-- Neon's TCP **pooler** endpoint must be used, not the direct endpoint — serverless functions exhaust direct connections.
+- ~~`backend/app/main.py:21-43` runs `create_all` + `alembic stamp` + `seed_forums` inside `@app.on_event("startup")`.~~ — **done.** The startup hook is gone; Drizzle owns the schema and `python -m app.seed` is the explicit, idempotent seed step.
+- Neon's TCP **pooler** endpoint must be used, not the direct endpoint — serverless functions exhaust direct connections. Still to wire at step 11: the bridge reads `DATABASE_URL`, which must be the pooled URL, with `DATABASE_URL_UNPOOLED` reserved for migrations as `drizzle.config.ts` already does.
 
 Use this only as a bridge. It leaves two languages and the duplicated rule engines in place, which works against goal #3.
 
@@ -318,7 +325,7 @@ Rationale: the port is verified *against* these directories, not from memory. `w
    access is blocked.
 
 ### Phase 1 — Situate the prototype (goal #1)
-6. Move the existing admin pages under `app/admin/`; add `proxy.ts` gating `/admin/*`. Proxy is an optimistic routing layer only—layouts, server actions, and Route Handlers repeat authoritative authentication and role checks.
+6. ~~Move the existing admin pages under `app/admin/`; add `proxy.ts` gating `/admin/*`.~~ — **done.** Pages live in an `admin/(dashboard)` route group so the layout's redirect does not wrap `/admin/login` and send it to itself; `/admin/login` is excluded from the matcher by negative lookahead for the same reason, matching `login` exactly so a future `/admin/login-history` stays gated. The matcher is a prefix now, so a new admin page is protected when it is added rather than when someone remembers to extend a list. The login page honours the proxy's `?next=`, restricted to same-origin `/admin` paths. `/` redirects to `/admin` until step 7 replaces it. Proxy remains an optimistic routing layer only — layouts, server actions, and Route Handlers repeat authoritative authentication and role checks.
 7. Port `web-prototype`'s 14 react-router routes into `app/(athlete)/`. Same React 19 + Tailwind 4 versions, so component code moves nearly verbatim; the router is the only real work.
 8. Google Fonts `<link>` → `next/font/google` (self-hosted Inter / Instrument Serif / JetBrains Mono).
 9. Lift `src/data/*` registries and `lib/journeyMath.ts` into `lib/core/` — the single source of truth, imported by pages and Route Handlers alike.
@@ -405,8 +412,10 @@ a temporary bootstrap secret only.
 
 ⚠️ **Still required of you, outside the repo:** the exposed values were live before sanitization and must be **rotated at the source** — change the admin password, and revoke + reissue the Firebase service-account key in the Firebase Console. Sanitizing the file does not invalidate a credential that already leaked.
 
-### 6.3 Moderation flags are decorative
-Per §3 — `suspended` / `banned` / `chat_banned` are written by the admin portal and read by nothing. Add enforcement alongside the columns.
+### 6.3 Moderation flags are decorative — **fixed in the bridge**
+Per §3 — `suspended` / `banned` / `chat_banned` were written by the admin portal and read by nothing, so banning a user did nothing at all.
+
+`get_current_user` now returns 403 for a `banned` or `suspended` account on every authenticated request *and* at login, so an already-issued token cannot outlive the ban; `require_verified` additionally blocks `chat_banned` from Community while leaving the rest of the app reachable. Covered by `backend/tests/test_bridge_compat.py`. Re-verify when the routes are ported to TypeScript in Phase 2 step 13 — this enforcement has to survive the port, not be reintroduced after it.
 
 ### 6.4 Email exposure in community content
 `FEATURE_ANALYSIS.md` §1.4 — full user emails visible inside the Global Athlete Room. The new `posts`/`comments` schema stores `author_name` only, which fixes this by construction. Verify during the Firestore export that no email leaks into migrated message bodies.
@@ -424,6 +433,8 @@ These are not two copies of one model — they are two different models. The adm
 - Add a `category` column to `action_completions` (the admin groups by it), and keep `action_id` as the stable string key.
 - `web-prototype/src/data/journey.ts` `WEEKLY_ACTIONS` is likewise replaced, not ported — its `a1`–`a4` entries and their `kind` values (`REFLECTION` / `SKILL REP` / `WORLD REP`) are superseded by the category taxonomy.
 - Any existing `action_completions` rows written against `a1`–`a4` need remapping or discarding. The dev SQLite DB has some; the Firestore `completions` collection already uses the fifteen-key taxonomy, so **the retained CWRU data migrates cleanly** — it is the backend that was the outlier.
+
+**Status: done in the bridge.** `backend/app/services/registry.py` now defines the fifteen categorized habits and `category_for_action`; `/game-plan/actions/toggle` rejects any id outside the taxonomy and writes `action_completions.category`. This was not optional sequencing — `category` is NOT NULL in the baseline, so the bridge could not insert a completion at all without choosing the taxonomy. Still outstanding for Phase 1 step 9: `lib/core/actions.ts`, the TypeScript single source of truth that both the pages and the ported Route Handlers import.
 
 This does tension against `REDESIGN_BRIEF`'s "keep it simple — one action, one mindset prompt, one habit." Fifteen actions is the data model; the UI can still surface one at a time. Worth revisiting as a UI question later, but it does not change the schema.
 
