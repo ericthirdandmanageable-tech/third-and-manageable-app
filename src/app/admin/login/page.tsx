@@ -54,7 +54,7 @@ function LoginForm() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white font-admin p-4">
             <div className="w-full max-w-sm">
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
                     <div className="text-center mb-8">

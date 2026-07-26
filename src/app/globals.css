@@ -1,27 +1,128 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+    /* Typography — three voices: UI sans / editorial serif / data mono.
+       Self-hosted by `next/font/google` in app/layout.tsx, which sets these
+       CSS variables; nothing is fetched from fonts.googleapis.com at runtime. */
+    --font-sans: var(--font-inter), system-ui, sans-serif;
+    --font-serif: var(--font-instrument-serif), Georgia, serif;
+    --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+    /* The admin portal keeps the typeface it shipped with. It is a different
+       surface with a different audience, and the athlete design system was
+       never drawn for it — `font-admin` on its layouts is the whole opt-in. */
+    --font-admin: var(--font-raleway), system-ui, sans-serif;
+
+    /* Surfaces — near-black layered dark */
+    --color-bg-base: #0b0c0e;
+    --color-bg-surface: #14161a;
+    --color-bg-elevated: #1c1f26;
+    --color-border-subtle: #262a33;
+
+    /* Text — warm whites */
+    --color-text-primary: #f4f2ec;
+    --color-text-secondary: #9ba1ac;
+    --color-text-tertiary: #5c6370;
+
+    /* Accent — volt: a signal, not a wash */
+    --color-volt: #c8f04b;
+    --color-volt-ink: #11130a;
+
+    /* Editorial — sand, for words that matter */
+    --color-sand: #e8dcc8;
+
+    /* Data hues — metric contexts only */
+    --color-sleep: #8b93f8;
+    --color-activity: #f0854b;
+    --color-hrv: #e86a8a;
+
+    --color-danger: #e5484d;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-raleway);
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+@layer base {
+    body {
+        @apply bg-bg-base text-text-primary antialiased font-sans;
+    }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---------- Signature elements ---------- */
+
+/* The Yard Line — 1px volt gradient rule under headers and on artifacts */
+.yard-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-volt), transparent);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-raleway), Arial, Helvetica, sans-serif;
+/* Film grain — one notch from invisible, hero/artifact surfaces only */
+.grain {
+    position: relative;
+}
+.grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-rise {
+    animation: rise 300ms ease-out both;
+}
+
+@keyframes disclosure {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-disclosure {
+    animation: disclosure 250ms ease-out both;
+}
+
+@keyframes fill-bar {
+    from {
+        width: 0;
+    }
+}
+.animate-fill {
+    animation: fill-bar 800ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-rise,
+    .animate-disclosure,
+    .animate-fill {
+        animation: none;
+    }
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    @apply bg-bg-elevated rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-border-subtle;
 }
