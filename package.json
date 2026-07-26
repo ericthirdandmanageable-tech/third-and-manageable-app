@@ -7,17 +7,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:auth": "vitest run tests/admin-session.test.ts",
+    "check:vercel-manifest": "node scripts/check-vercel-manifest.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:test:neon": "vercel --scope ling-iq env run -e development -- node scripts/test-neon-baseline.mjs",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
     "@opentelemetry/api": "^1.9.0",
     "drizzle-orm": "^0.45.2",
-    "firebase-admin": "^13.6.1",
+    "firebase-admin": "^14.2.0",
     "lucide-react": "^0.574.0",
-    "next": "16.1.6",
+    "next": "^16.2.12",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
@@ -28,8 +32,10 @@
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "^16.2.12",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^57.0.0",
+    "vitest": "^4.1.10"
   }
 }

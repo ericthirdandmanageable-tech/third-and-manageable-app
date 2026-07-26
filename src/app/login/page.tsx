@@ -24,7 +24,11 @@ export default function LoginPage() {
                 router.push("/");
                 router.refresh();
             } else {
-                setError("Invalid password");
+                setError(
+                    res.status === 503
+                        ? "Admin sign-in is not configured."
+                        : "Invalid credentials.",
+                );
             }
         } catch {
             setError("An error occurred");

@@ -1,0 +1,53 @@
+# This project currently deploys only the root Next.js application.
+# Phase 2 must deliberately revise this file when FastAPI becomes a Vercel Service.
+
+# Local/private configuration
+.env
+.env.*
+!.env.example
+!env.example
+**/.env
+**/.env.*
+**/*firebase-adminsdk*.json
+**/*.pem
+
+# VCS, agent, editor, and platform state
+.git/
+.github/
+.claude/
+.vercel/
+.idea/
+.vscode/
+AGENTS.md
+.DS_Store
+
+# Dependencies, builds, caches, and local databases
+**/node_modules/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.next/
+**/dist/
+**/build/
+**/coverage/
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.tsbuildinfo
+next-env.d.ts
+
+# Reference implementations and non-runtime artifacts
+backend/
+web-prototype/
+business proposal/
+kickbacks-v2.vsix
+render.yaml
+
+# Migration/dev/test material is not needed by the running Next.js app
+drizzle/
+drizzle.config.ts
+scripts/
+tests/
+*.md
+env.example
