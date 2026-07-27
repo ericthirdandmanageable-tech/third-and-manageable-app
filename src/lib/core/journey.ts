@@ -25,9 +25,9 @@ export const getPhaseForDay = (day: number) =>
     JOURNEY_PHASES.find((p) => day >= p.startDay && day <= p.endDay) ??
     JOURNEY_PHASES[0];
 
-/* Placeholder journey state — in production derived from check-in history. */
+/* Honest pre-history state; authenticated values are derived from check-ins. */
 export const JOURNEY = {
-    day: 14,
+    day: 1,
     totalDays: 90,
-    streak: 14,
+    streak: 0,
 };

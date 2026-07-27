@@ -192,10 +192,6 @@ export default function PathDetailPage() {
                                 {forum.title}
                             </h3>
                             <p className="text-[13px] text-text-secondary">{forum.description}</p>
-                            <p className="font-mono text-[11px] text-text-tertiary mt-1">
-                                <span className="text-volt">{forum.activeNow} active</span> ·{" "}
-                                {forum.memberCount} members
-                            </p>
                         </div>
                     </div>
                 </button>

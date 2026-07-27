@@ -10,9 +10,11 @@ import {
     LogOut,
     Pencil,
     RefreshCw,
+    Route,
     Sparkles,
     Target,
     TrendingUp,
+    Watch,
     X,
 } from "lucide-react";
 import clsx from "clsx";
@@ -316,6 +318,58 @@ export default function ProfilePage() {
                 )}
             </section>
 
+            {/* Connection center: these are capability states, not fabricated
+                readings or pretend OAuth success. */}
+            <section
+                id="connections"
+                className="mb-6 scroll-mt-6 rounded-[20px] border border-border-subtle bg-bg-surface p-6 md:p-8"
+            >
+                <div className="mb-5">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-tertiary">
+                        Training data · 0 connected
+                    </p>
+                    <h2 className="mt-1 text-xl font-semibold text-text-primary">Data connections</h2>
+                    <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+                        Third &amp; Manageable never invents wellness data. These sources stay empty
+                        until the required client integration is live and you grant access.
+                    </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-4">
+                        <div className="flex items-start gap-3">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sleep/10 text-sleep">
+                                <Watch className="h-4 w-4" />
+                            </span>
+                            <div>
+                                <p className="text-[14px] font-semibold text-text-primary">Apple Health</p>
+                                <p className="mt-0.5 text-[12px] leading-relaxed text-text-tertiary">
+                                    HealthKit access must be granted inside the future iPhone app.
+                                </p>
+                            </div>
+                        </div>
+                        <span className="mt-4 inline-flex rounded-full border border-border-subtle px-3 py-1 font-mono text-[9px] uppercase tracking-wider text-text-tertiary">
+                            Not connected
+                        </span>
+                    </div>
+                    <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-4">
+                        <div className="flex items-start gap-3">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-activity/10 text-activity">
+                                <Route className="h-4 w-4" />
+                            </span>
+                            <div>
+                                <p className="text-[14px] font-semibold text-text-primary">Strava</p>
+                                <p className="mt-0.5 text-[12px] leading-relaxed text-text-tertiary">
+                                    OAuth client credentials and a token callback are required.
+                                </p>
+                            </div>
+                        </div>
+                        <span className="mt-4 inline-flex rounded-full border border-border-subtle px-3 py-1 font-mono text-[9px] uppercase tracking-wider text-text-tertiary">
+                            Not connected
+                        </span>
+                    </div>
+                </div>
+            </section>
+
             {/* ——— Journey snapshot ——— */}
             <section className="grid grid-cols-3 gap-4 mb-6">
                 {[
@@ -357,7 +411,7 @@ export default function ProfilePage() {
                     <button
                         onClick={async () => {
                             await signOut();
-                            router.push("/");
+                            router.push("/login");
                         }}
                         className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-bg-elevated transition-colors"
                     >

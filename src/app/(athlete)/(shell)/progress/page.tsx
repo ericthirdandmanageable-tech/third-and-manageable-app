@@ -15,8 +15,8 @@ import { api, authStorage } from "@/lib/athlete/api";
 import { useAuth } from "@/lib/athlete/auth";
 import { useCheckIns } from "@/lib/athlete/use-checkins";
 import { useGamePlan } from "@/lib/athlete/use-game-plan";
-import { WEEKLY_ACTIONS } from "@/lib/core/actions";
 import { JOURNEY_PHASES } from "@/lib/core/journey";
+import { calendarDaysBetween } from "@/lib/core/journey-math";
 import { getPath } from "@/lib/core/paths";
 
 /*
@@ -61,14 +61,8 @@ export default function ProgressPage() {
     const filledDays = useMemo(() => {
         if (!history.length) return new Set<number>();
         const first = history.map((e) => e.date).reduce((a, b) => (a < b ? a : b));
-        const t0 = new Date(first + "T00:00:00").getTime();
         return new Set(
-            history.map(
-                (e) =>
-                    Math.floor(
-                        (new Date(e.date + "T00:00:00").getTime() - t0) / 86_400_000,
-                    ) + 1,
-            ),
+            history.map((e) => calendarDaysBetween(first, e.date) + 1),
         );
     }, [history]);
 
@@ -274,7 +268,7 @@ export default function ProgressPage() {
                     <WeeklyRecapCard
                         streak={streak}
                         completed={data.completedActionIds.length}
-                        total={data.weeklyActions.length || WEEKLY_ACTIONS.length}
+                        total={data.weeklyActions.length}
                     />
                     {data.intakeDone && <SkillMapCard entries={data.skillMap} />}
                     {data.committedPathId && (

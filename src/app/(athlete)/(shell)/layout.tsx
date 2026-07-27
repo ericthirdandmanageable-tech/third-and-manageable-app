@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
     CheckSquare,
     ClipboardList,
     LifeBuoy,
-    LogIn,
     Target,
     TrendingUp,
     UserRound,
@@ -15,8 +14,9 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 
-import AuthModal from "@/components/athlete/AuthModal";
+import { api } from "@/lib/athlete/api";
 import { useAuth } from "@/lib/athlete/auth";
+import { getCommunityTheme } from "@/lib/core/community-theme";
 
 const navItems = [
     { to: "/", icon: CheckSquare, label: "Check-in" },
@@ -42,8 +42,72 @@ const isActive = (pathname: string, to: string) =>
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const { user } = useAuth();
-    const [authOpen, setAuthOpen] = useState(false);
+    const { user, loading } = useAuth();
+    const [intakeGate, setIntakeGate] = useState<{
+        userId: string | null;
+        state: "ready" | "needs-onboarding" | "unavailable";
+    }>({ userId: null, state: "unavailable" });
+    const [intakeAttempt, setIntakeAttempt] = useState(0);
+    const intakeState =
+        user && intakeGate.userId === user.id ? intakeGate.state : "loading";
+    const inCommunity = pathname.startsWith("/community");
+    const communityTheme = getCommunityTheme(user?.school);
+
+    useEffect(() => {
+        if (loading || user) return;
+        const next = pathname === "/" ? "" : `?next=${encodeURIComponent(pathname)}`;
+        router.replace(`/login${next}`);
+    }, [loading, pathname, router, user]);
+
+    useEffect(() => {
+        if (loading || !user) return;
+        let cancelled = false;
+        (async () => {
+            const plan = await api.getGamePlan();
+            if (cancelled) return;
+            if (!plan) setIntakeGate({ userId: user.id, state: "unavailable" });
+            else if (plan.intake_done) {
+                setIntakeGate({ userId: user.id, state: "ready" });
+            }
+            else {
+                setIntakeGate({ userId: user.id, state: "needs-onboarding" });
+                router.replace("/onboarding");
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [intakeAttempt, loading, router, user]);
+
+    if (loading || !user || intakeState !== "ready") {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-bg-base">
+                <div className="text-center">
+                    <p className="font-serif text-2xl italic text-sand">Third &amp; Manageable</p>
+                    <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-text-tertiary">
+                        {loading || (user && intakeState === "loading")
+                            ? "Loading your season…"
+                            : !user
+                              ? "Taking you to sign in…"
+                              : intakeState === "needs-onboarding"
+                                ? "Taking you to onboarding…"
+                                : "Your season could not be loaded"}
+                    </p>
+                    {user && intakeState === "unavailable" && (
+                        <button
+                            onClick={() => {
+                                setIntakeGate({ userId: null, state: "unavailable" });
+                                setIntakeAttempt((attempt) => attempt + 1);
+                            }}
+                            className="mt-5 rounded-full bg-volt px-5 py-2.5 text-sm font-semibold text-volt-ink"
+                        >
+                            Try again
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen bg-bg-base overflow-hidden">
@@ -89,54 +153,39 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 </div>
                 {/* Account — the whole block opens the Profile page */}
                 <div className="p-4 border-t border-border-subtle">
-                    {user ? (
-                        <button
-                            onClick={() => router.push("/profile")}
-                            className="flex items-center gap-3 w-full text-left rounded-lg hover:bg-bg-elevated p-1 -m-1 transition-colors group"
-                        >
-                            <div className="w-9 h-9 rounded-full bg-volt/10 flex items-center justify-center font-mono text-[12px] text-volt shrink-0">
-                                {user.display_name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[14px] font-semibold text-text-primary truncate group-hover:text-volt transition-colors">
-                                    {user.display_name}
-                                </p>
-                                <p className="text-[12px] text-text-tertiary truncate">
-                                    {user.headline ?? "View profile"}
-                                </p>
-                            </div>
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => setAuthOpen(true)}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg w-full bg-volt/10 text-volt font-semibold text-[15px] hover:bg-volt/20 transition-all"
-                        >
-                            <LogIn className="w-5 h-5" /> Sign in
-                        </button>
-                    )}
+                    <button
+                        onClick={() => router.push("/profile")}
+                        className="flex items-center gap-3 w-full text-left rounded-lg hover:bg-bg-elevated p-1 -m-1 transition-colors group"
+                    >
+                        <div className="w-9 h-9 rounded-full bg-volt/10 flex items-center justify-center font-mono text-[12px] text-volt shrink-0">
+                            {user.display_name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[14px] font-semibold text-text-primary truncate group-hover:text-volt transition-colors">
+                                {user.display_name}
+                            </p>
+                            <p className="text-[12px] text-text-tertiary truncate">
+                                {user.headline ?? "View profile"}
+                            </p>
+                        </div>
+                    </button>
                 </div>
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 flex flex-col relative">
-                {/* Mobile sign-in banner — takes layout space, so it never overlaps content */}
-                {!user && (
-                    <div className="md:hidden flex items-center justify-between gap-3 px-4 py-2.5 bg-bg-surface border-b border-border-subtle">
-                        <p className="font-mono text-[11px] uppercase tracking-widest text-text-tertiary">
-                            You&apos;re browsing offline
-                        </p>
-                        <button
-                            onClick={() => setAuthOpen(true)}
-                            className="flex items-center gap-1.5 bg-volt/10 text-volt text-[12px] font-semibold px-3 py-1.5 rounded-full shrink-0"
-                        >
-                            <LogIn className="w-3.5 h-3.5" /> Sign in
-                        </button>
-                    </div>
-                )}
+            <main className="relative flex min-w-0 flex-1 flex-col">
                 <div className="flex-1 overflow-y-auto pb-20 md:pb-0">{children}</div>
 
                 {/* Bottom Navigation for Mobile */}
-                <nav className="md:hidden absolute bottom-0 w-full bg-bg-surface border-t border-border-subtle flex justify-around p-2 z-40">
+                <nav
+                    className={clsx(
+                        "md:hidden absolute bottom-0 w-full flex justify-around p-2 z-40 transition-colors",
+                        inCommunity
+                            ? "border-t border-white/15 shadow-[0_-10px_30px_rgba(7,28,79,0.12)]"
+                            : "bg-bg-surface border-t border-border-subtle",
+                    )}
+                    style={inCommunity ? { backgroundColor: communityTheme.primary } : undefined}
+                >
                     {mobileNavItems.map((item) => (
                         <Link
                             key={item.to}
@@ -144,7 +193,13 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                             aria-current={isActive(pathname, item.to) ? "page" : undefined}
                             className={clsx(
                                 "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors",
-                                isActive(pathname, item.to) ? "text-volt" : "text-text-tertiary",
+                                inCommunity
+                                    ? isActive(pathname, item.to)
+                                        ? "text-white"
+                                        : "text-white/55"
+                                    : isActive(pathname, item.to)
+                                      ? "text-volt"
+                                      : "text-text-tertiary",
                             )}
                         >
                             <item.icon className="w-6 h-6" />
@@ -153,8 +208,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                     ))}
                 </nav>
             </main>
-
-            {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
         </div>
     );
 }

@@ -22,6 +22,21 @@ function GamePlan() {
      * navigation doesn't reopen the intake. `replace` keeps it out of history. */
     const clearRetake = () => router.replace("/game-plan");
 
+    if (data.loading) {
+        return (
+            <div className="mx-auto max-w-3xl p-6 md:p-10">
+                <div className="rounded-[20px] border border-border-subtle bg-bg-surface p-10 text-center grain">
+                    <p className="font-serif text-2xl italic text-sand">
+                        Loading your game plan…
+                    </p>
+                    <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-text-tertiary">
+                        Bringing in your real baseline
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     const phaseIndex = JOURNEY_PHASES.findIndex((p) => p.id === data.phase.id);
     const journeyPct = Math.round((data.day / data.totalDays) * 100);
     const committedPath = getPath(data.committedPathId ?? undefined);
@@ -138,6 +153,12 @@ function GamePlan() {
                                     )}
                                 </div>
                             ))}
+                            {data.skillMap.length === 0 && (
+                                <p className="rounded-2xl border border-dashed border-border-subtle bg-bg-elevated px-5 py-6 text-center text-[13px] leading-relaxed text-text-tertiary">
+                                    Your intake is saved, but there are no skill translations yet.
+                                    Retake the intake or try again after the service reconnects.
+                                </p>
+                            )}
                         </div>
                     </>
                 )}
@@ -238,6 +259,12 @@ function GamePlan() {
                             </button>
                         );
                     })}
+                    {data.pathFit.length === 0 && (
+                        <p className="rounded-2xl border border-dashed border-border-subtle bg-bg-surface px-5 py-7 text-center text-[13px] leading-relaxed text-text-tertiary">
+                            No path fits have been generated yet. Nothing is ranked until your
+                            completed intake returns a real result.
+                        </p>
+                    )}
                 </div>
             </section>
 
@@ -296,12 +323,19 @@ function GamePlan() {
                             </button>
                         );
                     })}
+                    {data.weeklyActions.length === 0 && (
+                        <p className="rounded-2xl border border-dashed border-border-subtle bg-bg-elevated px-5 py-6 text-center text-[13px] leading-relaxed text-text-tertiary">
+                            0 actions assigned. Your first weekly reps will appear here after the
+                            plan service creates them.
+                        </p>
+                    )}
                 </div>
-                {data.completedActionIds.length === data.weeklyActions.length && (
+                {data.weeklyActions.length > 0 &&
+                    data.completedActionIds.length === data.weeklyActions.length && (
                     <p className="text-center text-[15px] text-volt mt-6 animate-disclosure">
                         You crushed today&apos;s action. One step closer to your next chapter.
                     </p>
-                )}
+                    )}
             </section>
         </div>
     );

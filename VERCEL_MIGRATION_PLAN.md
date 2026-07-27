@@ -18,7 +18,7 @@ Companion documents: `FEATURE_ANALYSIS.md` (feature/architecture inventory), `WE
 |---|---|
 | Backend | Bridge FastAPI onto Vercel Python first, then port to TypeScript route-by-route behind it (§2.2, §7.1) |
 | Repo shape | **One** Next.js app, **one** Vercel project, no monorepo (§2.0) |
-| Bridge topology | Next.js + FastAPI are two Vercel Services in **one project and one shared deployment**; Next.js calls FastAPI through a private Service Binding |
+| Bridge topology | Next.js + FastAPI are two Vercel Services in **one project and one shared deployment**; the browser calls a same-origin `/bridge/*` route that Vercel maps to FastAPI. A private server-only binding cannot serve the current client-side fetches. |
 | Vercel plan | Pro, already held (§5) |
 | Firestore data | **Retain** the CWRU pilot data; scripted export in Phase 3 (§7.2) |
 | Firebase retirement | **Hold.** Do not delete Firebase until the replacement mobile release is adopted, or until a compatibility/token-validation bridge makes old clients safe to retire (§2.3, Phase 3) |
@@ -47,8 +47,8 @@ Deployment `dpl_5ow9wGMVv7hzvAAUURiVednVXdU3` was removed, and Vercel now report
 
 Related, found while checking: `/api/login` compares `password === process.env.ADMIN_PASSWORD`. With the env var unset, a POST that **omits** `password` compares `undefined === undefined` and **succeeds**. Fix alongside §6.1.
 
-**The §6.1 code fix is now complete locally, but Step 5 remains open until that
-fix is committed, configured, and verified in a protected smoke deployment.**
+**The §6.1 code fix is committed on the local branch, but Step 5 remains open
+until it is configured and verified in a protected smoke deployment.**
 Before any redeploy, in order:
 1. Add `.vercelignore` plus a deployment-manifest check that fails if local env files, databases, Python virtual environments, caches, reference apps, or other forbidden residue enter the upload.
 2. Make application auth independently secure: fail closed when secrets are absent, replace the constant cookie with a cryptographically signed session, use `proxy.ts` for early page gating, and retain authoritative authorization checks inside every server action/Route Handler.
@@ -58,7 +58,7 @@ Before any redeploy, in order:
 
 The signed shared-password session in Phase 0 is a bootstrap control, not the final identity system. Before the admin portal handles real data, replace it with the §6.7 Auth.js Google/Apple flow, explicit admin role assignment, revocation, and audit logging.
 
-**Current local security work (not yet committed or deployed):**
+**Current committed security baseline (not yet deployed):**
 
 - `.vercelignore` reduces Vercel's dry-run source manifest from 163 files / 18.6 MB to runtime source only; `npm run check:vercel-manifest` consumes Vercel CLI's own dry-run JSON and rejects secret/env files, databases, caches, reference apps, business artifacts, or a non-Next.js framework.
 - Bootstrap auth now fails closed unless a 16+ byte password and 32+ byte signing secret exist. It uses constant-time password comparison and an 8-hour signed `HttpOnly; SameSite=Strict` session whose key changes when either secret rotates. The old `admin_session=authenticated` cookie is ignored and cleared.
@@ -66,7 +66,7 @@ The signed shared-password session in Phase 0 is a bootstrap control, not the fi
 - Unit, build, and live regression checks prove missing configuration → 503/no cookie, old/forged/tampered cookies → redirect, wrong password → 401, and a valid signed cookie is the only token that reaches the data layer.
 - Next.js is updated from 16.1.6 to 16.2.12 and Firebase Admin from 13.6.1 to 14.2.0, which removed the critical production findings. The remaining 16 were then cleared with `overrides` — see technical go-live blocker 1 above, which is now closed.
 
-**Committed since:** `d53d186` dependency remediation · `ea2f93f` FastAPI bridge on the UUID/timestamptz baseline · `7235b14` Phase 1 step 6.
+**Committed since:** `d53d186` dependency remediation · `ea2f93f` FastAPI bridge on the UUID/timestamptz baseline · `7235b14` Phase 1 step 6 · `de6688c` athlete port · `c8ba5e8` prototype retirement · `490f5df` registry-test fix.
 
 ### Phase 1 progress — complete
 
@@ -76,7 +76,12 @@ gate, and both build from one Next.js app in one Vercel project.
 
 - **28 routes** build clean: 11 athlete URLs (+ a catch-all), 7 admin, 9 API, plus `ƒ Proxy (Middleware)`.
 - **Verified against a running production build**, not the diff: every athlete route 200s, `/nope` 404s, all six privileged admin paths 307 to `/admin/login`, the §6.1 forged `admin_session=authenticated` cookie still redirects, and `POST /api/login {}` does not authenticate.
-- **111 automated checks**: 25 Vitest (proxy matcher, admin session, registry parity) + 86 pytest. `tsc`, `eslint`, `drizzle-kit check`, and `npm run check:audit` (0 vulnerabilities) all clean.
+- **152 automated checks**: 53 Vitest (including login-first NUX and
+  authenticated-shell gating, honest fresh-system defaults, DST calendar math,
+  same-origin bridge routing, auth-transition hydration, university theme
+  selection, proxy/session, and registry parity) + 99 pytest. `tsc`, `eslint`,
+  `drizzle-kit check`, and
+  `npm run check:audit` (0 production vulnerabilities) all clean.
 - Fonts are self-hosted; zero requests to Google's font CDN.
 - What the port could not carry over verbatim — UUID ids, prerender-safe storage access, the lost `navigate(state)` channel, revocable sign-out, and five more — is in **§4.1**. Read that before reviewing the diff.
 
@@ -212,21 +217,34 @@ A single app additionally makes the §2.1 duplication fix as clean as it can get
 
 Domains stay flexible either way: one Vercel project can serve `thirdandmanageable.com` and `admin.thirdandmanageable.com` via a rewrite, so choosing one project now does not commit the URL structure.
 
-**Temporary bridge inside the same project:** configure Next.js and FastAPI as Vercel Services so they build and deploy together. The public Next.js service calls FastAPI through a private Service Binding; do not expose a second public origin merely for inter-service calls. The Python service, binding, dependencies, settings, and project-preset residue are deleted together at the end of Phase 2.
+**Temporary bridge inside the same project:** configure Next.js and FastAPI as
+Vercel Services so they build and deploy together. Athlete fetches currently run
+in the browser, so they use a relative `/bridge/*` URL on the public app origin;
+Vercel must route that prefix to the FastAPI Service. This avoids a second public
+origin and CORS without pretending a private, server-only Service Binding is
+browser-accessible. `next.config.ts` provides the equivalent development proxy.
+The Python service, route, dependencies, settings, and project-preset residue are
+deleted together at the end of Phase 2. **Step 11 remains gated on credentials
+and confirmed Vercel Services access for the LingIQ team.**
 
 ### 2.1 Why one language, not two
 
-The Python backend is ~1,100 lines and it is *already duplicated in TypeScript*. **The duplication is between `backend/` and `web-prototype/` — the admin duplicates none of it** (grepping `third-and-manageable-admin-main/` for `consulting`, `nine_to_five`, `foundation`, `exploration` returns zero hits). Verified identical:
+The Python backend's rule engine was already duplicated in the prototype. Phase
+1 moved that TypeScript copy into `src/lib/core/`, so the temporary duplication
+is now explicitly between `backend/app/services/` and `src/lib/core/`:
 
-| Python | TypeScript mirror that already exists | Verified |
+| Python | Current TypeScript mirror | Verified |
 |---|---|---|
-| `services/journey.py` | `web-prototype/src/lib/journeyMath.ts` — header: *"mirroring backend services/journey.py"* | Same 90-day clamp, same streak rule |
-| `services/registry.py` `JOURNEY_PHASES` | `web-prototype/src/data/journey.ts` | `foundation` 1–30, `exploration` 31–60, `commitment` 61–90 — identical |
-| `services/registry.py` `WEEKLY_ACTIONS` | `web-prototype/src/data/journey.ts` | `a1`–`a4`, identical text down to the em-dash |
-| `services/registry.py` `WORK_PATHS` | `web-prototype/src/data/paths.ts` | `consulting`, `nine_to_five`, `entrepreneurship`, `gig`, `overnight` — identical, same order |
-| `services/skills.py` | `web-prototype/src/data/skills.ts` | Skill translation table |
+| `services/journey.py` | `src/lib/core/journey-math.ts` | Same 90-day clamp and streak rule; TypeScript now uses DST-safe date-only ordinals matching Python `date` arithmetic |
+| `services/registry.py` `JOURNEY_PHASES` | `src/lib/core/journey.ts` | Registry-contract test enforces phase ids/names; TypeScript also owns the day boundaries |
+| `services/registry.py` `WEEKLY_ACTIONS` | `src/lib/core/actions.ts` | Registry-contract test enforces all fifteen ids, categories, kinds, and labels |
+| `services/registry.py` `WORK_PATHS` | `src/lib/core/paths.ts` | Registry-contract test enforces ids, names, and fit ratings |
+| `services/skills.py` | `src/lib/core/skills.ts` | Skill translation table |
 
-There is a runtime drift-detection warning in the codebase because two hand-maintained copies of the same rules already exist. Porting to TypeScript collapses the mirrors into `lib/core/` — **the strongest argument for the port is correctness, not hosting cost.** Killing Render is the bonus.
+`tests/core-registry.test.ts` now catches registry drift in CI; the remaining
+duplication disappears when Route Handlers replace the bridge. **The strongest
+argument for the port is correctness, not hosting cost.** Killing Render is the
+bonus.
 
 The rest of the backend is ordinary CRUD over 12 tables. Direct substitutions:
 
@@ -248,6 +266,15 @@ Two required fixes before that works:
 
 - ~~`backend/app/main.py:21-43` runs `create_all` + `alembic stamp` + `seed_forums` inside `@app.on_event("startup")`.~~ — **done.** The startup hook is gone; Drizzle owns the schema and `python -m app.seed` is the explicit, idempotent seed step.
 - Neon's TCP **pooler** endpoint must be used, not the direct endpoint — serverless functions exhaust direct connections. Still to wire at step 11: the bridge reads `DATABASE_URL`, which must be the pooled URL, with `DATABASE_URL_UNPOOLED` reserved for migrations as `drizzle.config.ts` already does.
+- ~~The browser client needs a deployable route to the bridge without a second
+  origin.~~ — **done locally.** `src/lib/athlete/api.ts` defaults to relative
+  `/bridge`; `next.config.ts` proxies that prefix to local uvicorn; production
+  adds the equivalent Services route at step 11.
+- ~~Production must reject the bridge's development auth defaults.~~ — **done
+  locally.** `backend/app/config.py` fails closed on a default/short
+  `JWT_SECRET`, `AUTO_VERIFY=true`, or wildcard credentialed CORS in production
+  and preview environments. The Python suite covers both rejection and the safe
+  configuration.
 
 Use this only as a bridge. It leaves two languages and the duplicated rule engines in place, which works against goal #3.
 
@@ -327,7 +354,10 @@ The baseline has never been applied, so it must encode the intended invariants n
 Rationale: the port is verified *against* these directories, not from memory — deleting either early would mean porting blind. `web-prototype/` has served its purpose and is gone; its API client survives as `src/lib/athlete/api.ts`, which is now the Phase 2 endpoint checklist. `backend/tests/` remains the behavioral spec and stays until cutover.
 
 ### Phase 0 — Foundation and safe deployment prerequisites
-1. `git init` at the repo root. **This directory is not a git repository** — Vercel's Git integration, preview deploys, and rollbacks all require one. `web-prototype/` and `backend/` are included in this commit per the lifecycle table above; `node_modules/`, `.venv/`, `dist/`, `*.db`, and `.env` are gitignored.
+1. ~~`git init` at the repo root.~~ — **done.** Vercel's Git integration,
+   preview deploys, and rollbacks require it; runtime dependencies were
+   committed while `node_modules/`, `.venv/`, build output, local databases,
+   and env files remain ignored.
 2. Promote `third-and-manageable-admin-main` to the repo root as the single Next.js app. It is the foundation: it is already Next 16 / React 19 / Tailwind 4 and already deployable.
 3. Provision **Neon Postgres** via Vercel Marketplace (free tier). Keep
    `DATABASE_URL` pooled for application runtime and
@@ -348,7 +378,13 @@ Rationale: the port is verified *against* these directories, not from memory —
 7. ~~Port `web-prototype`'s 14 react-router routes into `app/(athlete)/`.~~ — **done.** It was **12 page components / 11 addressable URLs plus a catch-all**, not 14 routes; the count in this plan was wrong. Structure: `(athlete)/layout.tsx` provides only the auth context, and `(athlete)/(shell)/` adds the sidebar/tab chrome, so `/onboarding` gets the session without the chrome — the split the prototype achieved by keeping it out of `MainLayout`. `/` is now the athlete check-in; the step 6 redirect placeholder is deleted. Component markup moved close to verbatim; the substantive changes were all forced, and are listed in §4.1.
 8. ~~Google Fonts `<link>` → `next/font/google`~~ — **done.** Inter / Instrument Serif / JetBrains Mono are self-hosted and bound to the Tailwind `--font-{sans,serif,mono}` tokens; Raleway is retained as `--font-admin` so the admin portal keeps the typeface it shipped with. Verified against a production server: four `woff2` files served from `/_next/static/media/`, zero requests to `fonts.googleapis.com` or `fonts.gstatic.com`, and both preconnects gone.
 9. ~~Lift `src/data/*` registries and `lib/journeyMath.ts` into `lib/core/`.~~ — **done**, as `journey`, `actions`, `journey-math`, `paths`, `skills`, `checkin`, `personas`, `community`. `lib/core/actions.ts` is the TS source of truth for the fifteen habits (§6.5). The registries carry lucide icon *names* rather than components, matching what the backend already serialises, so `lib/core` stays importable from a Route Handler without dragging `lucide-react` into a server bundle; `components/athlete/icons.tsx` resolves a name to a glyph. `tests/core-registry.test.ts` parses `services/registry.py` and fails on any drift in the action, path, or phase registries — mutation-verified in both directions.
-10. ~~Redeploy. `VITE_API_URL` → `NEXT_PUBLIC_API_URL`. **Delete `web-prototype/`.**~~ — **directory deleted**, `NEXT_PUBLIC_API_URL` documented in `env.example`, and the `tsconfig`/`eslint`/manifest-guard exclusions for it removed. Its brand favicon survives as `src/app/icon.svg`. **The redeploy itself remains blocked on credential rotation** (§6.2), like the step 5 smoke deployment.
+10. ~~Redeploy. `VITE_API_URL` → same-origin bridge configuration. **Delete
+`web-prototype/`.**~~ — **directory deleted**; `/bridge` is the default client
+base and `NEXT_PUBLIC_API_URL` remains only as a documented cross-origin local
+escape hatch. The `tsconfig`/`eslint`/manifest-guard exclusions were removed,
+and the brand favicon survives as `src/app/icon.svg`. **The redeploy itself
+remains blocked on credential rotation** (§6.2), like the step 5 smoke
+deployment.
 
 ### 4.1 What the athlete port could not carry over verbatim
 
@@ -383,12 +419,32 @@ between the two changes, against a backend that is about to be replaced anyway.
 
 *Bridge first (§2.2), then port behind it — decided; see §7.1.*
 
-11. **Bridge:** configure Next.js and FastAPI as Services in the **existing single Vercel project**, with shared deployments/env and a private Next.js → FastAPI Service Binding. Apply the two §2.2 fixes (move startup migration/seed work to an explicit release step; use Neon's pooler endpoint). **Delete `render.yaml`. Render bill → $0**, and the 30-day free-Postgres deletion clock stops.
-12. Port `backend/app/services/{skills,journey,registry}.py` → `lib/core/`. Pure functions with 3 registry-contract tests already covering them — port the tests first.
+11. **Bridge (deployment-gated):** once credentials are rotated and Vercel
+Services access is confirmed, configure Next.js and FastAPI as Services in the
+**existing single Vercel project**, with shared deployments/env and a
+same-origin `/bridge/*` route to FastAPI. Use Neon's pooled `DATABASE_URL`,
+run seed/migration work explicitly, and verify the bridge route plus production
+startup guards before removing Render. **Delete `render.yaml`. Render bill →
+$0**, and the 30-day free-Postgres deletion clock stops.
+12. ~~Port `backend/app/services/{skills,journey,registry}.py` →
+`lib/core/`.~~ — **done during Phase 1**, with registry parity tests and
+DST-safe date-only journey math. Keep the Python parity tests until cutover.
 13. Port the 7 route modules to Route Handlers under `app/api/`, one at a time, cutting traffic over per route while the Python bridge serves the rest. The API contract is fully specified by `src/lib/athlete/api.ts` (ported from the prototype's client at step 7, every endpoint typed) — that file is the porting checklist.
 14. Gemini → Vercel AI Gateway. Keep `SAFETY_TEMPLATE` and `_summarize_adaptation` verbatim; **bump off the retired `gemini-1.5-flash`.**
-15. Port the 20 pytest cases to Vitest. Do not retire a Python route until its replacement passes.
+15. Port the applicable behavior from the **current 99-case pytest suite** to
+Vitest route by route. Bridge/schema-only Python checks retire with the bridge;
+user-visible auth, moderation, validation, and API-contract behavior must have
+TypeScript replacements. Do not retire a Python route until its replacement
+passes.
 16. Cut over the final route, then remove all FastAPI residue in one verified change: **`backend/`**, Python lock/requirements and build commands, Services entry/binding/route configuration, bridge-only env vars, include/exclude globs, health checks, generated caches, and any Vercel project framework/preset overrides. Rebuild and inspect the deployment manifest to prove the project is Next.js-only. **One project, one deployment, one language.**
+
+**Local Phase 2 work may continue before step 11.** The athlete NUX now starts
+at login, resumes incomplete accounts in onboarding, and removes fixture health,
+journey, coaching, and forum content from fresh-user and backend-error states.
+The Community surface also implements the proposal's university palettes and a
+supportive heart-only feed against the existing forum API. These frontend
+changes do not weaken the deployment gate: step 11 still requires credential
+rotation, confirmed Services access, and the disposable Neon branch check.
 
 ### Phase 3 — Unify the data layer
 17. Implement the §3.1 identity baseline: canonical users, provider identities/Firebase UID mapping, normalized emails, admin role assignments, revocable sessions/session version, and append-only admin audit logs.
@@ -447,9 +503,9 @@ closed if either secret is absent/weak, uses constant-time password comparison,
 and issues an eight-hour HMAC-signed `HttpOnly; SameSite=Strict` session.
 `proxy.ts` performs early page gating, while the dashboard layout and every
 privileged Route Handler retain authoritative verification. The legacy constant
-cookie is ignored and cleared. This must be committed and verified in a
-protected smoke deployment before Step 5 can close. The shared password remains
-a temporary bootstrap secret only.
+cookie is ignored and cleared. The fix is committed on the local branch and
+must still be configured and verified in a protected smoke deployment before
+Step 5 can close. The shared password remains a temporary bootstrap secret only.
 
 **Final fix before real data/go-live:** Auth.js with Google and Apple, explicit database-backed admin roles/allowlist, revocable signed/encrypted sessions, and append-only audit logs (§6.7). No provider sign-in grants admin rights automatically.
 
@@ -482,7 +538,13 @@ These are not two copies of one model — they are two different models. The adm
 - `web-prototype/src/data/journey.ts` `WEEKLY_ACTIONS` is likewise replaced, not ported — its `a1`–`a4` entries and their `kind` values (`REFLECTION` / `SKILL REP` / `WORLD REP`) are superseded by the category taxonomy.
 - Any existing `action_completions` rows written against `a1`–`a4` need remapping or discarding. The dev SQLite DB has some; the Firestore `completions` collection already uses the fifteen-key taxonomy, so **the retained CWRU data migrates cleanly** — it is the backend that was the outlier.
 
-**Status: done in the bridge.** `backend/app/services/registry.py` now defines the fifteen categorized habits and `category_for_action`; `/game-plan/actions/toggle` rejects any id outside the taxonomy and writes `action_completions.category`. This was not optional sequencing — `category` is NOT NULL in the baseline, so the bridge could not insert a completion at all without choosing the taxonomy. Still outstanding for Phase 1 step 9: `lib/core/actions.ts`, the TypeScript single source of truth that both the pages and the ported Route Handlers import.
+**Status: done in both runtimes.** `backend/app/services/registry.py` defines the
+fifteen categorized habits and `category_for_action`;
+`/game-plan/actions/toggle` rejects any id outside the taxonomy and writes
+`action_completions.category`. `lib/core/actions.ts` is now the TypeScript
+source of truth for pages and future Route Handlers, and
+`tests/core-registry.test.ts` fails if its ids, categories, kinds, or labels
+drift from the bridge.
 
 This does tension against `REDESIGN_BRIEF`'s "keep it simple — one action, one mindset prompt, one habit." Fifteen actions is the data model; the UI can still surface one at a time. Worth revisiting as a UI question later, but it does not change the schema.
 

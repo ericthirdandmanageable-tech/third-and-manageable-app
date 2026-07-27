@@ -14,14 +14,13 @@ import {
 import clsx from "clsx";
 
 import { Icon } from "@/components/athlete/icons";
-import { api } from "@/lib/athlete/api";
+import { api, type ApiForum } from "@/lib/athlete/api";
 import { useAuth } from "@/lib/athlete/auth";
 import { takeDraft, type ForumDraft } from "@/lib/athlete/forum-draft";
 import {
     CATEGORY_STYLES,
     FLAIR_STYLES,
-    getForum,
-    getPostsForForum,
+    type ForumCategory,
     type ForumPost,
     type PostFlair,
 } from "@/lib/core/community";
@@ -68,11 +67,12 @@ export default function ForumPage() {
     const router = useRouter();
     const { user } = useAuth();
     const [sort, setSort] = useState<Sort>("hot");
-    const [posts, setPosts] = useState<ForumPost[]>(() => getPostsForForum(threadId));
+    const [forum, setForum] = useState<ApiForum | null>(null);
+    const [posts, setPosts] = useState<ForumPost[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadFailed, setLoadFailed] = useState(false);
     const [draft, setDraft] = useState<ForumDraft | null>(null);
     const [composing, setComposing] = useState(false);
-
-    const forum = getForum(threadId);
 
     const fetchPosts = useCallback(
         async (s: Sort) => {
@@ -85,9 +85,16 @@ export default function ForumPage() {
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            const rows = await loadPosts(threadId, sort);
+            const [remoteForums, rows] = await Promise.all([
+                api.getForums(),
+                loadPosts(threadId, sort),
+            ]);
             if (cancelled) return;
+            setForum(remoteForums?.find((candidate) => candidate.id === threadId) ?? null);
             if (rows) setPosts(rows);
+            else setPosts([]);
+            setLoadFailed(!remoteForums || rows === null);
+            setLoading(false);
 
             /* An artifact's "Share to forum" hands the draft over in
              * sessionStorage (see lib/athlete/forum-draft). It is read here,
@@ -110,6 +117,15 @@ export default function ForumPage() {
         if (sort === "new") return hoursAgo(a.timeAgo) - hoursAgo(b.timeAgo);
         return b.upvotes + b.commentCount - (a.upvotes + a.commentCount); // hot
     });
+    const contributorCount = new Set(posts.map((post) => post.author)).size;
+
+    if (loading) {
+        return (
+            <div className="p-10 text-center font-mono text-[10px] uppercase tracking-widest text-text-tertiary">
+                Loading community…
+            </div>
+        );
+    }
 
     if (!forum || !threadId) {
         return (
@@ -139,15 +155,15 @@ export default function ForumPage() {
             <header className="mb-6">
                 <div className="flex items-center gap-4 mb-2">
                     <div
-                        className={`w-12 h-12 rounded-lg flex items-center justify-center ${CATEGORY_STYLES[forum.category].tile}`}
+                        className={`w-12 h-12 rounded-lg flex items-center justify-center ${CATEGORY_STYLES[forum.category as ForumCategory]?.tile ?? "bg-volt/10 text-volt"}`}
                     >
                         <Icon name={forum.icon} className="w-6 h-6" />
                     </div>
                     <div>
                         <h1 className="font-serif text-3xl text-sand italic">{forum.title}</h1>
                         <p className="font-mono text-[11px] uppercase tracking-widest text-text-tertiary">
-                            <span className="text-volt">{forum.activeNow} online</span> ·{" "}
-                            {forum.memberCount} members
+                            <span className="text-volt">{contributorCount} contributors</span> ·{" "}
+                            {posts.length} conversations
                         </p>
                     </div>
                 </div>
@@ -208,10 +224,13 @@ export default function ForumPage() {
             {/* Posts */}
             {sorted.length === 0 ? (
                 <div className="bg-bg-surface rounded-2xl border border-border-subtle p-8 text-center">
-                    <p className="font-serif text-xl text-sand italic mb-2">Quiet in here</p>
+                    <p className="font-serif text-xl text-sand italic mb-2">
+                        {loadFailed ? "Community unavailable" : "Quiet in here"}
+                    </p>
                     <p className="text-[14px] text-text-secondary">
-                        No posts yet
-                        {user ? " — the first one usually breaks the ice for everyone." : "."}
+                        {loadFailed
+                            ? "No demo posts were substituted. Reconnect the Services bridge and try again."
+                            : "No posts yet — the first one usually breaks the ice for everyone."}
                     </p>
                 </div>
             ) : (

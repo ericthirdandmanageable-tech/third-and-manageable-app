@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, authStorage } from "./api";
+import { useAuth } from "./auth";
 import {
     dayNumberFromDates,
     streakFromDates,
@@ -54,37 +55,50 @@ const loadHistory = async (): Promise<CheckInEntry[] | null> => {
 };
 
 export const useCheckIns = () => {
+    const { user, loading: authLoading } = useAuth();
+    const authKey = authLoading ? null : (user?.id ?? "anonymous");
     // Empty and loading until mounted — there is no storage to read during the
     // server render, and seeding from it would desync hydration.
     const [history, setHistory] = useState<CheckInEntry[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loadedAuthKey, setLoadedAuthKey] = useState<string | null>(null);
+    const loadedAuthKeyRef = useRef<string | null>(null);
 
     const refresh = useCallback(async () => {
         const rows = await loadHistory();
         if (rows) setHistory(rows);
-        setLoading(false);
-    }, []);
+        if (authKey) {
+            loadedAuthKeyRef.current = authKey;
+            setLoadedAuthKey(authKey);
+        }
+    }, [authKey]);
 
     useEffect(() => {
+        // Auth resolves after hydration because the token lives in browser
+        // storage. Waiting prevents an authenticated page from briefly
+        // committing anonymous data before AuthProvider has read that token.
+        if (!authKey) return;
+
         // `cancelled` guards the unmount race: the athlete can leave the page
-        // before the request lands, and the state update would then apply to a
-        // component that no longer exists.
+        // or change auth identity before the request lands.
         let cancelled = false;
         (async () => {
             const rows = await loadHistory();
             if (cancelled) return;
             if (rows) setHistory(rows);
-            setLoading(false);
+            else if (loadedAuthKeyRef.current !== authKey) setHistory([]);
+            loadedAuthKeyRef.current = authKey;
+            setLoadedAuthKey(authKey);
         })();
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [authKey]);
 
     const today = history.find((e) => e.date === todayISO()) ?? null;
     const dates = history.map((e) => e.date);
     const streak = streakFromDates(dates);
     const dayNumber = dayNumberFromDates(dates);
+    const loading = authLoading || loadedAuthKey !== authKey;
 
     /** Returns 'saved' | 'already' — a second submit on the same day is never a fake success. */
     const submit = async (

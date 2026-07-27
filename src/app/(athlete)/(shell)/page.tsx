@@ -8,12 +8,12 @@ import {
     ChevronRight,
     Compass,
     Flame,
-    Heart,
-    Moon,
     Pencil,
+    Route,
     Sparkles,
     Target,
     Users,
+    Watch,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -21,14 +21,6 @@ import { getPromptForDate } from "@/lib/core/checkin";
 import { useAuth } from "@/lib/athlete/auth";
 import { useCheckIns } from "@/lib/athlete/use-checkins";
 import { useGamePlan } from "@/lib/athlete/use-game-plan";
-
-/* Placeholder ambient metrics — directional only, per REDESIGN_BRIEF §4.
- * Replaced by real health integrations in a later phase. */
-const AMBIENT_METRICS = [
-    { id: "sleep", label: "Sleep", icon: Moon, tile: "bg-sleep/10", text: "text-sleep", value: "65", read: "Rough night detected" },
-    { id: "activity", label: "Activity", icon: Activity, tile: "bg-activity/10", text: "text-activity", value: "Rest Day", read: "No pressure to move today" },
-    { id: "hrv", label: "HRV", icon: Heart, tile: "bg-hrv/10", text: "text-hrv", value: "42ms", read: "Below baseline" },
-] as const;
 
 export default function CheckInPage() {
     const router = useRouter();
@@ -104,47 +96,53 @@ export default function CheckInPage() {
                 <div className="yard-line mt-4" />
             </header>
 
-            {/* First-run entry — anonymous visitors get the original app's manifesto
-                and a path into onboarding instead of a bare sign-in prompt */}
-            {!user && (
-                <button
-                    onClick={() => router.push("/onboarding")}
-                    className="w-full text-left bg-bg-surface rounded-[20px] border border-volt/30 p-6 md:p-8 mb-8 grain group hover:border-volt/60 transition-all duration-200"
-                >
-                    <p className="font-mono text-[11px] uppercase tracking-widest text-volt mb-2">
-                        New here?
-                    </p>
-                    <p className="font-serif text-2xl text-sand italic mb-3">
-                        No scoreboard. No comparison. Just your journey.
-                    </p>
-                    <span className="inline-flex items-center gap-2 text-[13px] text-text-secondary group-hover:text-text-primary transition-colors">
-                        Two minutes to set up your 90 days <ChevronRight className="w-4 h-4" />
-                    </span>
-                </button>
-            )}
-
-            {/* Ambient strip — passive health data (placeholder values) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                {AMBIENT_METRICS.map((metric) => (
-                    <div
-                        key={metric.id}
-                        className="bg-bg-surface rounded-2xl p-4 border border-border-subtle"
-                    >
-                        <div className="flex items-center gap-2 mb-2">
-                            <div
-                                className={`w-8 h-8 rounded-lg ${metric.tile} flex items-center justify-center`}
-                            >
-                                <metric.icon className={`w-4 h-4 ${metric.text}`} />
-                            </div>
-                            <span className="font-mono text-[11px] uppercase tracking-widest text-text-tertiary">
-                                {metric.label}
-                            </span>
-                        </div>
-                        <p className="font-mono text-2xl text-text-primary">{metric.value}</p>
-                        <p className="text-[13px] text-text-secondary mt-1">{metric.read}</p>
+            {/* Honest zero state: no health reading is shown until a real source
+                has supplied it. Apple Health requires the iOS client; Strava
+                requires its OAuth credentials and callback service. */}
+            <section className="mb-8 rounded-[20px] border border-border-subtle bg-bg-surface p-5 md:p-6">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-tertiary">
+                            Training data · 0 connected
+                        </p>
+                        <h2 className="mt-1.5 text-lg font-semibold text-text-primary">
+                            Add context when you&apos;re ready
+                        </h2>
+                        <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-text-secondary">
+                            Sleep, recovery, and activity stay blank until you connect a real source.
+                            Your daily check-in works without one.
+                        </p>
                     </div>
-                ))}
-            </div>
+                    <button
+                        onClick={() => router.push("/profile#connections")}
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-volt/35 bg-volt/10 px-4 py-2.5 text-[13px] font-semibold text-volt transition hover:border-volt/70 hover:bg-volt/15"
+                    >
+                        Manage connections <ChevronRight className="h-4 w-4" />
+                    </button>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-bg-elevated px-4 py-3">
+                        <Watch className="h-4 w-4 text-text-tertiary" />
+                        <div className="flex-1">
+                            <p className="text-[13px] font-medium text-text-primary">Apple Health</p>
+                            <p className="text-[11px] text-text-tertiary">Requires the iPhone app</p>
+                        </div>
+                        <span className="font-mono text-[9px] uppercase tracking-wider text-text-tertiary">
+                            Not connected
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-bg-elevated px-4 py-3">
+                        <Route className="h-4 w-4 text-text-tertiary" />
+                        <div className="flex-1">
+                            <p className="text-[13px] font-medium text-text-primary">Strava</p>
+                            <p className="text-[11px] text-text-tertiary">OAuth setup pending</p>
+                        </div>
+                        <span className="font-mono text-[9px] uppercase tracking-wider text-text-tertiary">
+                            Not connected
+                        </span>
+                    </div>
+                </div>
+            </section>
 
             {loading ? (
                 <div className="bg-bg-surface rounded-[20px] border border-border-subtle p-10 grain text-center">
@@ -264,6 +262,7 @@ export default function CheckInPage() {
                             <button
                                 key={option}
                                 onClick={() => setSelectedOption(option)}
+                                aria-pressed={selectedOption === option}
                                 className={clsx(
                                     "w-full text-left px-5 py-4 rounded-2xl border transition-all duration-200 flex items-center gap-4",
                                     selectedOption === option

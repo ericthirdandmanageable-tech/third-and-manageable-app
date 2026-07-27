@@ -8,9 +8,7 @@ import clsx from "clsx";
 import { api, type ApiComment } from "@/lib/athlete/api";
 import { useAuth } from "@/lib/athlete/auth";
 import {
-    COMMENTS,
     FLAIR_STYLES,
-    POSTS,
     type ForumComment,
     type ForumPost,
     type PostFlair,
@@ -105,10 +103,9 @@ export default function PostPage() {
     const { threadId, postId } = useParams<{ threadId: string; postId: string }>();
     const router = useRouter();
     const { user } = useAuth();
-    const [post, setPost] = useState<ForumPost | undefined>(() =>
-        POSTS.find((p) => p.id === postId),
-    );
-    const [comments, setComments] = useState<ForumComment[]>(() => COMMENTS[postId] ?? []);
+    const [post, setPost] = useState<ForumPost | undefined>();
+    const [comments, setComments] = useState<ForumComment[]>([]);
+    const [loading, setLoading] = useState(true);
     const [reply, setReply] = useState<ReplyTarget>(null);
     const [draft, setDraft] = useState("");
     const [busy, setBusy] = useState(false);
@@ -124,9 +121,12 @@ export default function PostPage() {
         let cancelled = false;
         (async () => {
             const fresh = await loadPost(postId);
-            if (cancelled || !fresh) return;
-            setPost(fresh.post);
-            setComments(fresh.comments);
+            if (cancelled) return;
+            if (fresh) {
+                setPost(fresh.post);
+                setComments(fresh.comments);
+            }
+            setLoading(false);
         })();
         return () => {
             cancelled = true;
@@ -156,6 +156,14 @@ export default function PostPage() {
         const res = await api.vote("post", postId);
         if (res) setPost((p) => (p ? { ...p, upvotes: res.upvotes } : p));
     };
+
+    if (loading) {
+        return (
+            <div className="p-10 text-center font-mono text-[10px] uppercase tracking-widest text-text-tertiary">
+                Loading conversation…
+            </div>
+        );
+    }
 
     if (!post) {
         return (

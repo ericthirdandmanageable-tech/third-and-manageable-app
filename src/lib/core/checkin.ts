@@ -1,5 +1,7 @@
+import { calendarDaysBetween, localDateISO } from "./journey-math";
+
 /*
- * CHECK-IN PROMPT REGISTRY — placeholder content (REDESIGN_BRIEF §4).
+ * CHECK-IN PROMPT REGISTRY — editorial content (REDESIGN_BRIEF §4).
  * One entry = one daily prompt with its multiple-choice options.
  * Register at least one career-register prompt per week in production (§8).
  */
@@ -17,7 +19,7 @@ export const CHECKIN_PROMPTS: CheckInPrompt[] = [
     {
         id: "p1",
         register: "identity",
-        question: "Based on your sleep data, how are you handling the transition today?",
+        question: "How are you handling the transition today?",
         options: [
             "Missing the structured schedule.",
             "Feeling a loss of identity.",
@@ -81,8 +83,8 @@ export const CHECKIN_PROMPTS: CheckInPrompt[] = [
  * straddles.
  */
 export const getPromptForDate = (now: Date): CheckInPrompt => {
-    const dayOfYear = Math.floor(
-        (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000,
-    );
+    const year = now.getFullYear();
+    const dayOfYear =
+        calendarDaysBetween(`${year}-01-01`, localDateISO(now)) + 1;
     return CHECKIN_PROMPTS[dayOfYear % CHECKIN_PROMPTS.length];
 };

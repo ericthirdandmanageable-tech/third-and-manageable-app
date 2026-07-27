@@ -13,15 +13,15 @@ import { useAuth } from "@/lib/athlete/auth";
  * Onboarding — first-run flow (REDESIGN_BRIEF §9.1: intake runs on first run).
  * Mirrors the original shipped app's 4-step structure with verified copy
  * recovered from its bundle: welcome manifesto → status → skill intake
- * (IntakeFlow, already built) → display name + school + account → community
- * choice → completion. Account creation is skipped for signed-in users, so
- * this one page serves fresh signups, post-register, and resume-on-login.
+ * (IntakeFlow, already built) → community choice → completion. The old
+ * display-name/school/account step moved ahead of this flow to `/login`, so
+ * intake progress is never lost to a late credential or network failure.
  *
  * It sits outside the `(shell)` group on purpose: no tabs, no sidebar, one
  * job — the same reason the prototype kept it out of `MainLayout`.
  */
 
-type Step = "welcome" | "status" | "intake" | "account" | "community" | "complete";
+type Step = "welcome" | "status" | "intake" | "community" | "complete";
 type Status = "competing" | "transitioning";
 type Community = "join" | "solo";
 
@@ -36,7 +36,7 @@ const STATUS_OPTIONS: { value: Status; label: string }[] = [
 
 export default function OnboardingPage() {
     const router = useRouter();
-    const { user, loading, register } = useAuth();
+    const { user, loading } = useAuth();
 
     const [step, setStep] = useState<Step>("welcome");
     const [status, setStatus] = useState<Status | null>(null);
@@ -44,12 +44,6 @@ export default function OnboardingPage() {
     const [community, setCommunity] = useState<Community | null>(null);
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
-
-    // Account-step fields (only rendered when signed out)
-    const [name, setName] = useState("");
-    const [school, setSchool] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
 
     // Already-onboarded users landing here directly get bounced home — but only
     // if they haven't started the flow (the check races the first
@@ -60,54 +54,56 @@ export default function OnboardingPage() {
         stepRef.current = step;
     }, [step]);
     useEffect(() => {
+        if (!loading && !user) router.replace("/login?next=%2Fonboarding");
+    }, [loading, router, user]);
+    useEffect(() => {
         if (loading || !user) return;
         api.getGamePlan().then((gp) => {
             if (gp?.intake_done && stepRef.current === "welcome") router.replace("/");
         });
     }, [user, loading, router]);
 
-    /*
-     * The core steps, in original-app order. Whether the account step is part
-     * of the flow is decided once, when the athlete leaves the welcome screen,
-     * so the "Step N of M" numbering can't shift mid-flow the moment an
-     * anonymous user registers at that very step. "Get Started" is disabled
-     * until auth resolves, so `!user` is authoritative at that point.
-     */
-    const [needsAccount, setNeedsAccount] = useState(true);
-    const coreSteps: Step[] = needsAccount
-        ? ["status", "intake", "account", "community"]
-        : ["status", "intake", "community"];
+    // Account creation is deliberately outside this route: login/register
+    // happens first, then this stable three-step intake can be resumed safely.
+    const coreSteps: Step[] = ["status", "intake", "community"];
     const coreIndex = coreSteps.indexOf(step);
     const stepAfter = (s: Step) => coreSteps[coreSteps.indexOf(s) + 1];
     const stepBefore = (s: Step) => coreSteps[coreSteps.indexOf(s) - 1];
 
     const finalize = async (choice: Community) => {
         setBusy(true);
-        if (intakeAnswers) {
-            // Best-effort: if the write fails, intake_done stays false and the next
-            // login routes back here — onboarding is resumable by construction.
-            await api.submitIntake({ ...intakeAnswers, community: choice });
+        setError("");
+        if (!intakeAnswers) {
+            setBusy(false);
+            setError("Your intake answers are missing. Go back and complete the intake.");
+            return;
         }
-        // Signed-in users skipped the account step, so their status answer never
-        // reached the backend during registration — persist it now.
+
+        // Registration starts with the backend's neutral status default. Save
+        // the athlete's explicit answer before marking intake complete so the
+        // completion screen never celebrates a partially persisted profile.
         if (user && status) {
-            await api.updateProfile({ status });
+            const updated = await api.updateProfile({ status });
+            if (!updated) {
+                setBusy(false);
+                setError(
+                    "We couldn’t save where you are in your journey yet. Check the connection and try again—your answers are still here.",
+                );
+                return;
+            }
         }
+
+        const saved = await api.submitIntake({ ...intakeAnswers, community: choice });
+        if (!saved) {
+            setBusy(false);
+            setError(
+                "We couldn’t save your onboarding yet. Check the connection and try again—your answers are still here.",
+            );
+            return;
+        }
+
         setBusy(false);
         setStep("complete");
-    };
-
-    const submitAccount = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setBusy(true);
-        setError("");
-        const ok = await register(email, password, name, school || undefined, status ?? undefined);
-        setBusy(false);
-        if (ok) {
-            setStep("community");
-        } else {
-            setError("Could not create your account — that email may already be in use.");
-        }
     };
 
     const stepShell = (children: React.ReactNode) => (
@@ -144,6 +140,16 @@ export default function OnboardingPage() {
         </div>
     );
 
+    if (loading || !user) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-bg-base">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-tertiary">
+                    {loading ? "Loading your onboarding…" : "Taking you to sign in…"}
+                </p>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-bg-base flex items-center justify-center p-6">
             {/* ——— Welcome ——— */}
@@ -162,7 +168,6 @@ export default function OnboardingPage() {
                     </p>
                     <button
                         onClick={() => {
-                            setNeedsAccount(!user);
                             setStep("status");
                         }}
                         disabled={loading}
@@ -170,14 +175,6 @@ export default function OnboardingPage() {
                     >
                         Get Started <ChevronRight className="w-5 h-5" />
                     </button>
-                    <div className="mt-6">
-                        <button
-                            onClick={() => router.push("/")}
-                            className="text-[13px] text-text-tertiary hover:text-text-secondary underline underline-offset-4 transition-colors"
-                        >
-                            Browse first
-                        </button>
-                    </div>
                 </div>
             )}
 
@@ -237,71 +234,6 @@ export default function OnboardingPage() {
                     />,
                 )}
 
-            {/* ——— Step: account (original step 3 — name + school, then credentials) ——— */}
-            {step === "account" &&
-                stepShell(
-                    <>
-                        <h2 className="font-serif text-2xl text-sand italic mb-2">Join the team</h2>
-                        <p className="text-[13px] text-text-secondary mb-6">
-                            Your display name and school help us connect you with the right athlete
-                            community.
-                        </p>
-                        <form onSubmit={submitAccount} className="space-y-3">
-                            <input
-                                required
-                                aria-label="Display name"
-                                placeholder="Display name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full bg-bg-elevated border border-border-subtle rounded-full py-3 px-5 text-[15px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-all"
-                            />
-                            <input
-                                aria-label="School (optional)"
-                                placeholder="School (optional)"
-                                value={school}
-                                onChange={(e) => setSchool(e.target.value)}
-                                className="w-full bg-bg-elevated border border-border-subtle rounded-full py-3 px-5 text-[15px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-all"
-                            />
-                            <input
-                                required
-                                type="email"
-                                aria-label="Email"
-                                placeholder="Email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-bg-elevated border border-border-subtle rounded-full py-3 px-5 text-[15px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-all"
-                            />
-                            <input
-                                required
-                                type="password"
-                                minLength={8}
-                                aria-label="Password"
-                                placeholder="Password (min 8 chars)"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-bg-elevated border border-border-subtle rounded-full py-3 px-5 text-[15px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-all"
-                            />
-                            {error && <p className="text-[13px] text-danger px-2">{error}</p>}
-                            <div className="flex items-center justify-between pt-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setStep("intake")}
-                                    className="flex items-center gap-1 text-[13px] text-text-tertiary hover:text-text-secondary transition-all"
-                                >
-                                    <ChevronLeft className="w-4 h-4" /> Back
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={busy}
-                                    className="bg-volt text-volt-ink font-semibold px-6 py-3 rounded-full flex items-center gap-2 hover:bg-volt/90 transition-all disabled:opacity-40"
-                                >
-                                    {busy ? "…" : "Create account"} <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </form>
-                    </>,
-                )}
-
             {/* ——— Step: community choice (original step 4) ——— */}
             {step === "community" &&
                 stepShell(
@@ -313,6 +245,11 @@ export default function OnboardingPage() {
                             Connect with current and former athletes who understand your journey.
                             Verified, moderated, and safe.
                         </p>
+                        {error && (
+                            <p role="alert" className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-[13px] text-danger">
+                                {error}
+                            </p>
+                        )}
                         <div className="space-y-3">
                             <button
                                 onClick={() => setCommunity("join")}

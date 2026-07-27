@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 import { Check, Download, Share2 } from "lucide-react";
 
-import { JOURNEY } from "@/lib/core/journey";
 import { getPath } from "@/lib/core/paths";
-import { SKILL_MAP } from "@/lib/core/skills";
 import { putDraft } from "@/lib/athlete/forum-draft";
 
 /*
@@ -16,8 +14,8 @@ import { putDraft } from "@/lib/athlete/forum-draft";
  * data slots. Editorial and earned in tone. Private by default; sharing is
  * always an explicit action. Export rasterizes the card to a PNG.
  *
- * Cards take the athlete's real data as props; the placeholder registry
- * values are only defaults so a card never renders empty.
+ * Cards require the athlete's real data as props. Empty state stays empty;
+ * these artifacts never substitute registry examples for missing telemetry.
  */
 
 interface SkillEntry {
@@ -100,7 +98,7 @@ const ArtifactShell = ({
 };
 
 /* 1. Skill Map Card — "What the game taught you" */
-export const SkillMapCard = ({ entries = SKILL_MAP }: { entries?: SkillEntry[] }) => (
+export const SkillMapCard = ({ entries }: { entries: SkillEntry[] }) => (
     <ArtifactShell name="skill-map">
         <p className="font-mono text-[10px] uppercase tracking-widest text-text-tertiary mb-2">
             Transferable Skill Map
@@ -121,13 +119,13 @@ export const SkillMapCard = ({ entries = SKILL_MAP }: { entries?: SkillEntry[] }
 
 /* 2. Day Counter Card — oversized mono numerals */
 export const DayCounterCard = ({
-    day = JOURNEY.day,
-    totalDays = JOURNEY.totalDays,
-    phaseName = "Foundation",
+    day,
+    totalDays,
+    phaseName,
 }: {
-    day?: number;
-    totalDays?: number;
-    phaseName?: string;
+    day: number;
+    totalDays: number;
+    phaseName: string;
 }) => (
     <ArtifactShell name="day-counter">
         <p className="font-mono text-[10px] uppercase tracking-widest text-text-tertiary mb-2">
@@ -149,12 +147,12 @@ export const DayCounterCard = ({
 /* 3. Path Commitment Card — rendered only when a path is committed */
 export const PathCommitmentCard = ({
     pathId,
-    entries = SKILL_MAP,
-    day = JOURNEY.day,
+    entries,
+    day,
 }: {
     pathId: string;
-    entries?: SkillEntry[];
-    day?: number;
+    entries: SkillEntry[];
+    day: number;
 }) => {
     const path = getPath(pathId);
     if (!path) return null;
@@ -188,11 +186,11 @@ export const PathCommitmentCard = ({
 
 /* 4. Weekly Recap Card */
 export const WeeklyRecapCard = ({
-    streak = JOURNEY.streak,
+    streak,
     completed,
     total,
 }: {
-    streak?: number;
+    streak: number;
     completed: number;
     total: number;
 }) => (

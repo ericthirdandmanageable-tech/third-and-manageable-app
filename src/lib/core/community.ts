@@ -1,5 +1,5 @@
 /*
- * COMMUNITY REGISTRY — placeholder content (REDESIGN_BRIEF §4).
+ * COMMUNITY REGISTRY — product taxonomy and route metadata.
  * Path forums are DERIVED from the WORK_PATHS registry: adding a path in
  * `./paths` automatically creates its forum here. Other forums (Local /
  * Sport / Support) are standalone entries below.
@@ -37,10 +37,10 @@ const pathForums: ForumThread[] = WORK_PATHS.map((path) => ({
 
 /* Standalone forums */
 const communityForums: ForumThread[] = [
-    { id: "local-davis-soccer", title: "UC Davis - Pick-up Soccer", category: "Local", memberCount: 42, activeNow: 5, icon: "MapPin", description: "Casual games, zero tryouts." },
-    { id: "local-nyc-swimmers", title: "Former Swimmers in NYC", category: "Local", memberCount: 128, activeNow: 12, icon: "MapPin", description: "Lane mates turned city network." },
-    { id: "support-acl", title: "ACL Recovery Support", category: "Support", memberCount: 890, activeNow: 45, icon: "ShieldAlert", description: "Rehab is a season too." },
-    { id: "support-stories", title: "Transition Stories", category: "Support", memberCount: 1500, activeNow: 76, icon: "Trophy", description: "How you got through it — or how you are." },
+    { id: "local-davis-soccer", title: "UC Davis - Pick-up Soccer", category: "Local", memberCount: 0, activeNow: 0, icon: "MapPin", description: "Casual games, zero tryouts." },
+    { id: "local-nyc-swimmers", title: "Former Swimmers in NYC", category: "Local", memberCount: 0, activeNow: 0, icon: "MapPin", description: "Lane mates turned city network." },
+    { id: "support-acl", title: "ACL Recovery Support", category: "Support", memberCount: 0, activeNow: 0, icon: "ShieldAlert", description: "Rehab is a season too." },
+    { id: "support-stories", title: "Transition Stories", category: "Support", memberCount: 0, activeNow: 0, icon: "Trophy", description: "How you got through it — or how you are." },
 ];
 
 export const FORUMS: ForumThread[] = [...pathForums, ...communityForums];
@@ -78,39 +78,6 @@ export interface ForumComment {
     timeAgo: string;
     replies?: ForumComment[];
 }
-
-/*
- * Offline fallback content. These render when the backend is unreachable so
- * the app stays walkable; anything the backend returns replaces them wholesale.
- */
-export const POSTS: ForumPost[] = [
-    { id: "p1", threadId: "path-nine_to_five", author: "MK", flair: "WIN", title: "Got the offer. 4 months after my last game.", body: "Former D1 mid. Today I signed for an ops role. The interview was just film study on their company. Your discipline got you here — that same discipline builds the next life.", upvotes: 212, commentCount: 34, timeAgo: "3h" },
-    { id: "p2", threadId: "path-nine_to_five", author: "JD", flair: "QUESTION", title: "How do you explain your sport years in an interview?", body: 'I keep underselling it as "played college ball." How are you framing it without sounding like you peaked at 21?', upvotes: 98, commentCount: 41, timeAgo: "6h" },
-    { id: "p3", threadId: "path-nine_to_five", author: "AR", flair: "VENT", title: "Nobody keeps score at my job and it's messing with me", body: "I used to know exactly where I stood every single day. Now feedback is a yearly PDF.", upvotes: 156, commentCount: 52, timeAgo: "1d" },
-];
-
-export const getPostsForForum = (threadId: string | undefined) =>
-    POSTS.filter((p) => p.threadId === threadId);
-
-export const COMMENTS: Record<string, ForumComment[]> = {
-    p1: [
-        { id: "c1", author: "TD", text: "Huge. What did the reps look like between last game and offer?", upvotes: 24, timeAgo: "2h", replies: [
-            { id: "c1a", author: "MK", text: "Weekly game plan, honestly. One resume bullet rewritten, one coffee chat, one application. Same way we trained — small wins stacked.", upvotes: 41, timeAgo: "2h" },
-        ] },
-        { id: "c2", author: "SL", text: '"The interview was just film study" — stealing that. Congrats.', upvotes: 18, timeAgo: "1h" },
-    ],
-    p2: [
-        { id: "c3", author: "RW", text: 'Stop naming the sport, start naming the skill. "Captain" becomes "led 25 peers without authority over them."', upvotes: 67, timeAgo: "5h", replies: [
-            { id: "c3a", author: "JD", text: "That reframing helps. It's the translation part I keep fumbling.", upvotes: 12, timeAgo: "4h", replies: [
-                { id: "c3b", author: "RW", text: "The Skill Map in Game Plan literally writes these for you. Start there.", upvotes: 19, timeAgo: "4h" },
-            ] },
-        ] },
-        { id: "c4", author: "KB", text: 'Also: nobody thinks you peaked at 21 except you. They hear "D1" and think discipline, coachability, showing up.', upvotes: 45, timeAgo: "3h" },
-    ],
-    p3: [
-        { id: "c5", author: "MJ", text: "Make your own scoreboard. I track my weekly actions like training blocks. Sounds dumb, works.", upvotes: 38, timeAgo: "20h" },
-    ],
-};
 
 export const FLAIR_STYLES: Record<PostFlair, string> = {
     WIN: "bg-volt/10 text-volt",

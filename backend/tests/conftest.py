@@ -11,6 +11,13 @@ _tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
 _tmp.close()
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp.name}"
 
+# The suite exercises the verified, signed-in flow, and `AUTO_VERIFY` now
+# defaults to False so the unsafe value is the one you have to ask for. Pin
+# both explicitly rather than inheriting: neither the developer's shell nor an
+# uncommitted `backend/.env` gets to decide whether these tests pass.
+os.environ["AUTO_VERIFY"] = "true"
+os.environ["ENVIRONMENT"] = "development"
+
 from app.main import app  # noqa: E402
 from app.database import Base, get_db  # noqa: E402
 from app.routes.community import seed_forums  # noqa: E402

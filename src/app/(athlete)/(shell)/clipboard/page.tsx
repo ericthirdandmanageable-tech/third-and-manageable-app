@@ -86,11 +86,10 @@ export default function ClipboardChatPage() {
         setInput("");
         setIsTyping(true);
 
-        let aiResponse: ChatMessage;
         if (authStorage.getToken()) {
             const res = await api.clipboardChat(text, persona);
             if (res) {
-                aiResponse = {
+                const aiResponse: ChatMessage = {
                     id: res.id || nextLocalId(),
                     sender: "ai",
                     text: res.text,
@@ -102,35 +101,15 @@ export default function ClipboardChatPage() {
             }
         }
 
-        // Offline / unauthed fallback — local invisible-adaptation mock
-        await new Promise((r) => setTimeout(r, 1500));
-        if (messages.length === 1) {
-            if (text.length < 20) {
-                aiResponse = {
-                    id: nextLocalId(),
-                    sender: "ai",
-                    text: "I hear you. Rest days can be tough. Which of these sounds most like what you're feeling right now?",
-                    options: [
-                        "I feel guilty for not working out.",
-                        "My body hurts, so I know I need it.",
-                        "I'm just bored without practice.",
-                    ],
-                };
-            } else {
-                aiResponse = {
-                    id: nextLocalId(),
-                    sender: "ai",
-                    text: "That makes a lot of sense. It sounds like you're navigating the tension between your old schedule and your new reality. What's one thing you miss, and one thing you enjoy about free time today?",
-                };
-            }
-        } else {
-            aiResponse = {
+        // A backend failure must never turn into fabricated coaching content.
+        setMessages((prev) => [
+            ...prev,
+            {
                 id: nextLocalId(),
                 sender: "ai",
-                text: "Thanks for sharing that. I'm taking note of how you're feeling. (This is a prototype mockup.)",
-            };
-        }
-        setMessages((prev) => [...prev, aiResponse]);
+                text: "I couldn’t reach The Clipboard just now. Your message wasn’t analyzed or saved—please try again when the connection is back.",
+            },
+        ]);
         setIsTyping(false);
     };
 

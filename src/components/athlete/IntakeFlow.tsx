@@ -58,6 +58,7 @@ const IntakeFlow = ({
                         <button
                             key={option}
                             onClick={() => setAnswers((a) => ({ ...a, [step.id]: option }))}
+                            aria-pressed={currentAnswer === option}
                             className={clsx(
                                 "w-full text-left px-5 py-4 rounded-2xl border transition-all duration-200 flex items-center gap-4",
                                 currentAnswer === option

@@ -1,67 +1,70 @@
 <claude-mem-context>
 # Memory Context
 
-# [3rd_and_manageable] recent context, 2026-07-25 5:02pm PDT
+# [3rd_and_manageable] recent context, 2026-07-27 10:37am PDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (17,064t read) | 564,626t work | 97% savings
+Stats: 50 obs (19,782t read) | 455,593t work | 96% savings
 
 ### Jul 25, 2026
+S66 VS Code Claude Extension Installed via VSIX (Jul 25 at 1:33 PM)
 S64 Claude Code environment "doctor" session — health check and cleanup of Claude Code installation on Lucas's machine (Jul 25 at 1:33 PM)
-S66 VS Code Claude Extension Installed via VSIX (Jul 25 at 1:37 PM)
-1229 4:02p 🔄 Admin app promoted to repo root via git mv
-1230 " 🔴 Firebase Admin SDK initialization made lazy (getAdminDb() pattern)
-1235 4:03p 🔴 firebase-admin lazy initialization — build failures fixed
-1236 " 🟣 Admin app promoted to repo root; tsconfig, turbopack, gitignore fixed
-1237 " 🟣 12 tables ported to Drizzle ORM (Phase 0 Step 4)
-1238 " 🔴 Critical auth bypass and undefined-password bug discovered before data exposure
-1239 " 🔵 VERCEL_MIGRATION_PLAN Phase 0 current blockers — Neon and Firebase credentials
-1240 4:04p 🔄 Admin App Promoted to Repo Root via git mv
-1241 " 🔴 Firebase Admin Initialized Lazily to Unblock Builds
-1242 " 🟣 12 Database Tables Ported to Drizzle ORM
-1243 " 🔵 Two Critical Security Vulnerabilities Found Before Production Data Exposure
-1244 " ✅ Vercel Migration Phase 0 — Blockers and Status as of Jul 25 2026
-1245 4:05p 🔴 Firebase Admin SDK — Lazy Initialization to Unblock Builds
-1246 " 🟣 Drizzle ORM Schema — 12 Tables Ported from Alembic
-1247 " 🔴 Admin Auth — undefined === undefined Login Bypass
-1248 " 🔵 Vercel Auto-Promotes First Deployment to Production
-1249 " ✅ Vercel Migration Plan — Current Blocked/Done State (Phase 0)
-1250 4:06p 🔄 Admin App Promoted to Repo Root via git mv
-1251 " 🔴 Firebase Admin SDK Converted to Lazy Initialization
-1252 " 🟣 12 Database Tables Ported to Drizzle ORM
-1253 " 🔵 Two Critical Security Bugs Found During Phase 0
-1254 " ✅ Phase 0 Blockers: Neon Terms Accepted, Firebase Credentials Still Pending
-1255 4:07p 🔵 Neon Integration Active on ling-iq Team, Free Tier
-1256 " 🔵 third-and-manageable.vercel.app Returns 402 DEPLOYMENT_DISABLED
-1257 " 🔵 Vercel Deployment Protection Cannot Cover Production on Free/Hobby Plan
-1258 4:08p 🔄 Admin App Promoted to Repo Root via git mv
-1259 " 🔴 Firebase Admin Lazy Initialization — adminDb → getAdminDb()
-1260 " 🟣 12 Database Tables Ported to Drizzle ORM
-1261 " 🔴 Critical Auth Bypass: /api/login Passes When ADMIN_PASSWORD Unset
-1262 " 🔵 Vercel Auto-Promotes First Deployment to Production
-1263 " 🔵 Vercel Migration Phase 0 Blockers — Neon Terms and Firebase Credentials
-1264 4:09p 🔴 Firebase Admin SDK — Lazy Initialization to Unblock Builds
-1265 " 🔄 Admin App Promoted to Repo Root via git mv
-1266 " 🟣 12 Tables Ported to Drizzle ORM with Neon Postgres Target
-1267 " 🔴 Critical: /api/login Accepts Any Request When ADMIN_PASSWORD Unset
-1268 " 🔵 Vercel Auto-Promotes First Deployment to Production — Auth Bypass Exposed Live
-1269 " ⚖️ Migration Plan Resequenced: Auth Hardening Before Any Public Deploy
-1270 4:11p 🔵 Vercel Deploy Manifest Includes backend/.env and SQLite DB — No .vercelignore Exists
-1271 " 🔵 Vercel Services (GA June 2026) Supports Next.js + FastAPI in One Project
-1272 " 🔵 Local SQLite Database Has Real Production-Intent Data — 15 Users, Multiple Records
-1273 4:12p ✅ Petiole/Ling-IQ Admin App Promoted to Repo Root
-1274 " 🔴 Firebase Admin SDK Refactored to Lazy Initialization
-1275 " 🟣 12 Database Tables Ported to Drizzle ORM
-1276 " 🔴 Two Critical Auth Vulnerabilities Discovered and First Deployment Pulled
-1277 " 🔵 VERCEL_MIGRATION_PLAN.md Phase 0 Blocker Status
-1278 4:14p 🟣 Admin App Promoted to Repo Root via Git MV (Step 2)
-1279 " 🔴 Firebase Admin SDK Lazy-Initialized to Unblock Builds (commit 0230ae1)
-1280 " 🟣 12 Tables Ported to Drizzle ORM (Step 4, commit 80a7e11)
-1281 " 🔴 Critical: First Vercel Deploy Auto-Promoted to Production, §6.1 Auth Bypass Confirmed
-1282 " 🔵 Vercel Migration Phase 0 Blockers: Neon Terms and Firebase Credentials
+### Jul 26, 2026
+1375 12:59p 🔵 3rd_and_manageable Cross-Language Registry Architecture — TS/Python Parity Enforced by Tests
+1376 " 🔵 3rd_and_manageable Client Storage and Icon Architecture
+1377 " 🔵 3rd_and_manageable Vercel Project — Linked to ling-iq Team, No Production URL Yet
+1378 " 🔵 3rd_and_manageable Git State — 3 Commits Ahead of origin/main, Phase 1 Complete
+1379 1:00p 🔵 DST Bug in Journey Day-Number Calculation — Hour-Based Math Fails at DST Transitions
+1380 1:01p 🔵 Backend Render.yaml Config and CORS Origin Root Cause Identified
+1381 " 🔵 Admin Auth Behavior — 503 When Backend Down, Middleware Correctly Rejects All Cookie Values
+1382 1:02p 🔵 3rd_and_manageable Vercel Deployment Scope — .vercelignore Excludes Backend and All Dev Artifacts
+1384 " 🔵 3rd_and_manageable Phase 1 Complete — VERCEL_MIGRATION_PLAN.md Documents Full Project State
+1385 " 🔵 Admin Login Fails Closed — ADMIN_PASSWORD Minimum 16 Bytes Enforced at Startup
+1386 1:07p 🔵 Codex Manual Fetch Fails — No Network Access to developers.openai.com
+1387 1:08p 🔵 Codex CLI Health Check — DNS Failure Blocking OpenAI Connectivity
+1388 " 🔵 Codex GPT-5.6 Model Family — Sol/Terra/Luna Tiers
+1389 1:13p 🔵 Phase 1 migration assessment reveals 2 deployment blockers and 2 product bugs
+1390 1:15p 🔵 Vercel Migration Plan — Two Deployment Blockers Identified
+1391 " 🔵 DST-Unsafe Date Math in Journey Calculations
+1392 " 🔵 Auth Hook Hydration Gap After Sign-In
+1393 " 🔵 VERCEL_MIGRATION_PLAN.md and README.md Contain Multiple Stale Claims
+1394 " 🔵 3rd_and_manageable Phase 1 Test Suite Passes with 86 pytest + 25 Vitest Tests
+1395 1:16p 🔵 Vercel Services Routing — Path-Prefix Pattern Confirmed for Bridge Topology Fix
+1396 " 🔵 FastAPI Startup DB Operations Removed for Fluid Compute Compatibility
+1397 1:17p 🔵 Vercel Migration Phase 1 — Two Deployment Blockers Identified
+1398 " 🔵 DST-Unsafe Date Arithmetic in Journey and Streak Calculations
+1399 " 🔵 Auth Transition Does Not Refresh Mounted Check-In or Game-Plan Hooks
+1400 " 🔵 VERCEL_MIGRATION_PLAN.md and README.md Contain Stale Statements
+1401 " ⚖️ Corrective Commit Required Before Phase 2 — Gating Criteria Defined
+1402 1:18p 🔵 Bridge Topology Blocker — NEXT_PUBLIC_API_URL Is Browser-Side, Incompatible with Private Service Binding
+1403 " 🔵 FastAPI Not Deployment-Safe — Weak JWT_SECRET, AUTO_VERIFY=true, and Stale CORS Origins
+1404 " 🔵 DST Bug in Journey-Math — Date Arithmetic Uses Wall-Clock Milliseconds, Breaks on Spring-Forward Night
+1405 " 🔵 Auth Transition Hydration Gap — useCheckIns and useGamePlan Don't Re-fetch on Sign-In
+1406 " 🔵 VERCEL_MIGRATION_PLAN.md and README.md Contain Multiple Stale Statements
+1407 " 🔵 Code Review — What Passed: 25 Vitest, 86 Pytest, TS, ESLint, Build, Schema, Audit, Vercel Manifest
+1408 1:19p 🔵 Code Review Identified Two Deployment Blockers for 3rd_and_manageable Phase 2
+1409 " 🔵 FastAPI Backend Has Insecure Production Defaults Blocking Redeployment
+1410 " 🔵 DST-Unsafe Date Arithmetic Bug Identified in Journey and Streak Calculations
+1411 " 🔵 Auth Sign-In Does Not Refresh Already-Mounted Check-In and Game Plan Hooks
+1412 " 🔵 VERCEL_MIGRATION_PLAN.md and README.md Contain Multiple Stale/Inaccurate Statements
+### Jul 27, 2026
+1413 10:02a 🔵 Petiole Multi-App QA Environment — Three Local Servers Running for Visual Comparison
+1414 10:04a 🔵 3rd_and_manageable — Current App (port 3001) Stuck in Loading State with HMR Errors
+1415 " 🔵 Retired Athlete Prototype (port 5174) — Full Morning Check-in UI Documented
+1416 10:09a 🔵 127.0.0.1 Bridge Session Instability Isolated from App Server Health
+1417 " ⚖️ Visual QA Strategy: Isolate Browser Context to localhost vs 127.0.0.1
+1418 10:10a 🔵 Login Surface QA — localhost:3001 Create Account Flow
+1419 10:11a ✅ next.config.js — allowedDevOrigins set for 127.0.0.1
+1420 " ✅ next.config.js — allowedDevOrigins for 127.0.0.1
+1421 10:12a ✅ next.config — allowedDevOrigins includes 127.0.0.1
+S69 next.config — allowedDevOrigins includes 127.0.0.1 (Jul 27 at 10:12 AM)
+1422 10:30a 🔵 In-App Browser (IAB) Unavailable in Codex Session
+1423 10:31a 🔵 Active Dev Server Port Map Across 3rd_and_manageable Repos
+1424 " 🔵 Visual QA Smoke Test Requested for Ports 3001 and 5174
+1425 10:32a 🔵 Codex IAB Unavailable in `codex exec` — VSCode Browser Bridge Requires GUI Session
 
-Access 565k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 456k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

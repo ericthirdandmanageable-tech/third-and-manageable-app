@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Third & Manageable
 
-## Getting Started
+Third & Manageable is a transition platform for current and former
+student-athletes. The Next.js app serves the athlete product at `/` and the
+operator portal at `/admin`; the temporary FastAPI bridge is being replaced
+route by route during the Vercel migration.
 
-First, run the development server:
+## Architecture
+
+- Next.js 16 App Router and React 19
+- Drizzle ORM with Neon Postgres
+- Athlete UI under `src/app/(athlete)`
+- Signed bootstrap admin sessions and gated admin routes under `src/app/admin`
+- Temporary FastAPI bridge under `backend/`
+- Shared product rules and registries under `src/lib/core`
+
+The browser calls the bridge through the same-origin `/bridge/*` prefix.
+`next.config.ts` proxies it to `http://127.0.0.1:8001` during development.
+Phase 2 step 11 adds the equivalent Vercel Services route; the bridge disappears
+after the final Next.js Route Handler is ported.
+
+## Athlete experience
+
+The public athlete entry point is `/login`. A new account continues into
+`/onboarding`; returning accounts with an incomplete intake resume there, while
+completed accounts continue to the requested authenticated route.
+
+Fresh accounts start from an honest empty state: journey day 1, streak 0, one
+current community member, and zero conversations or connected training-data
+sources. Community posts and coaching analysis are never replaced with demo
+content when the bridge is unavailable. Apple Health is identified as requiring
+the future iPhone app, and Strava remains visibly disconnected until its OAuth
+flow is implemented.
+
+The Community surface uses the university recorded during registration to apply
+the proposal palettes for Cleveland State, Case Western Reserve, and Bowling
+Green State. Unknown or unconfigured schools use the neutral Third & Manageable
+navy-and-gold palette instead of a guessed trademark palette.
+
+## Local development
+
+Requirements: Node.js 22+, npm, Python 3.12, and a Python virtual environment.
+
+Install dependencies:
+
+```bash
+npm install
+python3 -m venv backend/.venv
+backend/.venv/bin/pip install -r backend/requirements.txt
+cp env.example .env.local
+cp backend/.env.example backend/.env
+```
+
+Start FastAPI from `backend/`:
+
+```bash
+cd backend
+.venv/bin/uvicorn app.main:app --reload --port 8001
+```
+
+Then start Next.js from the repository root:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000/login](http://localhost:3000/login). The admin login is at
+[http://localhost:3000/admin/login](http://localhost:3000/admin/login).
+Development may set `AUTO_VERIFY=true` in `backend/.env`; production and preview
+deployments intentionally refuse that setting.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Verification
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test
+npx tsc --noEmit
+npm run lint
+npm run build
+(cd backend && .venv/bin/pytest)
+npx drizzle-kit check
+npm run check:audit
+npm run check:vercel-manifest
+```
 
-## Learn More
+## Deployment status
 
-To learn more about Next.js, take a look at the following resources:
+Phase 1 of the consolidation is complete locally. Phase 2 route-porting work can
+continue, but step 11 deployment is intentionally gated on credential rotation,
+confirmed Vercel Services access, the disposable Neon branch check, and the
+go-live controls in [VERCEL_MIGRATION_PLAN.md](VERCEL_MIGRATION_PLAN.md).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Do not deploy with placeholder credentials or restore the previously exposed
+Firebase/admin values. See the migration plan for the authoritative sequence,
+data-retention requirements, and HIPAA/BAA gate.

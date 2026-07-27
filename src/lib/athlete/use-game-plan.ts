@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, authStorage } from "./api";
-import { WEEKLY_ACTIONS } from "@/lib/core/actions";
-import { JOURNEY, getPhaseForDay } from "@/lib/core/journey";
+import { useAuth } from "./auth";
+import { getPhaseForDay } from "@/lib/core/journey";
 import { WORK_PATHS } from "@/lib/core/paths";
-import { SKILL_MAP } from "@/lib/core/skills";
 
 /*
- * Game Plan state — backend-backed when authenticated, local-registry fallback
- * when offline (REDESIGN_BRIEF §4). The same hook serves both, so the UI never
- * branches on data source.
+ * Game Plan state — backend-backed when authenticated and an honest,
+ * empty-baseline local state otherwise. The same hook serves both, so the UI
+ * never branches on data source or substitutes registry examples.
  */
 
 export interface GamePlanData {
@@ -34,19 +33,13 @@ const localDefault = (): GamePlanData => ({
     intakeAnswers: {},
     committedPathId: null,
     completedActionIds: [],
-    skillMap: SKILL_MAP,
-    pathFit: WORK_PATHS.map((p) => ({
-        id: p.id,
-        name: p.name,
-        fit: p.fit,
-        rationale: p.rationale,
-        meta: p.meta,
-    })),
-    weeklyActions: WEEKLY_ACTIONS,
-    day: JOURNEY.day,
-    streak: JOURNEY.streak,
-    totalDays: JOURNEY.totalDays,
-    phase: getPhaseForDay(JOURNEY.day),
+    skillMap: [],
+    pathFit: [],
+    weeklyActions: [],
+    day: 1,
+    streak: 0,
+    totalDays: 90,
+    phase: getPhaseForDay(1),
     loading: false,
 });
 
@@ -58,7 +51,7 @@ const loadLocal = (): GamePlanData => {
         const raw = localStorage.getItem(LOCAL_KEY);
         if (raw) return { ...localDefault(), ...JSON.parse(raw) };
     } catch {
-        /* corrupted state → registry defaults */
+        /* corrupted state → empty baseline */
     }
     return localDefault();
 };
@@ -90,9 +83,12 @@ const loadPlan = async (): Promise<GamePlanData | null> => {
         intakeAnswers: {},
         committedPathId: gp.committed_path_id,
         completedActionIds: gp.completed_action_ids,
-        skillMap: gp.skill_map.length ? gp.skill_map : SKILL_MAP,
-        pathFit: gp.path_fit.length ? gp.path_fit : localDefault().pathFit,
-        weeklyActions: gp.weekly_actions.length ? gp.weekly_actions : WEEKLY_ACTIONS,
+        // Empty arrays are valid server state. Substituting registry examples
+        // here would turn an unavailable or genuinely empty plan into fake
+        // athlete data.
+        skillMap: gp.skill_map,
+        pathFit: gp.path_fit,
+        weeklyActions: gp.weekly_actions,
         day: gp.day,
         streak: gp.streak,
         totalDays: gp.total_days,
@@ -102,28 +98,43 @@ const loadPlan = async (): Promise<GamePlanData | null> => {
 };
 
 export const useGamePlan = () => {
-    // Registry defaults during the server render; the effect folds in stored
-    // and remote state once mounted.
+    const { user, loading: authLoading } = useAuth();
+    const authKey = authLoading ? null : (user?.id ?? "anonymous");
+    // Empty defaults during the server render; the effect folds in stored and
+    // remote state once mounted.
     const [data, setData] = useState<GamePlanData>(localDefault);
+    const [loadedAuthKey, setLoadedAuthKey] = useState<string | null>(null);
+    const loadedAuthKeyRef = useRef<string | null>(null);
 
     const hydrate = useCallback(async () => {
         const next = await loadPlan();
         // A failed refetch keeps what is on screen — an optimistic toggle that
         // already went through must not be reverted by a flaky network.
         setData((prev) => next ?? { ...prev, loading: false });
-    }, []);
+        if (authKey) {
+            loadedAuthKeyRef.current = authKey;
+            setLoadedAuthKey(authKey);
+        }
+    }, [authKey]);
 
     useEffect(() => {
-        // See the note in use-checkins: guard the unmount race.
+        if (!authKey) return;
+
+        // See the note in use-checkins: guard both unmount and identity-change
+        // races so one athlete's response cannot land in another's session.
         let cancelled = false;
         (async () => {
             const next = await loadPlan();
-            if (!cancelled && next) setData(next);
+            if (cancelled) return;
+            if (next) setData(next);
+            else if (loadedAuthKeyRef.current !== authKey) setData(localDefault());
+            loadedAuthKeyRef.current = authKey;
+            setLoadedAuthKey(authKey);
         })();
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [authKey]);
 
     const persistLocal = (next: GamePlanData) => {
         if (!authStorage.getToken()) {
@@ -185,5 +196,14 @@ export const useGamePlan = () => {
         });
     };
 
-    return { data, completeIntake, commitToPath, toggleAction, hydrate };
+    return {
+        data: {
+            ...data,
+            loading: authLoading || loadedAuthKey !== authKey,
+        },
+        completeIntake,
+        commitToPath,
+        toggleAction,
+        hydrate,
+    };
 };

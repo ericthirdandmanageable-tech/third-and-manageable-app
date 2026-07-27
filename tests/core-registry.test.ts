@@ -118,3 +118,17 @@ describe("journey phases mirror the backend registry", () => {
         expect(getPhaseForDay(JOURNEY.totalDays + 1)).toBe(JOURNEY_PHASES[0]);
     });
 });
+
+describe("fresh-system registry defaults", () => {
+    it("starts the journey at day one with no earned streak", () => {
+        expect(JOURNEY).toEqual({ day: 1, totalDays: 90, streak: 0 });
+        expect(registry).toContain('JOURNEY = {"day": 1, "total_days": 90, "streak": 0}');
+    });
+
+    it("does not seed proposal mockup audience counts", () => {
+        expect(FORUMS.every((forum) => forum.memberCount === 0)).toBe(true);
+        expect(FORUMS.every((forum) => forum.activeNow === 0)).toBe(true);
+        expect(registry).not.toMatch(/"member_count":\s*[1-9]/);
+        expect(registry).not.toMatch(/"active_now":\s*[1-9]/);
+    });
+});
