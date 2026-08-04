@@ -308,6 +308,24 @@ class Forum(Base):
     updated_at = Column(UtcDateTime, nullable=False, default=utcnow, onupdate=utcnow)
 
 
+class ForumMembership(Base):
+    """A persisted forum subscription used to build each athlete's feed."""
+
+    __tablename__ = "forum_memberships"
+    user_id = _user_fk(nullable=False, primary_key=True)
+    forum_id = Column(
+        Text,
+        ForeignKey("forums.id", ondelete="CASCADE"),
+        nullable=False,
+        primary_key=True,
+    )
+    joined_at = Column(UtcDateTime, nullable=False, default=utcnow)
+
+    __table_args__ = (
+        Index("ix_forum_memberships_forum_time", "forum_id", "joined_at"),
+    )
+
+
 class Post(Base):
     __tablename__ = "posts"
     id = _pk()

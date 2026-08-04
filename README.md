@@ -92,3 +92,8 @@ go-live controls in [VERCEL_MIGRATION_PLAN.md](VERCEL_MIGRATION_PLAN.md).
 Do not deploy with placeholder credentials or restore the previously exposed
 Firebase/admin values. See the migration plan for the authoritative sequence,
 data-retention requirements, and HIPAA/BAA gate.
+
+The production Firebase Web app configuration is now known, but it is not an
+Admin credential and does not authorize inventory or migration. Follow
+[FIREBASE_SAFE_HANDOFF.md](FIREBASE_SAFE_HANDOFF.md) before connecting any new
+client, adding a server credential, or preparing an App Store replacement.

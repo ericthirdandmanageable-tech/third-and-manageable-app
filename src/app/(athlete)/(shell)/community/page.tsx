@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import {
     Bookmark,
     BriefcaseBusiness,
+    Check,
     CheckCircle2,
     ChevronRight,
     CircleHelp,
+    Compass,
     Flame,
     Heart,
     HeartHandshake,
     MessageCircle,
+    Plus,
     Send,
     ShieldCheck,
     Sparkles,
@@ -40,6 +43,14 @@ const TOPICS = [
 
 type TopicId = (typeof TOPICS)[number]["id"];
 type Flair = "WIN" | "VENT" | "QUESTION" | "RESOURCE" | "MILESTONE";
+type FeedScope = "joined" | "all";
+type FeedSort = "hot" | "new" | "top";
+
+const FEED_SORTS: { id: FeedSort; label: string }[] = [
+    { id: "hot", label: "Hot" },
+    { id: "new", label: "Latest" },
+    { id: "top", label: "Top" },
+];
 
 const initials = (name: string) =>
     name
@@ -74,6 +85,11 @@ export default function CommunityPage() {
     const [loading, setLoading] = useState(true);
     const [loadFailed, setLoadFailed] = useState(false);
     const [topic, setTopic] = useState<TopicId>("all");
+    const [feedScope, setFeedScope] = useState<FeedScope>("joined");
+    const [feedSort, setFeedSort] = useState<FeedSort>("hot");
+    const [feedRevision, setFeedRevision] = useState(0);
+    const [membershipBusy, setMembershipBusy] = useState<string | null>(null);
+    const [membershipError, setMembershipError] = useState("");
     const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
     const [liked, setLiked] = useState<Set<string>>(new Set());
     const [composerOpen, setComposerOpen] = useState(false);
@@ -106,28 +122,30 @@ export default function CommunityPage() {
                 ...current,
                 forumId: current.forumId || remoteForums[0]?.id || "",
             }));
-            const batches = await Promise.all(
-                remoteForums.map((forum) => api.getPosts(forum.id, "new")),
-            );
+            const hasMemberships = remoteForums.some((forum) => forum.joined);
+            const resolvedScope =
+                feedScope === "joined" && !hasMemberships ? "all" : feedScope;
+            if (resolvedScope !== feedScope) setFeedScope(resolvedScope);
+            const remotePosts = await api.getCommunityFeed(resolvedScope, feedSort);
             if (cancelled) return;
-            setPosts(batches.flatMap((batch) => batch ?? []));
-            setLoadFailed(batches.some((batch) => batch === null));
+            setPosts(remotePosts ?? []);
+            setLoadFailed(remotePosts === null);
             setLoading(false);
         })();
         return () => {
             cancelled = true;
         };
-    }, [user?.id]);
+    }, [feedRevision, feedScope, feedSort, user?.id]);
 
     const forumById = useMemo(
         () => new Map(forums.map((forum) => [forum.id, forum])),
         [forums],
     );
     const visiblePosts = posts.filter((post) => isPostVisible(post, topic, forumById));
-    // The bridge has no membership or presence table yet. Its seeded forum
-    // counters were proposal mockups, so do not present them as telemetry.
-    // Count observed participants, including the signed-in athlete, and show
-    // only the current session as active until real presence exists.
+    const joinedCount = forums.filter((forum) => forum.joined).length;
+    // Membership is real per forum, but summing those rows would double-count
+    // athletes who joined more than one. Until a global distinct-member and
+    // presence query exists, show observed participants plus this session.
     const memberCount = new Set([
         ...(user ? [user.display_name] : []),
         ...posts.map((post) => post.author_name),
@@ -161,6 +179,38 @@ export default function CommunityPage() {
         });
     };
 
+    const toggleMembership = async (forum: ApiForum) => {
+        if (membershipBusy) return;
+        if (!user?.verified) {
+            setMembershipError("Your athlete verification must be approved before you can join.");
+            return;
+        }
+        const joining = !forum.joined;
+        setMembershipBusy(forum.id);
+        const result = await api.setForumMembership(forum.id, joining);
+        setMembershipBusy(null);
+        if (!result) {
+            setMembershipError("That community could not be updated. Please try again.");
+            return;
+        }
+        setMembershipError("");
+        setForums((current) =>
+            current.map((candidate) =>
+                candidate.id === result.forum_id
+                    ? {
+                          ...candidate,
+                          joined: result.joined,
+                          member_count: result.member_count,
+                      }
+                    : candidate,
+            ),
+        );
+        if (joining && joinedCount === 0) setFeedScope("joined");
+        else if (!joining && joinedCount === 1 && feedScope === "joined") {
+            setFeedScope("all");
+        } else setFeedRevision((revision) => revision + 1);
+    };
+
     const publish = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!draft.forumId || draft.title.trim().length < 3 || draft.body.trim().length < 3) {
@@ -185,8 +235,17 @@ export default function CommunityPage() {
             return;
         }
         setPosts((current) => [created, ...current]);
+        setForums((current) =>
+            current.map((forum) =>
+                forum.id === created.forum_id && !forum.joined
+                    ? { ...forum, joined: true, member_count: forum.member_count + 1 }
+                    : forum,
+            ),
+        );
         setDraft((current) => ({ ...current, title: "", body: "" }));
         setComposerOpen(false);
+        setFeedScope("joined");
+        setFeedRevision((revision) => revision + 1);
     };
 
     const style = {
@@ -327,18 +386,58 @@ export default function CommunityPage() {
 
                 {forums.length > 0 && (
                     <section className="mt-4">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#4b5563]">
+                                Find your communities
+                            </p>
+                            <span className="text-xs font-semibold text-[#6b7280]">
+                                {joinedCount} joined
+                            </span>
+                        </div>
                         <div className="flex gap-2 overflow-x-auto pb-2">
-                            {forums.slice(0, 7).map((forum) => (
-                                <button
+                            {forums.map((forum) => (
+                                <div
                                     key={forum.id}
-                                    onClick={() => router.push(`/community/${forum.id}`)}
-                                    className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-3.5 py-2 text-xs font-medium text-[#4b5563] transition hover:border-[var(--community-primary)] hover:text-[var(--community-text)]"
+                                    className="inline-flex shrink-0 items-center overflow-hidden rounded-full border border-[#e5e7eb] bg-white text-xs font-medium text-[#4b5563] shadow-sm transition hover:border-[var(--community-primary)]"
                                 >
-                                    <Icon name={forum.icon} className="h-3.5 w-3.5" />
-                                    {forum.title}
-                                </button>
+                                    <button
+                                        onClick={() => router.push(`/community/${forum.id}`)}
+                                        className="inline-flex items-center gap-2 py-2 pl-3.5 pr-2 hover:text-[var(--community-text)]"
+                                    >
+                                        <Icon name={forum.icon} className="h-3.5 w-3.5" />
+                                        {forum.title}
+                                    </button>
+                                    <button
+                                        onClick={() => toggleMembership(forum)}
+                                        disabled={membershipBusy === forum.id}
+                                        aria-label={`${forum.joined ? "Leave" : "Join"} ${forum.title}`}
+                                        aria-pressed={forum.joined}
+                                        className="mr-1.5 flex h-7 w-7 items-center justify-center rounded-full transition disabled:opacity-50"
+                                        style={
+                                            forum.joined
+                                                ? { backgroundColor: theme.soft, color: theme.primary }
+                                                : { backgroundColor: "#f3f4f6", color: "#6b7280" }
+                                        }
+                                    >
+                                        {forum.joined ? (
+                                            <Check className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <Plus className="h-3.5 w-3.5" />
+                                        )}
+                                    </button>
+                                </div>
                             ))}
                         </div>
+                        {joinedCount === 0 && (
+                            <p className="mt-1 text-xs leading-5 text-[#6b7280]">
+                                Join one or two communities to turn the conversation list into your feed.
+                            </p>
+                        )}
+                        {membershipError && (
+                            <p role="alert" className="mt-2 text-xs font-medium text-[#b42318]">
+                                {membershipError}
+                            </p>
+                        )}
                     </section>
                 )}
 
@@ -485,13 +584,55 @@ export default function CommunityPage() {
                 </section>
 
                 <section className="mt-8">
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                         <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-[#4b5563]">
-                            Recent conversations
+                            {feedScope === "joined" ? "Your community feed" : "Discover conversations"}
                         </h2>
                         <span className="text-xs font-semibold" style={{ color: theme.text }}>
                             {visiblePosts.length} {visiblePosts.length === 1 ? "post" : "posts"}
                         </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <div
+                            role="tablist"
+                            aria-label="Community feed"
+                            className="inline-flex rounded-full border border-[#e5e7eb] bg-white p-1 shadow-sm"
+                        >
+                            {([
+                                { id: "joined" as const, label: "My communities", icon: Users },
+                                { id: "all" as const, label: "Discover", icon: Compass },
+                            ]).map(({ id, label, icon: FeedIcon }) => (
+                                <button
+                                    key={id}
+                                    role="tab"
+                                    aria-selected={feedScope === id}
+                                    disabled={id === "joined" && joinedCount === 0}
+                                    onClick={() => setFeedScope(id)}
+                                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
+                                    style={
+                                        feedScope === id
+                                            ? { backgroundColor: theme.primary, color: "white" }
+                                            : { color: "#6b7280" }
+                                    }
+                                >
+                                    <FeedIcon className="h-3.5 w-3.5" /> {label}
+                                </button>
+                            ))}
+                        </div>
+                        <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#6b7280]">
+                            Sort
+                            <select
+                                value={feedSort}
+                                onChange={(event) => setFeedSort(event.target.value as FeedSort)}
+                                className="rounded-full border border-[#e5e7eb] bg-white px-3 py-2 text-xs font-semibold text-[#374151] outline-none focus:border-[var(--community-primary)]"
+                            >
+                                {FEED_SORTS.map((option) => (
+                                    <option key={option.id} value={option.id}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
                     </div>
 
                     {loading ? (
@@ -507,12 +648,18 @@ export default function CommunityPage() {
                                 <MessageCircle className="h-5 w-5" />
                             </div>
                             <h3 className="mt-4 text-lg font-bold text-[#111827]">
-                                {loadFailed ? "The feed is temporarily unavailable" : "Start the first conversation"}
+                                {loadFailed
+                                    ? "The feed is temporarily unavailable"
+                                    : feedScope === "joined"
+                                      ? "Your communities are quiet right now"
+                                      : "Start the first conversation"}
                             </h3>
                             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6b7280]">
                                 {loadFailed
                                     ? "No sample posts were substituted. Reconnect the Services bridge and this feed will load real conversations."
-                                    : "There are no posts in this topic yet. Share a question, a win, or the thing you’re working through."}
+                                    : feedScope === "joined"
+                                      ? "Try Discover, join another community, or start a conversation where you already belong."
+                                      : "There are no posts in this topic yet. Share a question, a win, or the thing you’re working through."}
                             </p>
                             {!loadFailed && (
                                 <button

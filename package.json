@@ -11,6 +11,7 @@
     "test:auth": "vitest run tests/admin-session.test.ts",
     "check:vercel-manifest": "node scripts/check-vercel-manifest.mjs",
     "check:audit": "npm audit --omit=dev --audit-level=low",
+    "firebase:inventory": "node scripts/firebase-readonly-inventory.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:test:neon": "vercel --scope ling-iq env run -e development -- node scripts/test-neon-baseline.mjs",

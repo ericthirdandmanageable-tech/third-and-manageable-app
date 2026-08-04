@@ -96,7 +96,7 @@ Project settings note: `vercel link` pinned the framework preset to **Services**
 
 ### Blocked on you
 
-1. **Firebase access/sign-in is unavailable.** Until access is restored, the service-account key cannot be safely rotated/tested, Firestore cannot be exported, and the existing Firebase Google/Apple identity configuration and provider subjects cannot be inventoried. Firebase work is on hold; do not inject old credentials into Vercel.
+1. **Firebase Web configuration is recovered; privileged access is not yet verified.** The supplied Web app config identifies `third-and-manageable-app`, but it is not a Firebase Admin credential. Complete the no-change, least-privilege inventory in `FIREBASE_SAFE_HANDOFF.md`, then rotate/test the service-account key and inventory the existing Google/Apple identities. Firebase writes and Vercel credential injection remain on hold.
 2. **Obtain the existing Google and Apple sign-in configuration** — Google OAuth client/project access, Apple Services ID/Team ID/Key ID/private key, redirect URIs, and an export of Firebase Auth UIDs/provider subjects. This blocks final Auth.js account linking, but not the Phase 0 signed bootstrap session.
 3. **Rotate the leaked credentials when access is restored** — admin bootstrap password, then revoke + reissue the Firebase service-account key (§6.2).
 4. **Purchase Vercel's HIPAA add-on and complete/file the BAA before go-live.** A BAA is necessary but not sufficient; the application and every downstream processor still need the §6.8 controls and their own compliance review.

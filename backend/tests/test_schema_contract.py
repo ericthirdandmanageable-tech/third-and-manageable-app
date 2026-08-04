@@ -1,7 +1,7 @@
 """The bridge must fit the schema Drizzle owns.
 
-`src/lib/db/schema.ts` defines the database and `drizzle/0000_*.sql` is what
-actually runs against Neon. These SQLAlchemy models only *borrow* that schema,
+`src/lib/db/schema.ts` defines the database and `drizzle/*.sql` is what actually
+runs against Neon. These SQLAlchemy models only *borrow* that schema,
 so nothing here re-checks whether the baseline is well designed — it checks that
 the bridge cannot drift away from it. A model column that Drizzle never created
 fails at runtime on the first write; a NOT NULL the bridge does not know about
@@ -18,9 +18,8 @@ import pytest
 
 from app.database import Base
 
-BASELINE = (
-    Path(__file__).resolve().parents[2] / "drizzle" / "0000_bitter_frank_castle.sql"
-)
+MIGRATION_DIR = Path(__file__).resolve().parents[2] / "drizzle"
+MIGRATIONS = sorted(MIGRATION_DIR.glob("[0-9][0-9][0-9][0-9]_*.sql"))
 
 # What a Postgres column type in the baseline is allowed to look like once
 # SQLAlchemy has compiled the model column for Postgres.
@@ -36,11 +35,11 @@ _EQUIVALENT = {
 }
 
 
-def _parse_baseline() -> dict[str, dict[str, tuple[str, bool]]]:
+def _parse_migrations() -> dict[str, dict[str, tuple[str, bool]]]:
     """table -> column -> (postgres type, not_null). Deliberately a small
     regex parser rather than a Postgres connection: this has to run in CI
     without a database, which is the whole point of catching drift early."""
-    sql = BASELINE.read_text()
+    sql = "\n".join(path.read_text() for path in MIGRATIONS)
     tables: dict[str, dict[str, tuple[str, bool]]] = {}
     for table, block in re.findall(
         r'CREATE TABLE "(\w+)" \((.*?)\n\);', sql, re.S
@@ -59,14 +58,15 @@ def _parse_baseline() -> dict[str, dict[str, tuple[str, bool]]]:
     return tables
 
 
-BASELINE_TABLES = _parse_baseline()
+BASELINE_TABLES = _parse_migrations()
 BRIDGE_TABLES = sorted(Base.metadata.tables)
 
 
 def test_baseline_parsed():
-    # 19 tables per the §3.1 baseline; a parser that silently matched nothing
+    # 20 tables across the baseline + membership migration; a parser that
+    # silently matched nothing
     # would make every other assertion in this file vacuously true.
-    assert len(BASELINE_TABLES) == 19, sorted(BASELINE_TABLES)
+    assert len(BASELINE_TABLES) == 20, sorted(BASELINE_TABLES)
 
 
 @pytest.mark.parametrize("table_name", BRIDGE_TABLES)
@@ -103,7 +103,7 @@ def test_bridge_supplies_every_required_column(table_name):
     """A NOT NULL column with no database default must be modelled and
     populated by the bridge, or every insert fails."""
     modelled = {c.name for c in Base.metadata.tables[table_name].columns}
-    sql = BASELINE.read_text()
+    sql = "\n".join(path.read_text() for path in MIGRATIONS)
     block = re.search(rf'CREATE TABLE "{table_name}" \((.*?)\n\);', sql, re.S)
     assert block
     for line in block.group(1).strip().splitlines():

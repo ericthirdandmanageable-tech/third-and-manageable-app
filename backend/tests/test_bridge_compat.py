@@ -245,6 +245,104 @@ def test_logout_revokes_tokens_already_issued(client):
 
 # ---------- votes ----------
 
+
+def test_forum_memberships_power_a_personalized_feed(client, athlete):
+    consulting = "path-consulting"
+    gig = "path-gig"
+
+    # Begin from a deterministic state; leave is intentionally idempotent.
+    client.delete(f"/community/forums/{consulting}/membership", headers=athlete)
+    client.delete(f"/community/forums/{gig}/membership", headers=athlete)
+
+    before = {
+        forum["id"]: forum
+        for forum in client.get("/community/forums", headers=athlete).json()
+    }
+    joined = client.post(
+        f"/community/forums/{consulting}/membership", headers=athlete
+    )
+    assert joined.status_code == 200, joined.text
+    assert joined.json() == {
+        "forum_id": consulting,
+        "joined": True,
+        "member_count": before[consulting]["member_count"] + 1,
+    }
+
+    # A repeated join cannot double-count the same athlete.
+    again = client.post(
+        f"/community/forums/{consulting}/membership", headers=athlete
+    )
+    assert again.json()["member_count"] == joined.json()["member_count"]
+
+    # Posting follows the community automatically, matching the no-friction
+    # behavior of established forum products.
+    posted = client.post(
+        f"/community/forums/{gig}/posts",
+        json={
+            "flair": "QUESTION",
+            "title": "How do you price a first project?",
+            "body": "Looking for a useful starting point.",
+        },
+        headers=athlete,
+    )
+    assert posted.status_code == 200, posted.text
+    post_id = posted.json()["id"]
+
+    forums = {
+        forum["id"]: forum
+        for forum in client.get("/community/forums", headers=athlete).json()
+    }
+    assert forums[consulting]["joined"] is True
+    assert forums[gig]["joined"] is True
+
+    joined_feed = client.get(
+        "/community/feed?scope=joined&sort=new", headers=athlete
+    )
+    assert joined_feed.status_code == 200, joined_feed.text
+    assert post_id in {post["id"] for post in joined_feed.json()}
+
+    left = client.delete(
+        f"/community/forums/{gig}/membership", headers=athlete
+    )
+    assert left.json()["joined"] is False
+    assert post_id not in {
+        post["id"]
+        for post in client.get(
+            "/community/feed?scope=joined&sort=new", headers=athlete
+        ).json()
+    }
+    assert post_id in {
+        post["id"]
+        for post in client.get(
+            "/community/feed?scope=all&sort=new", headers=athlete
+        ).json()
+    }
+
+
+def test_unverified_user_cannot_join_a_forum(client):
+    r = client.post(
+        "/auth/register",
+        json={
+            "email": "membership-pending@test.dev",
+            "password": "password123",
+            "display_name": "Pending",
+        },
+    )
+    headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    db = TestingSession()
+    try:
+        user_by_email(db, "membership-pending@test.dev").verified = False
+        db.commit()
+    finally:
+        db.close()
+    blocked = client.post(
+        "/community/forums/path-consulting/membership", headers=headers
+    )
+    assert blocked.status_code == 403
+
+
+# ---------- votes ----------
+
 def test_votes_are_foreign_keyed_per_target(client, athlete):
     post = client.post("/community/forums/path-consulting/posts",
                        json={"flair": "WIN", "title": "Signed", "body": "Got the role"},

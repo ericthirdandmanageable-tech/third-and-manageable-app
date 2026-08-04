@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     ArrowBigUp,
+    Check,
     ChevronLeft,
     Clock,
     Flame,
     MessageSquare,
     Plus,
     Trophy,
+    UserPlus,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -73,6 +75,7 @@ export default function ForumPage() {
     const [loadFailed, setLoadFailed] = useState(false);
     const [draft, setDraft] = useState<ForumDraft | null>(null);
     const [composing, setComposing] = useState(false);
+    const [membershipBusy, setMembershipBusy] = useState(false);
 
     const fetchPosts = useCallback(
         async (s: Sort) => {
@@ -115,9 +118,26 @@ export default function ForumPage() {
     const sorted = [...posts].sort((a, b) => {
         if (sort === "top") return b.upvotes - a.upvotes;
         if (sort === "new") return hoursAgo(a.timeAgo) - hoursAgo(b.timeAgo);
-        return b.upvotes + b.commentCount - (a.upvotes + a.commentCount); // hot
+        return 0; // the API applies time-decayed engagement for Hot
     });
     const contributorCount = new Set(posts.map((post) => post.author)).size;
+
+    const toggleMembership = async () => {
+        if (!forum || membershipBusy || !user?.verified) return;
+        setMembershipBusy(true);
+        const result = await api.setForumMembership(forum.id, !forum.joined);
+        setMembershipBusy(false);
+        if (!result) return;
+        setForum((current) =>
+            current
+                ? {
+                      ...current,
+                      joined: result.joined,
+                      member_count: result.member_count,
+                  }
+                : current,
+        );
+    };
 
     if (loading) {
         return (
@@ -153,19 +173,40 @@ export default function ForumPage() {
                 <ChevronLeft className="w-4 h-4" /> All communities
             </button>
             <header className="mb-6">
-                <div className="flex items-center gap-4 mb-2">
-                    <div
-                        className={`w-12 h-12 rounded-lg flex items-center justify-center ${CATEGORY_STYLES[forum.category as ForumCategory]?.tile ?? "bg-volt/10 text-volt"}`}
+                <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-4">
+                        <div
+                            className={`w-12 h-12 shrink-0 rounded-lg flex items-center justify-center ${CATEGORY_STYLES[forum.category as ForumCategory]?.tile ?? "bg-volt/10 text-volt"}`}
+                        >
+                            <Icon name={forum.icon} className="w-6 h-6" />
+                        </div>
+                        <div className="min-w-0">
+                            <h1 className="font-serif text-3xl text-sand italic">{forum.title}</h1>
+                            <p className="font-mono text-[11px] uppercase tracking-widest text-text-tertiary">
+                                <span className="text-volt">{forum.member_count} members</span> ·{" "}
+                                {contributorCount} contributors · {posts.length} conversations
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={toggleMembership}
+                        disabled={membershipBusy || !user?.verified}
+                        aria-pressed={forum.joined}
+                        title={user?.verified ? undefined : "Athlete verification required"}
+                        className={clsx(
+                            "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-45",
+                            forum.joined
+                                ? "border border-volt/30 bg-volt/10 text-volt"
+                                : "bg-volt text-volt-ink hover:bg-volt/90",
+                        )}
                     >
-                        <Icon name={forum.icon} className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h1 className="font-serif text-3xl text-sand italic">{forum.title}</h1>
-                        <p className="font-mono text-[11px] uppercase tracking-widest text-text-tertiary">
-                            <span className="text-volt">{contributorCount} contributors</span> ·{" "}
-                            {posts.length} conversations
-                        </p>
-                    </div>
+                        {forum.joined ? (
+                            <Check className="h-4 w-4" />
+                        ) : (
+                            <UserPlus className="h-4 w-4" />
+                        )}
+                        {membershipBusy ? "Updating…" : forum.joined ? "Joined" : "Join"}
+                    </button>
                 </div>
                 <p className="text-[13px] text-text-secondary mt-2">{forum.description}</p>
                 <div className="yard-line mt-4" />
@@ -187,6 +228,15 @@ export default function ForumPage() {
                         onDone={() => {
                             setComposing(false);
                             setDraft(null);
+                            setForum((current) =>
+                                current && !current.joined
+                                    ? {
+                                          ...current,
+                                          joined: true,
+                                          member_count: current.member_count + 1,
+                                      }
+                                    : current,
+                            );
                             fetchPosts(sort);
                         }}
                         onCancel={() => {

@@ -186,6 +186,7 @@ class ForumOut(BaseModel):
     active_now: int
     icon: str
     path_id: Optional[str] = None
+    joined: bool = False
 
     class Config:
         from_attributes = True
@@ -210,6 +211,12 @@ class PostIn(BaseModel):
     flair: Literal["WIN", "VENT", "QUESTION", "RESOURCE", "MILESTONE"]
     title: str = Field(min_length=3)
     body: str = Field(min_length=3)
+
+
+class ForumMembershipOut(BaseModel):
+    forum_id: str
+    joined: bool
+    member_count: int
 
 
 class CommentIn(BaseModel):

@@ -138,6 +138,13 @@ export interface ApiForum {
     active_now: number;
     icon: string;
     path_id?: string;
+    joined: boolean;
+}
+
+export interface ApiForumMembership {
+    forum_id: string;
+    joined: boolean;
+    member_count: number;
 }
 
 export interface ApiPostSummary {
@@ -257,6 +264,12 @@ export const api = {
 
     /* ---------- Community ---------- */
     getForums: () => request<ApiForum[]>("/community/forums"),
+    getCommunityFeed: (scope: "joined" | "all" = "joined", sort = "hot") =>
+        request<ApiPostSummary[]>(`/community/feed?scope=${scope}&sort=${sort}`),
+    setForumMembership: (forumId: string, joined: boolean) =>
+        request<ApiForumMembership>(`/community/forums/${forumId}/membership`, {
+            method: joined ? "POST" : "DELETE",
+        }),
     getPosts: (forumId: string, sort = "hot") =>
         request<ApiPostSummary[]>(`/community/forums/${forumId}/posts?sort=${sort}`),
     createPost: (forumId: string, flair: string, title: string, body: string) =>

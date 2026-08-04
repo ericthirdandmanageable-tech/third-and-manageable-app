@@ -409,6 +409,31 @@ export const forums = pgTable(
     ],
 );
 
+/**
+ * An athlete's community subscriptions power their personalized feed.
+ * Membership is deliberately separate from posting: someone can follow a
+ * community quietly, and authors are auto-joined on their first post.
+ */
+export const forumMemberships = pgTable(
+    "forum_memberships",
+    {
+        userId: uuid("user_id")
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        forumId: text("forum_id")
+            .notNull()
+            .references(() => forums.id, { onDelete: "cascade" }),
+        joinedAt: utcTimestamp("joined_at").notNull().defaultNow(),
+    },
+    (t) => [
+        primaryKey({ columns: [t.userId, t.forumId] }),
+        index("ix_forum_memberships_forum_time").on(
+            t.forumId,
+            t.joinedAt.desc(),
+        ),
+    ],
+);
+
 export const posts = pgTable(
     "posts",
     {

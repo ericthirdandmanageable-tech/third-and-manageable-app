@@ -1,12 +1,30 @@
 from datetime import datetime, timezone
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_verified
-from app.database import get_db, User, Forum, Post, Comment, PostVote, CommentVote
-from app.schemas import ForumOut, PostOut, PostIn, CommentIn, CommentOut, VoteIn
+from app.auth import get_current_user, optional_user, require_verified
+from app.database import (
+    get_db,
+    User,
+    Forum,
+    ForumMembership,
+    Post,
+    Comment,
+    PostVote,
+    CommentVote,
+)
+from app.schemas import (
+    ForumMembershipOut,
+    ForumOut,
+    PostOut,
+    PostIn,
+    CommentIn,
+    CommentOut,
+    VoteIn,
+)
 
 router = APIRouter(prefix="/community", tags=["community"])
 
@@ -42,36 +60,156 @@ def _comment_tree(comments: list[Comment]) -> list[CommentOut]:
     return build(None)
 
 
+def _post_out(db: Session, post: Post) -> PostOut:
+    comment_count = _comment_count(db, post.id)
+    return PostOut(
+        id=post.id,
+        forum_id=post.forum_id,
+        author_name=post.author_name,
+        flair=post.flair,
+        title=post.title,
+        body=post.body,
+        upvotes=post.upvotes,
+        comment_count=comment_count,
+        time_ago=_time_ago(post.created_at),
+    )
+
+
+def _comment_count(db: Session, post_id: UUID) -> int:
+    return (
+        db.query(Comment)
+        .filter(Comment.post_id == post_id, Comment.deleted_at.is_(None))
+        .count()
+    )
+
+
+def _hot_score(db: Session, post: Post) -> float:
+    """Reddit-style decay: engagement matters, but fresh posts get a window."""
+    age_hours = max(
+        (datetime.now(timezone.utc) - post.created_at).total_seconds() / 3600,
+        0,
+    )
+    engagement = (post.upvotes or 0) + _comment_count(db, post.id) * 2 + 1
+    return engagement / ((age_hours + 2) ** 1.5)
+
+
+def _member_count(db: Session, forum_id: str) -> int:
+    return (
+        db.query(ForumMembership)
+        .filter(ForumMembership.forum_id == forum_id)
+        .count()
+    )
+
+
 @router.get("/forums", response_model=list[ForumOut])
-def list_forums(db: Session = Depends(get_db)):
-    return [ForumOut.model_validate(f) for f in db.query(Forum).all()]
+def list_forums(
+    user: User | None = Depends(optional_user), db: Session = Depends(get_db)
+):
+    forums = db.query(Forum).order_by(Forum.category, Forum.title).all()
+    joined_ids = set()
+    if user:
+        joined_ids = {
+            row[0]
+            for row in db.query(ForumMembership.forum_id)
+            .filter(ForumMembership.user_id == user.id)
+            .all()
+        }
+    return [
+        ForumOut(
+            id=forum.id,
+            title=forum.title,
+            category=forum.category,
+            description=forum.description,
+            member_count=_member_count(db, forum.id),
+            active_now=forum.active_now,
+            icon=forum.icon,
+            path_id=forum.path_id,
+            joined=forum.id in joined_ids,
+        )
+        for forum in forums
+    ]
+
+
+@router.post(
+    "/forums/{forum_id}/membership", response_model=ForumMembershipOut
+)
+def join_forum(
+    forum_id: str,
+    user: User = Depends(require_verified),
+    db: Session = Depends(get_db),
+):
+    if not db.get(Forum, forum_id):
+        raise HTTPException(status_code=404, detail="Forum not found")
+    membership = db.get(ForumMembership, (user.id, forum_id))
+    if not membership:
+        db.add(ForumMembership(user_id=user.id, forum_id=forum_id))
+        db.commit()
+    return ForumMembershipOut(
+        forum_id=forum_id,
+        joined=True,
+        member_count=_member_count(db, forum_id),
+    )
+
+
+@router.delete(
+    "/forums/{forum_id}/membership", response_model=ForumMembershipOut
+)
+def leave_forum(
+    forum_id: str,
+    user: User = Depends(require_verified),
+    db: Session = Depends(get_db),
+):
+    if not db.get(Forum, forum_id):
+        raise HTTPException(status_code=404, detail="Forum not found")
+    membership = db.get(ForumMembership, (user.id, forum_id))
+    if membership:
+        db.delete(membership)
+        db.commit()
+    return ForumMembershipOut(
+        forum_id=forum_id,
+        joined=False,
+        member_count=_member_count(db, forum_id),
+    )
+
+
+@router.get("/feed", response_model=list[PostOut])
+def list_feed(
+    scope: Literal["joined", "all"] = Query("joined"),
+    sort: Literal["hot", "new", "top"] = Query("hot"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Post).filter(Post.deleted_at.is_(None))
+    if scope == "joined":
+        q = q.join(
+            ForumMembership,
+            ForumMembership.forum_id == Post.forum_id,
+        ).filter(ForumMembership.user_id == user.id)
+    if sort == "new":
+        q = q.order_by(Post.created_at.desc())
+    elif sort == "top":
+        q = q.order_by(Post.upvotes.desc(), Post.created_at.desc())
+    else:
+        posts = q.all()
+        posts.sort(key=lambda post: _hot_score(db, post), reverse=True)
+        return [_post_out(db, post) for post in posts]
+    return [_post_out(db, post) for post in q.all()]
 
 
 @router.get("/forums/{forum_id}/posts", response_model=list[PostOut])
 def list_posts(forum_id: str, sort: str = Query("hot"), db: Session = Depends(get_db)):
-    q = db.query(Post).filter(Post.forum_id == forum_id)
+    q = db.query(Post).filter(
+        Post.forum_id == forum_id, Post.deleted_at.is_(None)
+    )
     if sort == "top":
         q = q.order_by(Post.upvotes.desc())
     elif sort == "new":
         q = q.order_by(Post.created_at.desc())
     else:
-        q = q.order_by((Post.upvotes + 0).desc())
-    posts = q.all()
-    out = []
-    for p in posts:
-        comment_count = db.query(Comment).filter(Comment.post_id == p.id).count()
-        out.append(PostOut(
-            id=p.id,
-            forum_id=p.forum_id,
-            author_name=p.author_name,
-            flair=p.flair,
-            title=p.title,
-            body=p.body,
-            upvotes=p.upvotes,
-            comment_count=comment_count,
-            time_ago=_time_ago(p.created_at),
-        ))
-    return out
+        posts = q.all()
+        posts.sort(key=lambda post: _hot_score(db, post), reverse=True)
+        return [_post_out(db, post) for post in posts]
+    return [_post_out(db, post) for post in q.all()]
 
 
 @router.post("/forums/{forum_id}/posts", response_model=PostOut)
@@ -87,6 +225,8 @@ def create_post(forum_id: str, body: PostIn, user: User = Depends(require_verifi
         title=body.title,
         body=body.body,
     )
+    if not db.get(ForumMembership, (user.id, forum_id)):
+        db.add(ForumMembership(user_id=user.id, forum_id=forum_id))
     db.add(post)
     db.commit()
     db.refresh(post)
