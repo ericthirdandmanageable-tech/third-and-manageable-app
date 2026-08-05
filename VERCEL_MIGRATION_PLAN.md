@@ -27,6 +27,12 @@ Companion documents: `FEATURE_ANALYSIS.md` (feature/architecture inventory), `WE
 | Weekly actions | **Fifteen categorized habits** — admin's taxonomy wins, backend's `a1`–`a4` is replaced (§6.5) |
 | Compliance gate | Purchase Vercel's HIPAA add-on and complete the BAA **before any live workload may handle PHI** (§6.8) |
 
+> **Pinned security release blocker (deferred implementation):** Do not deploy
+> the legacy admin dashboard until its authorization is independently re-verified.
+> Its previous cookie-based guard could be forged and protected routes can mutate
+> production Firestore. Track remediation under §6.1; do not record credentials
+> or exploit details in a public issue.
+
 ### Phase 0 progress
 
 - [x] **Step 1 — `git init`.** Repo created on `main`; initial commit `479ceeb`, 143 files. Root `.gitignore` excludes `node_modules/`, `.venv/`, `dist/`, `*.db`, `.env`.
@@ -94,10 +100,107 @@ rotation first.
 
 Project settings note: `vercel link` pinned the framework preset to **Services** before the service topology was intentional. The project setting and `vercel.json` now both pin **Next.js**. Phase 2 deliberately switches the same project to Services with explicit Next.js + FastAPI configuration, then returns it to a Next.js-only preset and removes every Python/service-binding residue at cutover.
 
+### Mobile recovery and security checkpoint — 2026-08-05
+
+The source/build/control-plane inventory is now sufficient to replace the old
+compiled-bundle assumptions with verified production facts:
+
+- [x] **Production source recovered and matched.** Public repository
+  `ericthirdandmanageable-tech/third-and-manageable-app`, commit
+  `5b37d367c7119961ca98cd52645fdc79c3499626`, exactly matches EAS/App Store
+  build `1.0.0 (6)`. Current connected GitHub access is read-only (`push=false`).
+- [x] **Expo/EAS inventoried read-only.** Personal owner
+  `eric.thirdandmanageable`; project ID
+  `7d162617-1e50-4351-8de0-519f8063bc4d`; no GitHub integration, update
+  branches/channels/groups, or native update deployments. Production build
+  `77386922-d216-4514-b889-2ac8f9299143` and its IPA artifact have expired,
+  but the source commit is preserved. EAS signing assets are valid; no APNs key
+  is associated; the App Store Connect API key exists and succeeded for builds
+  5 and 6; the App Store Connect app link is not configured. Do not rotate,
+  recreate, transfer, or submit with these assets during inventory.
+- [x] **Appwrite identity architecture confirmed.** Frankfurt project
+  `69906e3f0020c208d8e7` holds 95 users and is identity-only. Google OAuth is
+  enabled; Apple OAuth is disabled/unconfigured. TablesDB has one empty profile
+  table; Storage, Functions, Messaging, webhooks, and API keys are effectively
+  unused. Preserve original Apple platform `6990c81edd5bbeb8502e`; hold duplicate
+  IDs `6a72715a000a8eae9a59`, `6a737c0500343aa54f6f`, and
+  `6a737cc10012451f9dff`. See `APPWRITE_PLATFORM_INVENTORY.md`; no platform was
+  edited or deleted.
+- [x] **Firebase production state confirmed.** Project
+  `third-and-manageable-app` (Spark, Firestore `nam5`) has only a registered Web
+  app; Firebase Auth is not configured and Storage is not enabled. The Expo
+  client uses Appwrite `$id` as the Firestore document/`user_id` ownership key.
+  Live collections are `ai_chat_sessions`, `checkins`, `completions`,
+  `content_reports`, `messages`, `notifications`, `profiles`, `push_tokens`,
+  `rooms`, `support_requests`, and `user_blocks`. Cloud Messaging HTTP v1 is
+  enabled; the Firebase Web API key has API restrictions but no application
+  restriction. Current access cannot manage App Check.
+- [x] **Critical Firestore exposure confirmed.** Production Rules allow every
+  read and write until `2029-03-16`. This is the highest active data risk, but a
+  direct lockdown would break every shipped client because those clients have no
+  Firebase identity. Rules stay frozen until the authenticated replacement build
+  reaches the §2.3 adoption gate.
+- [x] **Apple signing identity cross-checked.** Bundle
+  `com.thirdandmanageable.app`, Apple team `583NR5LZHR`, and distribution
+  certificate serial `4CF0E967DDA77E345A81154D2E9D4A0A` agree across Apple,
+  Expo, and the downloaded provisioning profile. The inspected profile permits
+  production push registration, does not include native Sign in with Apple,
+  and the certificate/profile expire `2027-02-19`. The downloaded profile was
+  regenerated on `2026-08-05` and has UUID
+  `120429ea-c45c-4407-8c9d-9fb55251ff34`, different from Expo's previously
+  displayed profile UUID; do not replace or upload it until reconciled.
+- [x] **Apple account inventory completed read-only.** See
+  `third-and-manageable-apple-inventory-2026-08-05.md`. App Store record
+  `6759578111` is iOS 1.0 Ready for Distribution; TestFlight builds 5 and 6 are
+  expired with no active build. Explicit Bundle ID resource `ZYXT54UX5B` has
+  In-App Purchase and Push Notifications enabled, but not Sign in with Apple or
+  Associated Domains. App Store profile `S9D8F69W72` is active through
+  `2027-02-19`; Ad Hoc profile `W26Q9R9V74` is invalid. Two iOS Distribution
+  certificates are visible. APNs auth key `ZM9KBD5N8X` is team-scoped for all
+  topics and sandbox/production, but Expo still has no push key associated with
+  this project; private `.p8` custody and consumers remain to be confirmed.
+  Services IDs are empty, so Apple login is not configured. Current App Store
+  Connect access is App Manager; no Apple settings were changed.
+- [x] **Bridge and Rules design completed locally.** See
+  `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`: a replacement Expo client exchanges a
+  15-minute Appwrite JWT at a Vercel endpoint for a Firebase custom token whose
+  UID is the verified Appwrite `$id`. Candidate owner-scoped Firestore Rules,
+  Firebase refresh-token revocation, Appwrite session webhooks, emulator tests,
+  TestFlight/adoption gates, and rollback sequencing are documented. The source
+  audit also proved strict Rules require a private/public profile split plus
+  server-only mention notifications, account deletion, and streak mutation.
+- [x] **Firestore Rules emulator gate passed locally (2026-08-05).** The
+  isolated harness in `firebase-emulator/` is hard-locked to
+  `demo-third-and-manageable-rules`; its runner forwards no cloud credentials or
+  application secrets. All 16 tests across 6 suites pass, proving bridge-claim
+  enforcement, anonymous denial, owner isolation, community-safe reads,
+  server-only privileged operations, supported shipped query shapes, and
+  unknown-collection default deny. `firebase-emulator/README.md` records the
+  intentional client incompatibilities that must be fixed before rollout.
+- [x] **Mocked mobile token bridge implemented locally (2026-08-05).** The
+  Node.js Route Handler at `POST /api/mobile/auth/firebase-token` rejects
+  missing, malformed, and oversized credentials before either provider; creates
+  a fresh JWT-scoped Appwrite Server SDK client; verifies identity with
+  `Account.get()`; rejects disabled users; and mints a Firebase custom token
+  whose UID is exactly the verified Appwrite `$id`, with only
+  `auth_source=appwrite` and `bridge_version=1`. Every response is `no-store`,
+  provider errors are generic, and tokens/vendor exception bodies are not
+  logged. The handler and adapters have 17 mocked tests. No live credential,
+  provider call, Firebase Auth change, Firestore write, or deployment occurred.
+
+**Next executable step:** add the deterministic canonical identity-mapping
+boundary that runs after Appwrite verification and before token minting. Its
+transaction must map `(appwrite, $id)` and `(firebase, $id)` to one canonical
+user without ever auto-linking by email, fail closed on collisions, and be
+unit-tested with mocked persistence before a disposable Neon integration test.
+Rate limiting and aggregate, token-free observability must also be added before
+any staging deployment. Production Firebase Auth, Rules, Appwrite providers,
+platforms, and credentials remain unchanged.
+
 ### Blocked on you
 
-1. **Firebase Web configuration is recovered; privileged access is not yet verified.** The supplied Web app config identifies `third-and-manageable-app`, but it is not a Firebase Admin credential. Complete the no-change, least-privilege inventory in `FIREBASE_SAFE_HANDOFF.md`, then rotate/test the service-account key and inventory the existing Google/Apple identities. Firebase writes and Vercel credential injection remain on hold.
-2. **Obtain the existing Google and Apple sign-in configuration** — Google OAuth client/project access, Apple Services ID/Team ID/Key ID/private key, redirect URIs, and an export of Firebase Auth UIDs/provider subjects. This blocks final Auth.js account linking, but not the Phase 0 signed bootstrap session.
+1. **Firebase client configuration and console state are recovered; privileged access is not yet verified.** Project `third-and-manageable-app` has no Firebase Auth, Storage is disabled, and Firestore Rules allow all reads/writes until 2029-03-16. Complete the no-change, least-privilege inventory in `FIREBASE_SAFE_HANDOFF.md`; Firebase writes, Rules publication, and Vercel credential injection remain on hold.
+2. **Finish Google/Apple identity configuration and custody—not inventory.** Appwrite project `69906e3f0020c208d8e7` holds 95 identities and Google OAuth; Apple OAuth is disabled. Apple account inventory is now complete, and it confirms no Services IDs or Sign in with Apple capability exist. Preserve Appwrite platform `6990c81edd5bbeb8502e` and hold the documented duplicates. Still confirm Google OAuth ownership, decide the Apple Services ID/domain/return-URL design, create it only under approved change control, and establish private-key/APNs `.p8` custody. This blocks final Auth.js Apple linking, but not the local identity-mapping implementation.
 3. **Rotate the leaked credentials when access is restored** — admin bootstrap password, then revoke + reissue the Firebase service-account key (§6.2).
 4. **Purchase Vercel's HIPAA add-on and complete/file the BAA before go-live.** A BAA is necessary but not sufficient; the application and every downstream processor still need the §6.8 controls and their own compliance review.
 5. ~~**Accept Neon's Marketplace terms**~~ — **done.** Provisioning and disposable-branch validation are now actionable.
@@ -138,18 +241,18 @@ Every external dependency found across `third-and-manageable-admin-main/`, `web-
 
 | # | Service | Where | Collections / Tables | Vercel verdict |
 |---|---|---|---|---|
-| 6 | **Firebase Firestore** | `src/lib/firebase-admin.ts`, 17 call sites | `profiles`, `checkins`, `messages`, `rooms`, `support_requests`, `completions` | ⏸️ **Migratable, then held for compatibility** — map/export to Postgres, but retire only at the §2.3 mobile gate |
+| 6 | **Firebase Firestore** | Admin app plus shipped Expo commit `5b37d36` | `ai_chat_sessions`, `checkins`, `completions`, `content_reports`, `messages`, `notifications`, `profiles`, `push_tokens`, `rooms`, `support_requests`, `user_blocks` | 🚨 **Open Rules, but cutover-gated.** Map/export to Postgres; strict Rules require the authenticated replacement client in §2.3 |
 | 7 | **Firebase Admin SDK service account** | `FIREBASE_PROJECT_ID` / `CLIENT_EMAIL` / `PRIVATE_KEY` | Server-side Firestore credentials | ⏸️ **Temporary migration/compatibility dependency.** Rotate before reuse and remove at the §2.3 gate |
 | 8 | **SQLite** `third_manageable.db` | `backend/app/config.py:16` | Local dev DB, 106 KB, has real test data | ⚠️ **Not deployable** — Vercel functions have an ephemeral filesystem. Dev-only; replace with a Neon dev branch |
-| 9 | **Firebase Storage** (implied) | iOS `NSPhotoLibraryUsageDescription`, `NSCameraUsageDescription` | Profile photos | ✅ **Migratable** — Vercel Blob (1 GB free) |
+| 9 | **Firebase Storage** | Shipped Expo `services/profile-pic.ts`; console service is not enabled | Profile-photo path currently calls `profile_pics/{Appwrite UID}` | ✅ **Migrate to Vercel Blob.** Do not enable production Storage merely to revive this path |
 
 ### 1.3 Authentication
 
 | # | Service | Where | Vercel verdict |
 |---|---|---|---|
 | 10 | **Backend JWT auth** | `backend/app/auth.py` — bcrypt + `python-jose`, HS256, 7-day | ✅ **Migratable, no vendor** — `jose` (TS) + `bcryptjs`/`@node-rs/bcrypt`. Self-hosted, $0 |
-| 11 | **Firebase Auth** | Original mobile app (`FEATURE_ANALYSIS.md` §1); existing Google/Apple integrations are external to this checkout | ⏸️ **Retain for compatibility.** Inventory Firebase UID + provider subjects, bridge old Firebase ID tokens, and delete only after replacement-mobile adoption criteria are met (§2.3) |
-| 12 | **Appwrite Auth** | `FEATURE_ANALYSIS.md` §6.2 — original MVP | ✅ **Delete outright.** Already a documented defect: *"free plan pauses during inactivity, blocking user sign-ins"* |
+| 11 | **Firebase Auth** | Not configured in production | ⏸️ **Temporary bridge only.** The replacement client may exchange a verified Appwrite JWT for a Firebase custom token so strict Firestore Rules can use `request.auth.uid` (§2.3) |
+| 12 | **Appwrite Auth** | Shipped Expo `lib/appwrite.ts` / `services/auth.ts`; project has 95 users and Google OAuth | ⏸️ **Preserve through mobile cutover.** It is the live identity source; map Appwrite UID/provider identities before retiring it |
 | 13 | **Admin password auth** | `src/lib/auth.ts`, `src/app/api/login/route.ts` | ⚠️ **Phase 0 bootstrap only.** Immediately replace the unsigned cookie/fail-open login; final state is Auth.js Google/Apple + database role allowlist + audited actions (§6.1, §6.7) |
 
 ### 1.4 AI / Third-Party APIs
@@ -280,13 +383,29 @@ Use this only as a bridge. It leaves two languages and the duplicated rule engin
 
 ### 2.3 Firebase/mobile compatibility and retirement gate
 
-Firebase is frozen, not deleted. The released mobile app still depends on Firebase Auth and may contain users whose stable identities exist only as Firebase UIDs plus Google/Apple provider subjects.
+Firebase is frozen, not deleted. The released mobile app authenticates with
+Appwrite and then accesses Firestore without Firebase identity. Its stable data
+key is the Appwrite user `$id`; Google OAuth is enabled in Appwrite and Apple is
+currently disabled. The current open Rules are critical, but strict Rules would
+reject every released client.
 
-- While old clients remain supported, add a server-side compatibility endpoint that verifies Firebase ID tokens against the correct issuer/audience/signature, then maps `(provider, provider_subject)` and `firebase_uid` to the canonical Postgres user. Never trust an email claim alone for account linking.
-- Existing Firebase users receive a one-time identity-link migration into `auth_identities`; Apple private-relay email addresses are preserved as attributes, not treated as cross-provider primary keys.
-- Publish and measure a replacement-mobile adoption threshold, maintain a rollback window, and communicate a minimum supported version.
-- Delete Firebase Auth/Firestore only after the replacement release is adopted **or** every supported old client can authenticate through the compatibility bridge and the retained data has passed reconciliation.
-- Removal includes the Admin SDK, compatibility verifier, service-account credentials, Firebase env vars, console providers, and mobile feature flags. Keep an auditable export/retention record; do not keep an undocumented shadow database.
+- Implement `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`: the replacement client creates
+  a short-lived Appwrite JWT; a server endpoint validates it with Appwrite and
+  mints a Firebase custom token whose UID is the verified Appwrite `$id`.
+- Map Appwrite UID, temporary Firebase UID, and later stable Google/Apple
+  provider subjects to the canonical Postgres user. Never trust a client UID or
+  merge by email; preserve Apple relay emails as attributes.
+- Split private `profiles` from community-safe `public_profiles`, and move
+  cross-user notification, account-deletion, and streak mutations server-side
+  before strict Rules can pass the shipped feature set.
+- Test Rules in emulators and a separate staging project, then TestFlight. Ship
+  the authenticated build while Rules remain open briefly to measure aggregate
+  bridge success and adoption.
+- Publish strict Rules only after the documented minimum-version/adoption gate
+  makes old unauthenticated clients safe to reject. Maintain a rollback window.
+- Delete Firebase/Firestore and Appwrite only after the replacement release is
+  adopted, retained data passes reconciliation, and canonical provider identity
+  continuity is proven. Keep an auditable export/retention record.
 
 ### 2.4 Google/Apple protocol coverage and application controls
 
@@ -449,10 +568,10 @@ rotation, confirmed Services access, and the disposable Neon branch check.
 ### Phase 3 — Unify the data layer
 17. Implement the §3.1 identity baseline: canonical users, provider identities/Firebase UID mapping, normalized emails, admin role assignments, revocable sessions/session version, and append-only admin audit logs.
 18. Configure Auth.js Google + Apple against the existing provider projects/identities where compatible. Use signed/encrypted sessions, explicit active-role lookup for every admin request, `proxy.ts` for early gating, and audited privileged mutations (§6.7).
-19. Add and test the Firebase ID-token compatibility bridge (§2.3), including issuer/audience/signature checks and deterministic mapping to canonical identities.
+19. Add and test the Appwrite JWT → Firebase custom-token compatibility bridge (§2.3 and `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`), strict Firestore Rules, revocation synchronization, and deterministic canonical identity mapping.
 20. Repoint all 17 `adminDb` call sites at Drizzle and enforce `suspended` / `banned` / `chat_banned` in the application.
 21. **Scripted Firestore → Postgres export — the CWRU pilot data is retained** (84 users, their check-ins, messages, support requests, and `completions`). Include the §6.4 email-leak scrub, provider/UID identity reconciliation, idempotent reruns, counts, checksums, and sampled record verification.
-22. Freeze Firebase writes when reconciliation passes, but keep Firebase Auth/token validation for the released mobile version. Delete Firebase only after the replacement mobile adoption/compatibility gate in §2.3 is met.
+22. Freeze Firebase writes when reconciliation passes, but keep Appwrite identity and the temporary Firebase custom-token bridge through the mobile compatibility window. Delete either vendor only after §2.3 passes.
 
 ### Phase 4 — Absorb the unserved capabilities
 23. Vercel Cron: daily reminders, weekly action rollover, streak recompute.
@@ -595,8 +714,8 @@ Answers change the plan; everything above is written to be true regardless.
 | Render Postgres | ✅ Migrate — Neon (Vercel Marketplace) |
 | Firestore | ⏸️ Migrate into Postgres, then retain read/compatibility window until mobile cutover |
 | Firebase Admin SDK | ⏸️ Retain only for migration/token compatibility; remove at §2.3 gate |
-| Firebase Auth | ⏸️ Preserve Google/Apple account continuity; bridge old tokens; retire after mobile adoption |
-| Appwrite | ✅ Delete — already broken |
+| Firebase Auth | ⏸️ Introduce only as a temporary Appwrite custom-token bridge for strict Rules; retire with Firestore |
+| Appwrite | ⏸️ Preserve the 95-user live identity source through canonical linking and mobile adoption; then retire |
 | Firebase Storage (photos) | ✅ Migrate — Vercel Blob |
 | Backend JWT auth | ✅ Replace with Auth.js-compatible signed sessions/tokens and provider identity mapping |
 | Admin password auth | ⚠️ Secure bootstrap immediately; final Auth.js + role allowlist + audit logs — §6.1/§6.7 |

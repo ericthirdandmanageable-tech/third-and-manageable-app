@@ -1,14 +1,17 @@
 # Firebase and App Store Safe Handoff
 
 **Status:** the production Firebase Web app configuration for project
-`third-and-manageable-app` is now known. That configuration identifies a client
-app; it is not a Firebase Admin credential and does not authorize the
-server-side inventory, Auth export, Firestore export, or token compatibility
-work in the migration plan.
+`third-and-manageable-app` and the shipped Expo source are now known. The
+released app uses Appwrite project `69906e3f0020c208d8e7` for identity and uses
+the Appwrite user `$id` as its Firestore ownership key. Firebase Authentication
+is not configured. The Firebase client configuration is not an Admin credential
+and does not authorize a server-side Firestore export or token bridge.
 
-The live App Store app remains the production system. Do not change its
-Firebase providers, Security Rules, data, API keys, APNs credentials, bundle
-identifier, or minimum supported version as part of repository setup.
+The live App Store app remains the production system. Its Firestore Rules allow
+all reads and writes until 2029-03-16, but tightening them before an authenticated
+replacement client is adopted would break production. Do not change Rules,
+data, API keys, APNs credentials, Appwrite platforms/providers, bundle identity,
+or minimum supported version as part of repository setup.
 
 ## What the supplied configuration does and does not unlock
 
@@ -21,12 +24,19 @@ because it appeared in this conversation would not protect Firebase data.
 
 It does **not** include:
 
-- a least-privilege service account for read-only Auth/Firestore inventory;
-- the iOS `GoogleService-Info.plist` and registered Firebase iOS app details;
-- the editable Expo/React Native source or its EAS project ownership;
-- Google and Apple provider client IDs, Apple Team/Key/Services IDs, private
-  key, or redirect URI inventory;
-- App Store Connect access, signing certificates, or provisioning profiles.
+- a least-privilege service account for read-only Firestore/IAM inventory;
+- a registered Firebase iOS app (the console currently contains only the Web
+  app used by the Expo Firebase JS SDK);
+- write access to the recovered Expo/React Native source or team access to the
+  personal Expo owner account;
+- Google OAuth ownership or the private credentials needed for provider/server
+  configuration;
+- Apple Sign in with Apple Services ID, domain/return URL, or private key (the
+  separately completed Apple inventory confirms these are not configured).
+
+The Firebase client values do not grant Apple access, but Apple Developer and
+App Store Connect state has now been inventoried independently in
+`third-and-manageable-apple-inventory-2026-08-05.md`.
 
 Do not add `firebase/app` or these Web values to the new athlete client yet.
 The current Next.js/FastAPI build has its own local auth and data path. Pointing
@@ -37,7 +47,7 @@ make rollback and reconciliation materially harder.
 
 | Lane | Data and identity | Deployment rule |
 |---|---|---|
-| Released App Store app | Existing production Firebase Auth/Firestore | Freeze except for an independently reviewed emergency fix |
+| Released App Store app | Appwrite Auth + unauthenticated direct Firestore | Freeze except for an independently reviewed emergency fix; strict Rules require a replacement build |
 | Local development | Local FastAPI database and Firebase demo-project emulators when needed | Never fall through to production Firebase |
 | Protected web preview | Disposable Neon preview branch | Keep production Firebase credentials absent |
 | Replacement mobile staging | A separate Firebase staging project only if Firebase client compatibility is needed | Separate iOS bundle ID, provider clients, APNs setup, and test users |
@@ -53,9 +63,9 @@ Before rotating, migrating, or deploying anything, record the current state:
 
 1. In Firebase Project settings, record every registered Web/iOS app, app ID,
    bundle ID, SHA fingerprint (if any), and the project number.
-2. In Authentication, record enabled providers, authorized domains, templates,
-   tenant configuration, and user/provider counts. Do not disable or recreate a
-   provider.
+2. Record that Firebase Authentication is not configured. Inventory Appwrite
+   users/providers separately; do not enable Firebase Auth or change an
+   Appwrite provider during inventory.
 3. In Firestore, record database location, deployed Rules, indexes, TTL/backup
    settings, collection counts, and sampled field shapes. Do not publish Rules.
 4. In Storage and App Check, record buckets, deployed Rules, registered apps,
@@ -67,6 +77,11 @@ Before rotating, migrating, or deploying anything, record the current state:
 7. In App Store Connect and Expo/EAS, record app ID `6759578111`, bundle ID,
    current production version/build, phased-release state, signing ownership,
    EAS project ID, and update authority.
+
+Apple account inventory is complete as of 2026-08-05; see
+`third-and-manageable-apple-inventory-2026-08-05.md`. It confirms the live app
+record, signing resources, expired TestFlight builds, team-scoped APNs key, and
+absence of Sign in with Apple configuration. No Apple setting was changed.
 
 The public App Store listing currently says the released binary supports iOS
 15.1 or later. Repo references that call iOS 18 the minimum must be treated as
@@ -102,39 +117,48 @@ After the inventory has been reviewed and retained securely, delete the local
 key file and revoke that key in IAM. Keep the read-only service account only if
 there is a documented follow-up use.
 
-## Step 2 — recover the build inputs
+## Step 2 — recovered build inputs and remaining ownership work
 
-The repository does not contain editable Expo/React Native source. The compiled
-bundle was useful for feature analysis, but it is not a maintainable source
-base. Before promising an App Store update, obtain:
+The editable Expo/React Native source is recovered at
+`ericthirdandmanageable-tech/third-and-manageable-app`; commit
+`5b37d367c7119961ca98cd52645fdc79c3499626` matches App Store build `1.0.0 (6)`.
+EAS project `7d162617-1e50-4351-8de0-519f8063bc4d` is owned by the personal
+Expo account `eric.thirdandmanageable`. Before promising an App Store update,
+finish:
 
-- the original source repository and complete Git history;
-- Expo owner/project access and `eas.json` / `app.json` or `app.config.*`;
-- App Store Connect access for C.H.A.T. Express LLC;
-- Apple Developer team access and Sign in with Apple configuration;
-- Google OAuth client ownership and Firebase iOS app configuration;
+- write access to the source repository;
+- conversion/transfer to an Expo organization with controlled member access;
+- preserve the confirmed App Store Connect App Manager access and coordinate
+  signing/capability changes with an Account Holder or Admin;
+- approved Sign in with Apple Services ID/domain/return-URL design plus private
+  key custody; no Services ID or capability is currently configured;
+- custody and consumer inventory for team-scoped APNs key `ZM9KBD5N8X`; do not
+  download, associate, or revoke it during inventory;
+- Google OAuth client ownership and Appwrite provider configuration;
 - current privacy policy, App Privacy answers, and data-retention commitments.
-
-If the original source cannot be recovered, scaffold a new Expo app under a
-separate staging bundle ID and consume this repo's future same-origin API. Do
-not attempt to edit or reconstruct the shipped compiled bundle.
 
 ## Step 3 — build compatibility before migration
 
 The safe dependency order is:
 
 1. Finish the shared API and canonical Postgres identity schema locally.
-2. Add a server-only Firebase ID-token compatibility endpoint that verifies
-   signature, issuer, audience, expiry, and revocation where required.
-3. Map Firebase UID and stable Google/Apple provider subjects into
-   `auth_identities`; never link accounts by email alone.
+2. Complete the temporary Appwrite JWT → Firebase custom-token bridge in
+   `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`. The token route and mocked provider
+   adapters are implemented locally; canonical identity mapping, rate limiting,
+   staging integration, and revocation synchronization remain. The server must
+   derive identity by validating the Appwrite JWT, never from client-supplied
+   UID/email.
+3. Map Appwrite UID, temporary Firebase UID, and later stable Google/Apple
+   provider subjects into `auth_identities`; never link accounts by email alone.
 4. Build an idempotent Firestore-to-Postgres export with counts, checksums,
    sampled reconciliation, and an explicit rollback artifact.
 5. Keep the released mobile app reading/writing Firebase during this work. Do
    not enable dual writes until conflict ownership and replay behavior are
    designed and tested.
-6. Test the replacement app against staging, then a protected production
-   compatibility endpoint with test accounts.
+6. Test the replacement app and strict Rules against Firebase emulators and a
+   separate staging project, then use TestFlight with production test accounts.
+7. Publish strict production Rules only after the authenticated replacement
+   build reaches the documented adoption/minimum-version gate.
 
 ## Step 4 — controlled App Store cutover
 
@@ -147,9 +171,9 @@ replacement release:
    and support metadata based on actual behavior.
 4. Release gradually and monitor auth failures, data reconciliation, crashes,
    support volume, and old-client traffic.
-5. Maintain a rollback window. Do not freeze Firebase writes or remove Firebase
-   Auth until the adoption threshold and minimum-supported-version policy are
-   met.
+5. Maintain a rollback window. Do not freeze Firebase writes, disable Appwrite,
+   or revoke the compatibility bridge until the adoption threshold and
+   minimum-supported-version policy are met.
 6. Retire Firebase only after the compatibility gate in
    `VERCEL_MIGRATION_PLAN.md` §2.3 passes.
 
@@ -160,6 +184,9 @@ Safe now:
 - console screenshots/exports of configuration;
 - the aggregate read-only inventory;
 - recovering source/EAS/App Store access;
+- local design and emulator tests for the Appwrite/Firebase bridge and Rules;
+- local mocked development of the no-credential token route and provider
+  boundaries;
 - creating a separate staging project and demo-project emulator setup;
 - local and protected-preview work against non-production data.
 
@@ -167,8 +194,8 @@ Not safe yet:
 
 - adding Firebase Admin credentials to Vercel;
 - running the new client against production Firestore;
-- changing Auth providers, authorized domains, Rules, App Check enforcement, or
-  APNs credentials;
+- enabling Firebase Auth in production or changing Appwrite providers,
+  authorized domains, Rules, App Check enforcement, or APNs credentials;
 - exporting identifiable user data into the repo or chat;
 - shipping a replacement binary before source ownership, identity mapping,
   reconciliation, TestFlight, privacy review, and rollback are complete.

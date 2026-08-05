@@ -40,11 +40,13 @@ navy-and-gold palette instead of a guessed trademark palette.
 ## Local development
 
 Requirements: Node.js 22+, npm, Python 3.12, and a Python virtual environment.
+The isolated Firestore emulator tests additionally require Java 21.
 
 Install dependencies:
 
 ```bash
 npm install
+npm install --prefix firebase-emulator
 python3 -m venv backend/.venv
 backend/.venv/bin/pip install -r backend/requirements.txt
 cp env.example .env.local
@@ -73,6 +75,7 @@ deployments intentionally refuse that setting.
 
 ```bash
 npm test
+npm run test:firestore-rules
 npx tsc --noEmit
 npm run lint
 npm run build
@@ -93,7 +96,18 @@ Do not deploy with placeholder credentials or restore the previously exposed
 Firebase/admin values. See the migration plan for the authoritative sequence,
 data-retention requirements, and HIPAA/BAA gate.
 
-The production Firebase Web app configuration is now known, but it is not an
-Admin credential and does not authorize inventory or migration. Follow
-[FIREBASE_SAFE_HANDOFF.md](FIREBASE_SAFE_HANDOFF.md) before connecting any new
-client, adding a server credential, or preparing an App Store replacement.
+The shipped Expo source and EAS build provenance are now recovered. Production
+identity is Appwrite; Firebase Auth is not configured, and the released client
+depends on currently open Firestore Rules. Follow
+[FIREBASE_SAFE_HANDOFF.md](FIREBASE_SAFE_HANDOFF.md) and
+[APPWRITE_FIREBASE_BRIDGE_DESIGN.md](APPWRITE_FIREBASE_BRIDGE_DESIGN.md) before
+connecting a new client, adding server credentials, changing Rules, or preparing
+an App Store replacement. The local-only
+`POST /api/mobile/auth/firebase-token` implementation uses mocked tests and has
+not contacted or changed either provider. Preserve Appwrite platforms according to
+[APPWRITE_PLATFORM_INVENTORY.md](APPWRITE_PLATFORM_INVENTORY.md). The local-only
+Rules harness and its compatibility notes are in
+[firebase-emulator/README.md](firebase-emulator/README.md). Apple Developer,
+App Store Connect, signing, APNs, TestFlight, roles, and Sign in with Apple state
+are captured in
+[third-and-manageable-apple-inventory-2026-08-05.md](third-and-manageable-apple-inventory-2026-08-05.md).
