@@ -187,15 +187,24 @@ compiled-bundle assumptions with verified production facts:
   provider errors are generic, and tokens/vendor exception bodies are not
   logged. The handler and adapters have 17 mocked tests. No live credential,
   provider call, Firebase Auth change, Firestore write, or deployment occurred.
+- [x] **Mocked canonical identity transaction implemented locally (2026-08-05).**
+  The bridge now runs a request-scoped Postgres transaction after Appwrite
+  verification and before Firebase token minting. It serializes each verified
+  Appwrite `$id`, resolves `(appwrite, $id)` and `(firebase, $id)` only through
+  `auth_identities`, creates at most one placeholder canonical user when neither
+  mapping exists, attaches a missing side idempotently, updates last-use times,
+  verifies the persisted pair, and fails closed if the two subjects point at
+  different users. Email is absent from the mapping API and cannot trigger a
+  merge. Six mocked-persistence transaction tests plus two new route-order and
+  failure tests pass; the focused bridge/mapping/provider suite is 25 tests.
+  No live database or provider call, credential use, Firebase/Auth/Firestore
+  change, or deployment occurred.
 
-**Next executable step:** add the deterministic canonical identity-mapping
-boundary that runs after Appwrite verification and before token minting. Its
-transaction must map `(appwrite, $id)` and `(firebase, $id)` to one canonical
-user without ever auto-linking by email, fail closed on collisions, and be
-unit-tested with mocked persistence before a disposable Neon integration test.
-Rate limiting and aggregate, token-free observability must also be added before
-any staging deployment. Production Firebase Auth, Rules, Appwrite providers,
-platforms, and credentials remain unchanged.
+**Next executable step:** run the canonical identity transaction and its
+collision/idempotency cases against a disposable Neon branch, then delete the
+branch. Rate limiting and aggregate, token-free observability must also be added
+before any staging deployment. Production Firebase Auth, Rules, Appwrite
+providers, platforms, and credentials remain unchanged.
 
 ### Blocked on you
 

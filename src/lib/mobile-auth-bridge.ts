@@ -19,6 +19,10 @@ export class InvalidAppwriteIdentityError extends Error {
 
 export interface MobileAuthBridgeDependencies {
     verifyAppwriteJwt(jwt: string): Promise<{ id: string }>;
+    mapCanonicalIdentities(appwriteUserId: string): Promise<{
+        canonicalUserId: string;
+        firebaseUid: string;
+    }>;
     createFirebaseCustomToken(
         uid: string,
         claims: Readonly<typeof FIREBASE_BRIDGE_CLAIMS>,
@@ -69,9 +73,15 @@ export function createFirebaseTokenHandler(
                 throw new Error("Appwrite returned an invalid user ID");
             }
 
+            const identityMapping =
+                await dependencies.mapCanonicalIdentities(user.id);
+            if (identityMapping.firebaseUid !== user.id) {
+                throw new Error("Canonical identity mapping returned a mismatched UID");
+            }
+
             const firebaseCustomToken =
                 await dependencies.createFirebaseCustomToken(
-                    user.id,
+                    identityMapping.firebaseUid,
                     FIREBASE_BRIDGE_CLAIMS,
                 );
 

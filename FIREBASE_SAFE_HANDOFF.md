@@ -143,11 +143,11 @@ The safe dependency order is:
 
 1. Finish the shared API and canonical Postgres identity schema locally.
 2. Complete the temporary Appwrite JWT → Firebase custom-token bridge in
-   `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`. The token route and mocked provider
-   adapters are implemented locally; canonical identity mapping, rate limiting,
-   staging integration, and revocation synchronization remain. The server must
-   derive identity by validating the Appwrite JWT, never from client-supplied
-   UID/email.
+   `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`. The token route, mocked provider
+   adapters, and mocked canonical identity transaction are implemented locally;
+   disposable-Neon validation, rate limiting, staging integration, and
+   revocation synchronization remain. The server must derive identity by
+   validating the Appwrite JWT, never from client-supplied UID/email.
 3. Map Appwrite UID, temporary Firebase UID, and later stable Google/Apple
    provider subjects into `auth_identities`; never link accounts by email alone.
 4. Build an idempotent Firestore-to-Postgres export with counts, checksums,

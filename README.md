@@ -103,8 +103,9 @@ depends on currently open Firestore Rules. Follow
 [APPWRITE_FIREBASE_BRIDGE_DESIGN.md](APPWRITE_FIREBASE_BRIDGE_DESIGN.md) before
 connecting a new client, adding server credentials, changing Rules, or preparing
 an App Store replacement. The local-only
-`POST /api/mobile/auth/firebase-token` implementation uses mocked tests and has
-not contacted or changed either provider. Preserve Appwrite platforms according to
+`POST /api/mobile/auth/firebase-token` implementation and canonical
+Appwrite/Firebase identity transaction use mocked tests and have not contacted a
+live database or changed either provider. Preserve Appwrite platforms according to
 [APPWRITE_PLATFORM_INVENTORY.md](APPWRITE_PLATFORM_INVENTORY.md). The local-only
 Rules harness and its compatibility notes are in
 [firebase-emulator/README.md](firebase-emulator/README.md). Apple Developer,

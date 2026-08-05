@@ -1,10 +1,15 @@
 import { getAdminAuth } from "@/lib/firebase-admin";
+import { mapCanonicalBridgeIdentities } from "@/lib/canonical-identity-mapping";
+import { createNeonCanonicalIdentityPersistence } from "@/lib/db/canonical-identity-persistence";
 import {
     FIREBASE_BRIDGE_CLAIMS,
     InvalidAppwriteIdentityError,
     type MobileAuthBridgeDependencies,
 } from "@/lib/mobile-auth-bridge";
 import { Account, AppwriteException, Client } from "node-appwrite";
+
+const canonicalIdentityPersistence =
+    createNeonCanonicalIdentityPersistence();
 
 function getAppwriteConfiguration(): { endpoint: string; projectId: string } {
     const endpoint = process.env.APPWRITE_ENDPOINT;
@@ -51,7 +56,15 @@ async function createFirebaseCustomToken(
     return getAdminAuth().createCustomToken(uid, { ...claims });
 }
 
+async function mapCanonicalIdentities(appwriteUserId: string) {
+    return mapCanonicalBridgeIdentities(
+        canonicalIdentityPersistence,
+        appwriteUserId,
+    );
+}
+
 export const mobileAuthBridgeProviders: MobileAuthBridgeDependencies = {
     verifyAppwriteJwt,
+    mapCanonicalIdentities,
     createFirebaseCustomToken,
 };

@@ -12,6 +12,10 @@ const VALID_JWT = "header.payload.signature";
 function createDependencies(): MobileAuthBridgeDependencies {
     return {
         verifyAppwriteJwt: vi.fn().mockResolvedValue({ id: "appwrite-user-1" }),
+        mapCanonicalIdentities: vi.fn().mockResolvedValue({
+            canonicalUserId: "00000000-0000-4000-8000-000000000001",
+            firebaseUid: "appwrite-user-1",
+        }),
         createFirebaseCustomToken: vi
             .fn()
             .mockResolvedValue("firebase-custom-token"),
@@ -51,6 +55,7 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
             error: "Invalid credentials",
         });
         expect(dependencies.verifyAppwriteJwt).not.toHaveBeenCalled();
+        expect(dependencies.mapCanonicalIdentities).not.toHaveBeenCalled();
         expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
     });
 
@@ -63,6 +68,7 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
 
         expect(response.status).toBe(401);
         expect(dependencies.verifyAppwriteJwt).not.toHaveBeenCalled();
+        expect(dependencies.mapCanonicalIdentities).not.toHaveBeenCalled();
     });
 
     it("derives the Firebase UID only from the verified Appwrite response", async () => {
@@ -73,12 +79,29 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
 
         expect(dependencies.verifyAppwriteJwt).toHaveBeenCalledOnce();
         expect(dependencies.verifyAppwriteJwt).toHaveBeenCalledWith(VALID_JWT);
+        expect(dependencies.mapCanonicalIdentities).toHaveBeenCalledOnce();
+        expect(dependencies.mapCanonicalIdentities).toHaveBeenCalledWith(
+            "appwrite-user-1",
+        );
         expect(dependencies.createFirebaseCustomToken).toHaveBeenCalledOnce();
         expect(dependencies.createFirebaseCustomToken).toHaveBeenCalledWith(
             "appwrite-user-1",
             FIREBASE_BRIDGE_CLAIMS,
         );
         expect(response.status).toBe(200);
+        expect(
+            vi.mocked(dependencies.verifyAppwriteJwt).mock.invocationCallOrder[0],
+        ).toBeLessThan(
+            vi.mocked(dependencies.mapCanonicalIdentities).mock
+                .invocationCallOrder[0],
+        );
+        expect(
+            vi.mocked(dependencies.mapCanonicalIdentities).mock
+                .invocationCallOrder[0],
+        ).toBeLessThan(
+            vi.mocked(dependencies.createFirebaseCustomToken).mock
+                .invocationCallOrder[0],
+        );
         expect(response.headers.get("cache-control")).toBe("no-store");
         await expect(response.json()).resolves.toEqual({
             firebaseCustomToken: "firebase-custom-token",
@@ -114,10 +137,49 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
         );
 
         expect(response.status).toBe(503);
+        expect(dependencies.mapCanonicalIdentities).not.toHaveBeenCalled();
         expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
         expect(log).toHaveBeenCalledWith(
             "Mobile authentication bridge provider failure",
         );
+    });
+
+    it("fails closed when canonical identity mapping fails", async () => {
+        const dependencies = createDependencies();
+        vi.mocked(dependencies.mapCanonicalIdentities).mockRejectedValue(
+            new Error("identity collision with sensitive provider subjects"),
+        );
+        const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+        const response = await createFirebaseTokenHandler(dependencies)(
+            createRequest(`Bearer ${VALID_JWT}`),
+        );
+
+        expect(response.status).toBe(503);
+        expect(response.headers.get("cache-control")).toBe("no-store");
+        expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
+        expect(log).toHaveBeenCalledWith(
+            "Mobile authentication bridge provider failure",
+        );
+        expect(log).not.toHaveBeenCalledWith(
+            expect.stringContaining("sensitive provider subjects"),
+        );
+    });
+
+    it("fails closed when identity mapping changes the Firebase UID", async () => {
+        const dependencies = createDependencies();
+        vi.mocked(dependencies.mapCanonicalIdentities).mockResolvedValue({
+            canonicalUserId: "00000000-0000-4000-8000-000000000001",
+            firebaseUid: "different-user",
+        });
+        vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+        const response = await createFirebaseTokenHandler(dependencies)(
+            createRequest(`Bearer ${VALID_JWT}`),
+        );
+
+        expect(response.status).toBe(503);
+        expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
     });
 
     it("returns a generic no-store 503 without logging provider details", async () => {

@@ -48,11 +48,13 @@ Firestore and Appwrite can retire behind the mobile-adoption gate.
 ### 1.1 Token exchange contract
 
 Local implementation: `src/app/api/mobile/auth/firebase-token/route.ts`, with
-the dependency boundary in `src/lib/mobile-auth-bridge.ts` and the Appwrite /
-Firebase Admin adapters in `src/lib/mobile-auth-providers.ts`. The 17 tests in
-`tests/mobile-auth-{bridge,providers}.test.ts` make no live provider calls. The
-canonical identity upsert in step 4 and production-grade rate limiting remain
-required before staging.
+the dependency boundaries in `src/lib/mobile-auth-bridge.ts` and
+`src/lib/canonical-identity-mapping.ts`, the Appwrite / Firebase Admin adapters
+in `src/lib/mobile-auth-providers.ts`, and the request-scoped Neon transaction
+adapter in `src/lib/db/canonical-identity-persistence.ts`. The focused 25 tests
+use mocked providers and persistence and make no live provider or database
+calls. A disposable Neon integration test and production-grade rate limiting
+remain required before staging.
 
 `POST /api/mobile/auth/firebase-token`
 
