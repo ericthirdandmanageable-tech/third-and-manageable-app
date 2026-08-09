@@ -22,15 +22,15 @@ const DATABASE_CONNECTION_TIMEOUT_MS = 10_000;
 neonConfig.webSocketConstructor = WebSocket;
 
 function getDatabaseUrl(): string {
-    // Interactive WebSocket transactions must use Neon's direct endpoint.
-    // `POSTGRES_URL_NON_POOLING` is supplied by Vercel's Neon integration.
-    // Keep the legacy names as fallbacks because older local environments use
-    // them, but ignore empty values: Vercel can retain a configured variable
-    // with an empty value after an integration refresh.
+    // Explicit bridge/test variables take precedence so a guarded disposable
+    // database cannot silently fall through to the integration's branch.
+    // Interactive WebSocket transactions still use a direct endpoint in the
+    // deployed Preview because DATABASE_URL_UNPOOLED is mapped to Neon's
+    // POSTGRES_URL_NON_POOLING value there.
     const url = [
-        process.env.POSTGRES_URL_NON_POOLING,
         process.env.DATABASE_URL_UNPOOLED,
         process.env.DATABASE_URL,
+        process.env.POSTGRES_URL_NON_POOLING,
         process.env.POSTGRES_URL,
     ].find((value) => Boolean(value));
     if (!url) {
