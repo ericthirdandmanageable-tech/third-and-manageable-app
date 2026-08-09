@@ -57,11 +57,11 @@
           "icon": "./assets/images/icon.png",
           "color": "#040485"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
     "runtimeVersion": {
       "policy": "appVersion"

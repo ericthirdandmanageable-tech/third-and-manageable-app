@@ -43,12 +43,6 @@ export default function LoginScreen() {
   };
 
   const handleGoogleSignIn = async () => {
-    Alert.alert(
-      "Coming Soon",
-      "Continue with Google is coming soon. Please use email and password for now.",
-    );
-    return;
-
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
@@ -162,7 +156,10 @@ export default function LoginScreen() {
             </View>
 
             {/* Forgot Password */}
-            <TouchableOpacity className="self-end mb-6">
+            <TouchableOpacity
+              className="self-end mb-6"
+              onPress={() => router.push("/(auth)/forgot-password")}
+            >
               <Text className="text-sm font-raleway-semibold text-dp-600">
                 Forgot Password?
               </Text>

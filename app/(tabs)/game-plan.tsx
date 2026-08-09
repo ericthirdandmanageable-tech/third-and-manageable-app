@@ -147,7 +147,7 @@ export default function GamePlanScreen() {
                   marginBottom: 4,
                 }}
               >
-                Today's Focus
+                Today&apos;s Focus
               </Text>
               <Text
                 style={{
@@ -166,7 +166,7 @@ export default function GamePlanScreen() {
                   marginTop: 4,
                 }}
               >
-                One step at a time. Focus on today's action.
+                One step at a time. Focus on today&apos;s action.
               </Text>
             </LinearGradient>
           </ImageBackground>
@@ -390,7 +390,7 @@ export default function GamePlanScreen() {
             </Text>
           </View>
           <Text className="text-white text-sm leading-6">
-            You don't need to win every day. You just need to show up.
+            You don&apos;t need to win every day. You just need to show up.
             Consistency beats intensity.
           </Text>
         </View>

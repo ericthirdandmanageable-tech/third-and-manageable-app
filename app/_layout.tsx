@@ -5,6 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Text, TextInput, View } from "react-native";
+import * as Linking from "expo-linking";
 import "react-native-reanimated";
 import "../global.css";
 
@@ -31,11 +32,38 @@ function RootNavigator() {
   const router = useRouter();
 
   useEffect(() => {
+    const handleRecoveryLink = (url: string | null) => {
+      if (!url) return;
+
+      try {
+        const incoming = new URL(url, "thirdandmanageableapp://app");
+        const isRecoveryLink =
+          incoming.protocol === "thirdandmanageableapp:" &&
+          (incoming.hostname === "reset-password" ||
+            incoming.pathname === "/reset-password");
+
+        if (!isRecoveryLink) return;
+
+        const userId = incoming.searchParams.get("userId") || "";
+        const secret = incoming.searchParams.get("secret") || "";
+        router.replace({ pathname: "/reset-password", params: { userId, secret } });
+      } catch {
+        // Ignore malformed external URLs; the normal router fallback remains safe.
+      }
+    };
+
+    void Linking.getInitialURL().then(handleRecoveryLink);
+    const subscription = Linking.addEventListener("url", ({ url }) => handleRecoveryLink(url));
+    return () => subscription.remove();
+  }, [router]);
+
+  useEffect(() => {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboardingGroup = segments[0] === "(onboarding)";
     const inLegalGroup = segments[0] === "(legal)";
+    const inPasswordRecovery = segments[0] === "reset-password";
 
     // Profile must have required onboarding fields to be considered complete
     const isOnboardingComplete =
@@ -46,7 +74,7 @@ function RootNavigator() {
       typeof profile?.group_interest === "boolean";
 
     if (!user) {
-      if (!inAuthGroup && !inLegalGroup) {
+      if (!inAuthGroup && !inLegalGroup && !inPasswordRecovery) {
         router.replace("/(auth)/welcome");
       }
     } else if (!isOnboardingComplete) {
@@ -58,7 +86,7 @@ function RootNavigator() {
         router.replace("/(tabs)");
       }
     }
-  }, [user, profile, isLoading, segments]);
+  }, [user, profile, isLoading, segments, router]);
 
   // Register push notifications when user is authenticated
   useEffect(() => {

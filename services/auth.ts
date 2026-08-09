@@ -4,8 +4,12 @@
  */
 import { account } from "@/lib/appwrite";
 import { db, storage } from "@/lib/firebase";
+import {
+  bootstrapFirebaseSession,
+  clearFirebaseSession,
+  revokeFirebaseSession,
+} from "@/lib/mobile-auth-bridge";
 import { Profile } from "@/types";
-import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import {
   DocumentData,
@@ -35,11 +39,36 @@ const USER_OWNED_COLLECTIONS = [
 const SESSION_VERIFY_MAX_ATTEMPTS = 6;
 const SESSION_VERIFY_BASE_DELAY_MS = 250;
 
+function getPasswordRecoveryUrl(): string {
+  const recoveryUrl = process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_URL?.trim();
+  if (!recoveryUrl?.startsWith("https://")) {
+    throw new Error(
+      "Password recovery is unavailable. Please contact support for help resetting your password.",
+    );
+  }
+  return recoveryUrl;
+}
+
 async function upsertIdentityProfile(userId: string, email?: string | null) {
-  const payload: { user_id: string; email?: string } = { user_id: userId };
+  const payload: { user_id: string; email?: string; verified: false } = {
+    user_id: userId,
+    verified: false,
+  };
   if (email) payload.email = email;
 
   await setDoc(doc(db, "profiles", userId), payload, { merge: true });
+}
+
+async function bootstrapNewSession(userId: string): Promise<void> {
+  try {
+    await bootstrapFirebaseSession(userId);
+  } catch (error) {
+    // Avoid leaving a half-established Appwrite session behind. Without its
+    // matching Firebase identity, the app must return to a clean signed-out
+    // state so the user can retry normally.
+    await account.deleteSession("current").catch(() => undefined);
+    throw error;
+  }
 }
 
 function delay(ms: number) {
@@ -77,21 +106,10 @@ async function getCurrentUserWithRetry(
 }
 
 function buildOAuthDeepLink(): string {
-  const generatedDeepLink = Linking.createURL("/");
-  try {
-    const parsed = new URL(generatedDeepLink);
-    const scheme = parsed.protocol.replace(":", "");
-    if (scheme === "exp") {
-      return generatedDeepLink;
-    }
-    return `${scheme}://localhost/`;
-  } catch {
-    const fallbackScheme = generatedDeepLink.split("://")[0];
-    if (fallbackScheme === "exp") {
-      return generatedDeepLink;
-    }
-    return `${fallbackScheme}://localhost/`;
-  }
+  // This fixed return URI is handed off by the registered HTTPS Appwrite
+  // callback page. Do not derive a `localhost` authority: Appwrite validates
+  // success/failure URLs against its registered Web platforms first.
+  return "thirdandmanageableapp://oauth/";
 }
 
 function getOAuthCallbackUrl(fallbackDeepLink: string): string {
@@ -116,6 +134,11 @@ async function signInWithOAuth(
 ) {
   const deepLink = buildOAuthDeepLink();
   const callbackUrl = getOAuthCallbackUrl(deepLink);
+  if (callbackUrl === deepLink) {
+    throw new Error(
+      "OAuth is unavailable until a registered HTTPS callback URL is configured.",
+    );
+  }
   if (__DEV__) {
     console.log(
       `[OAuth] provider=${providerName} deepLink=${deepLink} callbackUrl=${callbackUrl}`,
@@ -155,6 +178,7 @@ async function signInWithOAuth(
 
   await account.createSession(userId, secret);
   const user = await account.get();
+  await bootstrapNewSession(user.$id);
   await upsertIdentityProfile(user.$id, user.email);
   return user;
 }
@@ -241,6 +265,7 @@ export async function signUp(
 
   const session = await account.createEmailPasswordSession(email, password);
   const userId = createdUserId || session.userId;
+  await bootstrapNewSession(userId);
   await upsertIdentityProfile(userId, email);
 
   try {
@@ -253,6 +278,7 @@ export async function signUp(
 
 export async function signIn(email: string, password: string) {
   const session = await account.createEmailPasswordSession(email, password);
+  await bootstrapNewSession(session.userId);
   await upsertIdentityProfile(session.userId, email);
 
   try {
@@ -271,14 +297,52 @@ export async function signInWithApple() {
   return await signInWithOAuth(OAuthProvider.Apple, "Apple");
 }
 
+export async function requestPasswordRecovery(email: string): Promise<void> {
+  await account.createRecovery(email, getPasswordRecoveryUrl());
+}
+
+export async function resetPassword(
+  userId: string,
+  secret: string,
+  password: string,
+): Promise<void> {
+  if (!userId || !secret) {
+    throw new Error(
+      "This password reset link is invalid or incomplete. Request a new link and try again.",
+    );
+  }
+  await account.updateRecovery(userId, secret, password);
+}
+
 export async function signOut() {
+  let revocationFailed = false;
+  try {
+    await revokeFirebaseSession();
+  } catch {
+    revocationFailed = true;
+  }
+
+  await clearFirebaseSession().catch(() => undefined);
   await account.deleteSession("current");
+
+  if (revocationFailed) {
+    throw new Error(
+      "Signed out locally, but server-side session revocation needs retry.",
+    );
+  }
 }
 
 export async function getCurrentUser() {
   try {
-    return await getCurrentUserWithRetry();
+    const user = await getCurrentUserWithRetry();
+    if (!user) {
+      await clearFirebaseSession().catch(() => undefined);
+      return null;
+    }
+    await bootstrapFirebaseSession(user.$id);
+    return user;
   } catch {
+    await clearFirebaseSession().catch(() => undefined);
     return null;
   }
 }
@@ -309,6 +373,7 @@ export async function upsertProfile(
 export async function deleteAccount(): Promise<void> {
   const user = await account.get();
   const userId = user.$id;
+  await revokeFirebaseSession();
 
   for (const collectionName of USER_OWNED_COLLECTIONS) {
     await deleteDocsByQuery(
@@ -380,4 +445,6 @@ export async function deleteAccount(): Promise<void> {
   } catch {
     // Ignore if current session has already been invalidated.
   }
+
+  await clearFirebaseSession().catch(() => undefined);
 }

@@ -25,7 +25,10 @@ Last updated: February 21, 2026
 
 ## Required manual setup before App Review
 
-- Configure OAuth Apple provider in Appwrite project settings so Apple login succeeds.
+- Configure Apple OAuth as a complete chain before enabling it: an Apple
+  Service ID with the exact Appwrite callback URL, a dedicated Apple private
+  key kept in approved secret custody, and the matching enabled Appwrite
+  provider. Do not enable only the app UI or only one provider layer.
 - Ensure hosted legal URLs are live and public:
   - `EXPO_PUBLIC_PRIVACY_POLICY_URL`
   - `EXPO_PUBLIC_TERMS_URL`

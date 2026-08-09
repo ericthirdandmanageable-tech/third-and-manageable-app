@@ -72,12 +72,6 @@ export default function RegisterScreen() {
   };
 
   const handleGoogleSignUp = async () => {
-    Alert.alert(
-      "Coming Soon",
-      "Continue with Google is coming soon. Please create your account with email and password for now.",
-    );
-    return;
-
     if (!acceptedLegal) {
       Alert.alert(
         "Legal Agreement Required",
