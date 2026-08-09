@@ -1,5 +1,4 @@
-# This project currently deploys only the root Next.js application.
-# Phase 2 must deliberately revise this file when FastAPI becomes a Vercel Service.
+# The root Next.js app and the temporary FastAPI bridge are both runtime source.
 
 # Local/private configuration
 .env
@@ -38,7 +37,7 @@ AGENTS.md
 next-env.d.ts
 
 # Reference implementations and non-runtime artifacts
-backend/
+backend/tests/
 web-prototype/
 business proposal/
 kickbacks-v2.vsix

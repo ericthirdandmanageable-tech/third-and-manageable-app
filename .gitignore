@@ -40,6 +40,9 @@ firestore-debug.log
 # Vercel
 .vercel/
 
+# Expo / Metro generated state can contain local development output.
+.expo/
+
 # Editor / OS
 .DS_Store
 *.swp

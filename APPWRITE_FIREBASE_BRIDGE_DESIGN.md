@@ -1,7 +1,12 @@
 # Appwrite → Firebase Authentication Bridge and Firestore Rules Design
 
-**Status:** the Rules remain local-only; the token route and provider adapters
-are implemented and mocked locally — **do not deploy or publish to production.**
+**Status:** the candidate Rules are published only in the isolated staging
+Firebase project. The token and authenticated-revocation routes are validated
+end to end through a public, path-restricted Vercel staging relay backed by a
+protected Preview and keyless Google Workload Identity Federation. The
+replacement Expo checkout is pointed at those staging resources and its guarded
+synthetic smoke test passes. The Appwrite webhook is not registered — **do not
+deploy or publish any of this to production.**
 
 This design is anchored to the shipped Expo source at commit
 `5b37d367c7119961ca98cd52645fdc79c3499626` (App Store version `1.0.0`,
@@ -51,10 +56,36 @@ Local implementation: `src/app/api/mobile/auth/firebase-token/route.ts`, with
 the dependency boundaries in `src/lib/mobile-auth-bridge.ts` and
 `src/lib/canonical-identity-mapping.ts`, the Appwrite / Firebase Admin adapters
 in `src/lib/mobile-auth-providers.ts`, and the request-scoped Neon transaction
-adapter in `src/lib/db/canonical-identity-persistence.ts`. The focused 25 tests
-use mocked providers and persistence and make no live provider or database
-calls. A disposable Neon integration test and production-grade rate limiting
-remain required before staging.
+adapter in `src/lib/db/canonical-identity-persistence.ts`. The focused mocked
+bridge/mapping/provider suite is 30 tests. A separate guarded four-case
+integration suite passed against the production transaction adapter on a
+disposable Neon branch on 2026-08-06; its temporary database and branch were
+deleted and the endpoint was confirmed dead.
+
+Verified-user rate limiting and token-free outcome telemetry are implemented
+and staging-validated. The code fails closed if the Vercel Firewall SDK rule is absent. The
+`mobile-auth-verified-user` 10-per-60-second SDK rule is now published, and a
+separate published 60/minute IP rule remains log-only. On 2026-08-06, a real
+staging Appwrite JWT passed the protected Preview exchange, the returned
+Firebase token UID matched the verified Appwrite `$id`, and an 11-request run
+returned only 200/429 responses (9 successful, final 2 limited). Missing auth
+returned 401. The IP observation event still needs a Vercel-dashboard review.
+
+Staging resources are isolated: Appwrite `69906dfc003364b9847e`; Firebase
+`third-and-manageable-staging` / Google project number `371113500992`; Workload
+Identity pool `vercel-preview`, provider `vercel`; and keyless service account
+`vercel-preview-auth@third-and-manageable-staging.iam.gserviceaccount.com`.
+The provider condition and service-account grant accept only the exact Vercel
+Preview subject for `ling-iq/third-and-manageable`. No JSON key exists.
+The service account has Firebase Authentication Admin only in the staging
+project so `revokeRefreshTokens()` can run without a long-lived credential.
+
+The public client origin is the generated Vercel URL
+`https://third-and-manageable-mobile-staging.vercel.app`, owned by the separate
+`ling-iq/third-and-manageable-mobile-staging` project. It accepts only POSTs to
+the token and authenticated-revocation paths, then supplies the protected
+Preview bypass credential upstream. The bypass secret is never present in the
+Expo environment or response.
 
 `POST /api/mobile/auth/firebase-token`
 
@@ -100,8 +131,8 @@ handling.
 
 ### 1.2 Client bootstrap and sign-out
 
-The replacement Expo client must initialize Firebase Auth persistence and
-complete the token exchange before rendering any Firestore-backed screen:
+The replacement Expo checkout now initializes Firebase Auth persistence and
+completes the token exchange before rendering any Firestore-backed screen:
 
 1. Restore and verify the Appwrite session with `account.get()`.
 2. Create an Appwrite JWT with `account.createJWT()`.
@@ -112,7 +143,22 @@ complete the token exchange before rendering any Firestore-backed screen:
    hooks to issue Firestore requests.
 
 If any step fails, fail closed and show a retry/sign-in state. Never fall back
-to anonymous Firestore access.
+to anonymous Firestore access. Newly created Appwrite sessions are deleted if
+Firebase bootstrap fails, preventing a half-signed-in retry loop. The focused
+client suite passes seven success/rejection/configuration/identity/revocation
+cases; TypeScript and focused ESLint checks also pass.
+
+Device activation now uses the public, credential-free generated Vercel relay
+origin in `EXPO_PUBLIC_AUTH_BRIDGE_URL`; no Vercel protection-bypass secret is
+embedded in the Expo bundle. The Firebase staging Web app and Appwrite iOS
+React Native platform are registered, and the public client values are stored
+in the mobile checkout's git-ignored `.env.local`. The guarded
+`npm run smoke:staging-auth` flow has passed token exchange, Firebase sign-in,
+UID equality, and authenticated revocation. A device/simulator UI run remains.
+The empty
+staging Firestore database is created in `nam5` with this file's
+emulator-tested Rules published; production Firestore and its Rules were not
+changed.
 
 New-client sign-out order:
 
@@ -125,6 +171,42 @@ Also create a signed Appwrite webhook for `users.*.sessions.*.delete` and
 `users.*.update.status` that revokes Firebase refresh tokens. Treat webhook
 delivery as defense in depth: authenticate its signature, make handling
 idempotent, and audit failures without logging payload secrets.
+
+### 1.3 Revocation contract
+
+Implemented routes:
+
+- `POST /api/mobile/auth/revoke` accepts the same short-lived Appwrite JWT as
+  the token exchange, verifies it with `Account.get()`, and calls Firebase
+  Admin `revokeRefreshTokens()` with only the verified Appwrite user ID.
+- `POST /api/mobile/auth/appwrite-webhook` accepts only Appwrite's
+  `users.*.sessions.*.delete` and `users.*.update.status` events. It verifies
+  the HMAC-SHA1 signature over the exact configured URL plus untouched request
+  body, and also binds the request to the expected Appwrite project and webhook
+  IDs. Concrete event IDs must agree with the payload; wildcard event forms
+  derive the same validated ID from the documented Session/User payload.
+
+Both routes return `Cache-Control: no-store`, impose bounded credential/body
+sizes, fail closed on provider/configuration errors, and record only fixed
+outcomes without UIDs, payloads, tokens, signatures, or vendor error bodies.
+Webhook replay is harmless because Firebase refresh-token revocation is
+idempotent; repeated deliveries intentionally repeat the same revocation.
+
+The focused revocation suite adds 31 tests covering credential validation,
+signature/URL/project/webhook binding, wildcard and concrete events, payload
+identity agreement, oversized requests, repeated delivery, provider failures,
+and token-free telemetry. The Appwrite signing secret is an independent
+8–256-character secret, not an API key.
+
+The public mobile relay intentionally does not expose this webhook route.
+Webhook activation therefore remains gated on a separate stable public
+callback or Vercel Protection Bypass for Automation lifecycle. Appwrite cannot
+send the Vercel-authenticated browser cookie, so a protected webhook URL must
+include Vercel's documented
+`x-vercel-protection-bypass` query parameter. That bypass secret must be kept
+out of source/logs and rotated with the webhook signing secret. The handler is
+deployed and directly smoke-tested, but no live Appwrite webhook should be
+claimed until that callback lifecycle is configured.
 
 ## 2. Source changes required before strict Rules
 
@@ -160,8 +242,9 @@ other private profile attributes into `public_profiles`.
 
 This candidate is an executable design target, not a production-ready file. Its
 canonical test copy is `firebase-emulator/firestore.rules`; on 2026-08-05 it
-passed the local emulator matrix below. It must still be reconciled against
-sampled production field shapes before any staging or production deployment.
+passed the local emulator matrix below and on 2026-08-06 it was published only
+to the empty staging Firestore database. It must still be reconciled against
+sampled production field shapes before any production deployment.
 
 ```firebase
 rules_version = '2';
@@ -393,8 +476,12 @@ least:
 
 1. **Inventory and backup:** obtain aggregate document counts/field shapes,
    current indexes, and a recoverable export outside the repository.
-2. **Staging:** use a separate Firebase staging project and test Appwrite users;
-   enable Firebase Auth/custom-token exchange there first.
+2. **Staging — server exchange complete 2026-08-06:** separate Appwrite and
+   Firebase staging projects plus a disposable Neon branch passed the protected
+   server exchange. The public relay also passed synthetic Firebase sign-in,
+   UID equality, and authenticated revocation. Next validate email/password on
+   a device/simulator and exercise every Firestore-backed screen; validate
+   Google only after its staging Appwrite provider is approved.
 3. **Emulator — complete locally 2026-08-05:** candidate Rules pass all 16
    demo-project tests; rerun this gate after every Rules or query change.
 4. **Client:** implement bridge bootstrap plus the server-only operations above;
@@ -418,10 +505,8 @@ least:
 
 - Write access to `ericthirdandmanageable-tech/third-and-manageable-app`.
 - Expo organization/member access for a TestFlight-capable build workflow.
-- A Firebase staging project or authorization to create one.
-- Firebase project IAM sufficient to initialize Firebase Auth, create a
-  least-privilege token-signing runtime identity, inspect Rules/indexes, and
-  deploy Rules only after approval.
+- Vercel-dashboard login to confirm the observation-only IP event. Do not enforce
+  that rule until the traffic sample is reviewed.
 - Appwrite permission later to create the signed revocation webhook. The token
   exchange itself can validate user JWTs without an Appwrite API key.
 - Aggregate production collection field shapes and counts; no user content or

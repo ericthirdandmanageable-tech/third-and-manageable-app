@@ -1,4 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs"
+  "experimentalServices": {
+    "web": {
+      "entrypoint": ".",
+      "routePrefix": "/"
+    },
+    "bridge": {
+      "entrypoint": "backend/main.py",
+      "routePrefix": "/bridge"
+    }
+  }
 }

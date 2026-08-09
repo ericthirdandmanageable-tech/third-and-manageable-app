@@ -1,6 +1,7 @@
-import { Pool } from "@neondatabase/serverless";
+import { neonConfig, Pool } from "@neondatabase/serverless";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import WebSocket from "ws";
 
 import {
     BRIDGE_IDENTITY_PROVIDERS,
@@ -13,12 +14,28 @@ import { authIdentities, users } from "@/lib/db/schema";
 
 const BRIDGE_DISPLAY_NAME = "Member";
 const ADVISORY_LOCK_NAMESPACE = "third-and-manageable:mobile-auth:v1:";
+const DATABASE_CONNECTION_TIMEOUT_MS = 10_000;
+
+// Node 22's built-in Undici WebSocket currently terminates Neon's transaction
+// transport in Vercel Functions. Neon documents `ws` as the Node-compatible
+// constructor for Pool/Client session and transaction support.
+neonConfig.webSocketConstructor = WebSocket;
 
 function getDatabaseUrl(): string {
-    const url = process.env.DATABASE_URL;
+    // Interactive WebSocket transactions must use Neon's direct endpoint.
+    // `POSTGRES_URL_NON_POOLING` is supplied by Vercel's Neon integration.
+    // Keep the legacy names as fallbacks because older local environments use
+    // them, but ignore empty values: Vercel can retain a configured variable
+    // with an empty value after an integration refresh.
+    const url = [
+        process.env.POSTGRES_URL_NON_POOLING,
+        process.env.DATABASE_URL_UNPOOLED,
+        process.env.DATABASE_URL,
+        process.env.POSTGRES_URL,
+    ].find((value) => Boolean(value));
     if (!url) {
         throw new Error(
-            "DATABASE_URL is not set. The Neon Marketplace integration injects it; run `vercel env pull` for local development (see env.example).",
+            "A Neon database URL is not set. The Vercel Neon integration injects POSTGRES_URL_NON_POOLING for bridge transactions; run `vercel env pull` for local development (see env.example).",
         );
     }
 
@@ -37,7 +54,15 @@ export function createNeonCanonicalIdentityPersistence(): CanonicalIdentityPersi
                 transaction: CanonicalIdentityTransaction,
             ) => Promise<T>,
         ): Promise<T> {
-            const pool = new Pool({ connectionString: getDatabaseUrl() });
+            const pool = new Pool({
+                connectionString: getDatabaseUrl(),
+                connectionTimeoutMillis: DATABASE_CONNECTION_TIMEOUT_MS,
+            });
+            pool.on("error", () => {
+                // Prevent EventEmitter's unhandled-error path without logging
+                // connection strings or vendor error context.
+                console.error("Neon canonical identity pool error");
+            });
             const db = drizzle(pool);
 
             try {

@@ -49,9 +49,20 @@ make rollback and reconciliation materially harder.
 |---|---|---|
 | Released App Store app | Appwrite Auth + unauthenticated direct Firestore | Freeze except for an independently reviewed emergency fix; strict Rules require a replacement build |
 | Local development | Local FastAPI database and Firebase demo-project emulators when needed | Never fall through to production Firebase |
-| Protected web preview | Disposable Neon preview branch | Keep production Firebase credentials absent |
-| Replacement mobile staging | A separate Firebase staging project only if Firebase client compatibility is needed | Separate iOS bundle ID, provider clients, APNs setup, and test users |
+| Protected web preview | Disposable Neon branch + separate staging Appwrite/Firebase projects | Keep all production provider credentials absent; use keyless Preview-only Google federation |
+| Replacement mobile staging | Separate staging Appwrite/Firebase projects reached through the path-restricted public Vercel relay | Use only generated/synthetic test users; keep the protection bypass server-side and production credentials absent |
 | Replacement production | Same App Store record and bundle ID only at the controlled cutover | TestFlight first; retain Firebase compatibility and rollback window |
+
+The staging compatibility implementation now includes both an authenticated
+client sign-out endpoint and a signed Appwrite session/status webhook that call
+Firebase refresh-token revocation. These routes and their 31 focused tests are
+local/staging work only. The public Vercel staging relay exposes only token
+exchange and authenticated revocation, with the Preview bypass held
+server-side; it deliberately does not expose the webhook. No production
+Appwrite webhook, Firebase Auth setting, or Firestore Rule has been created or
+changed. A live webhook still needs an explicitly managed public callback,
+signature secret, and protection-bypass lifecycle; do not weaken deployment
+protection to make it work.
 
 For emulator work, use a `demo-*` Firebase project ID. A demo project has no
 live resources, so an un-emulated product fails instead of falling through to a
@@ -144,10 +155,27 @@ The safe dependency order is:
 1. Finish the shared API and canonical Postgres identity schema locally.
 2. Complete the temporary Appwrite JWT → Firebase custom-token bridge in
    `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`. The token route, mocked provider
-   adapters, and mocked canonical identity transaction are implemented locally;
-   disposable-Neon validation, rate limiting, staging integration, and
-   revocation synchronization remain. The server must derive identity by
-   validating the Appwrite JWT, never from client-supplied UID/email.
+   adapters, and canonical identity transaction are implemented locally. The
+   real transaction adapter passed its four-case disposable-Neon branch suite
+   and the 20-table baseline; verified-user rate limiting, keyless Firebase
+   signing, and token-free outcome telemetry passed a protected staging Preview.
+   The two Vercel Firewall rules are published; the verified-user rule returned
+   live 429 responses, while the IP rule remains observation-only pending a
+   dashboard review. Authenticated and signed-webhook revocation are now
+   implemented and directly smoked in the protected Preview. The replacement
+   Expo bootstrap is implemented locally with seven focused tests, Firebase
+   Auth persistence, identity matching, and fail-closed Appwrite-session
+   rollback. The staging Firebase Web client and Appwrite iOS React Native
+   platform are registered, with public client values stored in a git-ignored
+   local environment file. An empty `nam5` staging Firestore database now runs
+   the emulator-tested bridge Rules. A separate public Vercel relay keeps the
+   protected Preview bypass server-side, and the guarded synthetic smoke test
+   has passed Appwrite JWT exchange, Firebase sign-in with matching UID, and
+   authenticated Firebase refresh-token revocation. The synthetic Appwrite and
+   Firebase users were removed afterward. Device/simulator UI validation is the
+   remaining staging check. The
+   server must derive identity by validating the Appwrite JWT, never from
+   client-supplied UID/email.
 3. Map Appwrite UID, temporary Firebase UID, and later stable Google/Apple
    provider subjects into `auth_identities`; never link accounts by email alone.
 4. Build an idempotent Firestore-to-Postgres export with counts, checksums,
@@ -189,6 +217,8 @@ Safe now:
   boundaries;
 - creating a separate staging project and demo-project emulator setup;
 - local and protected-preview work against non-production data.
+- live bridge smoke tests against the isolated staging Appwrite, Firebase,
+  Neon, and public Vercel relay, using disposable synthetic users.
 
 Not safe yet:
 

@@ -17,10 +17,15 @@ const providerMocks = vi.hoisted(() => {
             projectId?: string;
             jwt?: string;
         }>,
+        checkRateLimit: vi.fn(),
         createCustomToken: vi.fn(),
         MockAppwriteException,
     };
 });
+
+vi.mock("@vercel/firewall", () => ({
+    checkRateLimit: providerMocks.checkRateLimit,
+}));
 
 vi.mock("node-appwrite", () => {
     class Client {
@@ -72,6 +77,7 @@ describe("mobile authentication provider adapters", () => {
         vi.stubEnv("APPWRITE_PROJECT_ID", "69906e3f0020c208d8e7");
         providerMocks.clients.length = 0;
         providerMocks.accountGet.mockReset();
+        providerMocks.checkRateLimit.mockReset();
         providerMocks.createCustomToken.mockReset();
     });
 
@@ -154,5 +160,60 @@ describe("mobile authentication provider adapters", () => {
             "appwrite-user",
             { auth_source: "appwrite", bridge_version: 1 },
         );
+    });
+
+    it("uses the verified Appwrite subject as the Firewall rate-limit key", async () => {
+        const request = new Request(
+            "https://preview.example/api/mobile/auth/firebase-token",
+            { method: "POST" },
+        );
+        providerMocks.checkRateLimit.mockResolvedValue({ rateLimited: false });
+
+        await expect(
+            mobileAuthBridgeProviders.isRateLimited(request, "appwrite-user"),
+        ).resolves.toBe(false);
+        expect(providerMocks.checkRateLimit).toHaveBeenCalledWith(
+            "mobile-auth-verified-user",
+            {
+                request,
+                rateLimitKey: "appwrite-user",
+            },
+        );
+    });
+
+    it("returns a rate-limit decision and fails closed on Firewall errors", async () => {
+        const request = new Request(
+            "https://preview.example/api/mobile/auth/firebase-token",
+            { method: "POST" },
+        );
+        providerMocks.checkRateLimit.mockResolvedValueOnce({
+            rateLimited: true,
+        });
+
+        await expect(
+            mobileAuthBridgeProviders.isRateLimited(request, "appwrite-user"),
+        ).resolves.toBe(true);
+
+        providerMocks.checkRateLimit.mockResolvedValueOnce({
+            rateLimited: false,
+            error: "not-found",
+        });
+        await expect(
+            mobileAuthBridgeProviders.isRateLimited(request, "appwrite-user"),
+        ).rejects.toThrow("Mobile authentication rate limit is unavailable");
+    });
+
+    it("records only fixed stage/outcome telemetry fields", () => {
+        const log = vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+        mobileAuthBridgeProviders.recordStage("canonical_mapping", "failed");
+
+        expect(log).toHaveBeenCalledOnce();
+        expect(JSON.parse(vi.mocked(log).mock.calls[0][0])).toEqual({
+            event: "mobile_auth_bridge_stage",
+            stage: "canonical_mapping",
+            outcome: "failed",
+            bridgeVersion: 1,
+        });
     });
 });

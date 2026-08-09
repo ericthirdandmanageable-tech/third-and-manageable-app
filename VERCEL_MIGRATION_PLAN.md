@@ -40,7 +40,7 @@ Companion documents: `FEATURE_ANALYSIS.md` (feature/architecture inventory), `WE
 - [x] **Step 2 — promote the admin app to the repo root.** Commit `27f496c`; pure `git mv`, no source changes. Three scoping fixes the move forced: `tsconfig`/`eslint` now exclude `web-prototype/` and `backend/` (the root `**/*.ts` include would otherwise typecheck the Vite SPA's 32 files); `next.config.ts` pins `turbopack.root` (a lockfile in a parent directory was winning workspace-root inference); the admin `.gitignore` folded into the root one.
   - Follow-on commit `0230ae1` — **`firebase-admin` now initialises lazily** (`adminDb` → `getAdminDb()`, 12 files). It ran `cert()`/`initializeApp()` at module scope, and since Next imports every route module during page-data collection, a build failed outright without the service-account vars. Builds no longer need runtime secrets — which is what lets step 5 proceed while the §6.2 rotation is still pending. The module remains only through the mobile/data compatibility window (§2.3).
   - `next build` passes: 19 routes, every Firestore-backed page/route correctly `ƒ` (dynamic); only `/login` and `/_not-found` prerender.
-- [~] **Step 3 — provision Neon Postgres.** Vercel project **created and linked**: `ling-iq/third-and-manageable` (`prj_QaCgXSSn1sXJSob2T0qhYSLiJ1ek`). Neon resource `third-and-manageable-db` is provisioned on the free plan in `iad1`, connected to production/preview/development, and injects pooled + unpooled Postgres variables. It was deliberately provisioned with `auth=false`; the first empty resource was immediately replaced after Neon's default `auth=true` conflicted with the Auth.js decision. The remaining acceptance check is running the baseline on an actual disposable **Neon branch**; see the provider-console blocker below.
+- [x] **Step 3 — provision and validate Neon Postgres.** Vercel project **created and linked**: `ling-iq/third-and-manageable` (`prj_QaCgXSSn1sXJSob2T0qhYSLiJ1ek`). Neon resource `third-and-manageable-db` is provisioned on the free plan in `iad1`, connected to production/preview/development, and injects pooled + unpooled Postgres variables. It was deliberately provisioned with `auth=false`; the first empty resource was immediately replaced after Neon's default `auth=true` conflicted with the Auth.js decision. On 2026-08-06, branch `codex-preview-auth-20260806` applied both migrations, the guarded canonical-identity suite passed all four transaction/concurrency cases, and the broader baseline passed all 20 tables, repeat migration, constraint, role/identity, and immutable-audit checks in separately created disposable databases. Those databases were removed. The branch is isolated from Preview via environment-specific URLs and auto-deletes on 2026-08-07.
   - ⚠️ `vercel link` auto-detected `backend/` and wrote a `vercel.json` rewriting **`/(.*)` → the FastAPI service**, which would have shadowed the entire admin app. **Deleted.** Worth knowing for Phase 2 step 11: Vercel detects and bridges the FastAPI service natively, so §2.2 is less work than assumed — but that config must not land until step 11.
 - [x] **Step 4 — SQLAlchemy → Drizzle baseline revised before application.** The initial 12-table draft has been replaced by a 19-table baseline implementing §3.1: UUID domain IDs; provider-subject identities and Firebase UID mapping support; normalized emails; isolated legacy credentials; revocable session records; active admin-role grants; trigger-enforced append-only audit logs; FK-backed post/comment votes; `date`/`timestamptz`; and database checks, uniqueness rules, partial/composite indexes, and soft-delete/retention fields. `npm run db:test:neon` applied the migration twice to an isolated temporary database in the Neon project, wrote identity/role/audit fixtures, proved constraint and audit-immutability rejection, and removed the database. Repeat the same acceptance test on a real Neon branch before marking Step 3 complete.
 - [~] **Step 5 — first deploy.** Pipeline **proven** (build + deploy + routes served), then **the deployment was removed**. See below.
@@ -70,7 +70,7 @@ The signed shared-password session in Phase 0 is a bootstrap control, not the fi
 - Bootstrap auth now fails closed unless a 16+ byte password and 32+ byte signing secret exist. It uses constant-time password comparison and an 8-hour signed `HttpOnly; SameSite=Strict` session whose key changes when either secret rotates. The old `admin_session=authenticated` cookie is ignored and cleared.
 - `src/proxy.ts` gates the current admin page routes; dashboard layouts and all seven privileged handlers keep their independent server-side checks.
 - Unit, build, and live regression checks prove missing configuration → 503/no cookie, old/forged/tampered cookies → redirect, wrong password → 401, and a valid signed cookie is the only token that reaches the data layer.
-- Next.js is updated from 16.1.6 to 16.2.12 and Firebase Admin from 13.6.1 to 14.2.0, which removed the critical production findings. The remaining 16 were then cleared with `overrides` — see technical go-live blocker 1 above, which is now closed.
+- Next.js is updated from 16.1.6 to 16.2.12. Firebase Admin is pinned to 13.6.1: 14.2.0 pulls ESM-only `jose` 6 through `jwks-rsa` 4, which Next's deployed CommonJS external loader cannot require. The compatible 13.6 line uses `jwks-rsa` 3 / `jose` 4. Patched transitive versions remain pinned with `overrides`; the production audit is still clean — see technical go-live blocker 1 above.
 
 **Committed since:** `d53d186` dependency remediation · `ea2f93f` FastAPI bridge on the UUID/timestamptz baseline · `7235b14` Phase 1 step 6 · `de6688c` athlete port · `c8ba5e8` prototype retirement · `490f5df` registry-test fix.
 
@@ -200,11 +200,315 @@ compiled-bundle assumptions with verified production facts:
   No live database or provider call, credential use, Firebase/Auth/Firestore
   change, or deployment occurred.
 
-**Next executable step:** run the canonical identity transaction and its
-collision/idempotency cases against a disposable Neon branch, then delete the
-branch. Rate limiting and aggregate, token-free observability must also be added
-before any staging deployment. Production Firebase Auth, Rules, Appwrite
-providers, platforms, and credentials remain unchanged.
+- [x] **Canonical identity transaction verified on a disposable Neon branch
+  (2026-08-06).** A guarded runner applied the real Drizzle migrations to a
+  uniquely named temporary database on the one-off branch and exercised the
+  production Neon transaction adapter for first-use mapping, missing-side
+  attachment, collision rejection, idempotency, and six-way concurrent
+  serialization. All four integration cases passed; the temporary database was
+  removed, the branch was deleted in Neon, and its endpoint was confirmed dead.
+  The broader Step 3 baseline acceptance remains open until
+  `npm run db:test:neon` also runs on a disposable branch.
+- [x] **Bridge rate limiting, keyless staging identity, and protected-Preview
+  exchange validated (2026-08-06).** The route checks Vercel Firewall after Appwrite verifies
+  the subject and before Postgres/Firebase work, uses the verified subject only
+  as the SDK's hashed rate-limit key, returns `429` + `Retry-After`, and fails
+  closed if the SDK rule is missing or blocked. Structured outcome telemetry is
+  limited to `succeeded`, `rejected`, `rate_limited`, or `unavailable` plus the
+  bridge version. It records no token, UID, IP, email, error body, or canonical
+  user ID, and telemetry failure cannot change the auth response. The focused
+  mocked bridge/mapping/provider suite is now 30 tests, plus the 4 live-Neon
+  integration cases. The `mobile-auth-verified-user` SDK rule is live as a
+  10-per-60-second fixed-window rule. A separate live 60/minute IP rule remains
+  log-only. Staging uses Appwrite project `69906dfc003364b9847e`, Firebase
+  project `third-and-manageable-staging` (project number `371113500992`), and a
+  dedicated keyless service account. Vercel Preview OIDC is restricted to the
+  exact `ling-iq/third-and-manageable` Preview subject through Google pool
+  `vercel-preview` / provider `vercel`; no service-account key exists. A
+  protected Preview returned 401 for missing credentials and 200 for a real
+  staging Appwrite JWT, minted a Firebase custom token whose UID matched the
+  verified Appwrite `$id`, and produced only 200/429 results in an 11-request
+  rate run (9 succeeded, the final 2 were limited). All ten temporary Appwrite
+  users were deleted afterward. The IP rule remains observation-only; its
+  dashboard event still needs confirmation from a browser logged into Vercel.
+
+  The protected Preview is intentionally not a functioning athlete web-login
+  environment yet. `/login` renders, but its existing email/password form still
+  calls `/bridge/auth/login` and `/bridge/auth/register`; no `/bridge/*` route is
+  deployed until the FastAPI Service topology lands at Phase 2 step 11. The
+  current generic form error is therefore expected and is not evidence that the
+  staging Appwrite/Firebase bridge failed. Vercel runtime inspection confirmed
+  the final deployment was healthy and received no `/bridge/*` invocation.
+
+  The staging run also exposed two deployment-only defects now fixed: Firebase
+  Admin 14's ESM/CJS incompatibility, and Neon interactive transactions over the
+  pooled hostname. Canonical mapping now uses the direct
+  `DATABASE_URL_UNPOOLED` endpoint with Neon's documented `ws` constructor,
+  while ordinary query paths retain pooled `DATABASE_URL`.
+
+**Revocation synchronization implemented and end-to-end staging-smoked
+(2026-08-06):**
+`POST /api/mobile/auth/revoke` verifies a still-live Appwrite JWT before
+revoking the same Firebase UID, and
+`POST /api/mobile/auth/appwrite-webhook` validates Appwrite's exact-URL/raw-body
+HMAC-SHA1 signature plus staging project/webhook identity before accepting only
+session-delete or user-status events. Both paths are no-store, bounded,
+token-free in logs, fail closed, and tolerate repeated webhook delivery through
+Firebase's idempotent revocation operation. The new focused suite passes 31
+tests. Both routes are deployed in the protected Preview. Missing route auth
+returns 401, an invalid webhook signature returns 401, and a correctly signed
+synthetic webhook reaches Firebase revocation and fails generically for the
+intentionally nonexistent UID; runtime logs contain no token or UID. The
+replacement client now reaches token exchange and authenticated revocation
+through the separate public Vercel project
+`ling-iq/third-and-manageable-mobile-staging` at
+`https://third-and-manageable-mobile-staging.vercel.app`. The relay exposes
+only those two POST paths and holds the protected Preview automation-bypass
+credential server-side. It never forwards arbitrary paths, incoming cookies,
+or client-supplied bypass headers. The Appwrite webhook route is deliberately
+not exposed; registration remains gated on a separately managed public
+callback and signing/bypass-secret lifecycle.
+
+**Replacement Expo bootstrap implemented locally (2026-08-06):** the recovered
+mobile repository now initializes Firebase Auth with React Native
+`AsyncStorage` persistence, exchanges a fresh `account.createJWT()` at the
+bridge, calls `signInWithCustomToken()`, verifies the returned Firebase UID
+equals the Appwrite `$id`, and fails closed by clearing Firebase state. New
+email/password and OAuth sessions roll back if bootstrap fails; restored
+sessions bootstrap before Firestore-backed data is exposed; sign-out revokes
+server-side before clearing Firebase and deleting the Appwrite session. Seven
+focused client tests, TypeScript, and focused ESLint checks pass. The repository's
+full lint still has three pre-existing `react/no-unescaped-entities` errors and
+nine warnings outside these changes; its production dependency audit also has
+31 pre-existing findings and must be remediated separately before release.
+
+Staging client registration is also complete: Firebase app
+`1:371113500992:web:2e553021f4dd4c34371aa5` (nickname
+`Third & Manageable Staging Expo`) was created in the staging project, Firebase
+Auth is active, and the staging Appwrite project now has an iOS React Native
+platform for `com.thirdandmanageable.app`. Public client configuration is in
+the mobile checkout's git-ignored `.env.local`, including the public staging
+relay origin. An empty Standard-edition Firestore `(default)` database now exists in
+`nam5`, and the 16-case emulator-tested bridge Rules are published there. The
+client's initial private-profile write now includes the Rules-required
+`verified: false` value.
+
+The guarded `npm run smoke:staging-auth` flow then created a synthetic staging
+Appwrite session, exchanged its JWT through the public relay, signed into
+Firebase with the returned custom token, proved the Firebase UID matched the
+Appwrite `$id`, and successfully called authenticated Firebase refresh-token
+revocation. The keyless Vercel service account has the staging-only Firebase
+Authentication Admin role required for that operation. Both synthetic
+Appwrite accounts from the initial and successful runs were deleted, and the
+staging Firebase Auth user list was confirmed empty.
+
+**Later staging mobile-auth 503 regression resolved (2026-08-06):** The
+earlier successful scripted smoke above is historical. The same protected
+Preview subsequently returned 503 from the public staging relay, including from
+an independent guarded smoke. The bridge now records only the fixed stage enum
+(`verify_appwrite`, `rate_limit`, `canonical_mapping`, `firebase_token`), a
+fixed success/failure outcome, event name, and bridge version; it never records
+an exception, request value, provider response, token, UID, email, IP, or
+connection string. Focused bridge and provider tests cover every stage marker
+and the fixed telemetry shape. A fresh protected Preview and the staging-only
+relay were redeployed, with the relay's server-side upstream origin updated to
+that Preview. A new guarded smoke then completed token exchange, UID equality,
+and revocation successfully; the corresponding protected Preview logs show
+all four stages succeeding followed by the aggregate success event. No
+production project, provider, data, Rules, or credentials were changed.
+
+The requested iOS 26.5 Simulator smoke uncovered and fixed a separate client
+startup defect: Firebase 12's Metro-resolved public Auth entrypoint did not
+provide the React Native persistence helper. The replacement app now supplies
+the documented AsyncStorage-backed LOCAL persistence contract directly, and
+TypeScript plus the seven focused mobile tests pass. Expo Go can fetch the
+staging app's iOS manifest and bundle over the LAN, but its update loader still
+times out while opening the project in this simulator. The full authenticated
+smoke has since been accepted using a compatible staging development build; do
+not treat the Expo Go transport/load failure as a mobile-auth relay regression.
+
+**Password-recovery staging status (2026-08-07):** A dedicated static return
+page is deployed at
+`https://third-and-manageable-mobile-staging.vercel.app/recovery.html` in the
+existing LingIQ staging relay. It accepts Appwrite’s recovery query parameters
+only in the browser and immediately hands them to the native
+`thirdandmanageableapp://reset-password` route; it has no server function,
+logging, or persistence, and returns `no-store`, `no-referrer`, and a strict
+Content-Security-Policy. The replacement mobile app now has request and reset
+screens, and the exact hostname
+`third-and-manageable-mobile-staging.vercel.app` was registered as a **Web**
+platform in the staging Appwrite project `fra-69906dfc003364b9847e`; the
+staging mail template/policy settings still need review before any real reset
+email is sent. Do not route a reset secret through the
+OAuth relay or an unregistered native URL. Exercise Google only after the
+staging Appwrite project has an approved Google provider configuration. Register
+the staging Appwrite webhook only after its separate public callback/protection
+lifecycle is explicit. Confirm the observation-only IP event in the Vercel
+dashboard before considering enforcement. Production Firebase Auth, Rules,
+Appwrite providers, platforms, and credentials remain unchanged.
+
+**Password-recovery native handoff smoke (2026-08-07):** A new local staging
+development client was built and installed on the iOS 26.5 simulator. A
+synthetic `thirdandmanageableapp://reset-password` link with non-sensitive
+placeholder parameters opened the reset-password screen directly. The client
+uses Expo Router’s native-intent handling plus a constrained unmatched-link
+fallback for this development-client URL shape; only a reset path carrying
+both Appwrite `userId` and `secret` parameters may enter that screen. No reset
+email was sent and no account password was changed.
+
+**Staging iOS Firestore smoke update (2026-08-06):** Expo Go 54 was installed
+on the iOS 26.5 simulator and Metro served the replacement client locally. A
+staging-only user completed registration and onboarding, and the authenticated
+Profile screen loaded. The initial post-onboarding permission denial was a
+Rules/client mismatch: the profile screen backfilled `joined_at`, but the
+strict profile-update allowlist omitted that field. The published staging Rules
+now allow an owner to set a non-empty `joined_at` once only when it is missing;
+subsequent changes, verification, and streak updates remain denied. The
+16-case local Rules suite covers the allowed one-time backfill and rejected
+repeat/protected writes, and a fresh guarded bridge smoke again passed token
+exchange, UID equality, and revocation. Production was not changed.
+
+**Apple OAuth staging status (2026-08-07):** The replacement client already
+uses Appwrite's Apple OAuth flow and contains the iOS button. A dedicated,
+staging-only Apple app identity and Service ID were created, the exact staging
+Appwrite callback was registered, and the staging Appwrite Apple provider is
+enabled using its write-only private-key field. The released Apple app identity
+and production Appwrite project were not changed. Do not record the private key
+or credential identifiers in this repository. A real iOS development-build
+round trip has now succeeded with a real Apple account: the user returned to
+the staging app authenticated. Expo Go does not establish a
+production-equivalent OAuth return path for this app, so this result applies to
+the staging development build. Sign-out, fresh Apple sign-in, and an
+owner-scoped Firestore write/reload have also been confirmed manually.
+
+### Integration ownership audit reconciliation — 2026-08-05
+
+The provider-level inventory is substantial but **not yet complete enough to
+claim an operational handoff of the App Store app**. This reconciliation checked
+all tracked Markdown files, the local runtime/configuration, the exact shipped
+Expo source commit `5b37d367c7119961ca98cd52645fdc79c3499626`, current Vercel
+project metadata, public App Store metadata, and the live domain endpoints. It
+does not supersede the no-change rules in `FIREBASE_SAFE_HANDOFF.md` or the
+provider-specific preservation gates above.
+
+#### Confirmed control-plane coverage
+
+- The recovered mobile repository's `main`/HEAD still equals the source commit
+  used for App Store build `1.0.0 (6)`. Write/admin access remains outstanding.
+- Apple Developer, App Store Connect, signing, TestFlight, roles, APNs, and
+  Sign in with Apple state are inventoried in
+  `third-and-manageable-apple-inventory-2026-08-05.md`.
+- Firebase project identity, live collection names, open Rules exposure,
+  Appwrite-as-identity behavior, and the safe compatibility sequence are
+  documented in `FIREBASE_SAFE_HANDOFF.md` and
+  `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`.
+- Appwrite project identity and Apple platform preservation IDs are documented
+  in `APPWRITE_PLATFORM_INVENTORY.md`.
+- The target Vercel project is `ling-iq/third-and-manageable`, connected to
+  `lucascardoso1/3rd_and_manageable` on `main`, with Neon-managed pooled and
+  unpooled database variables. It has no custom domain attached.
+
+#### Newly discovered gaps and corrections
+
+1. **The mobile environment template is incomplete and partially obsolete.**
+   The shipped source references all six Firebase Web client variables plus
+   `EXPO_PUBLIC_OAUTH_BRIDGE_URL`, `EXPO_PUBLIC_PRIVACY_POLICY_URL`,
+   `EXPO_PUBLIC_TERMS_URL`, and `EXPO_PUBLIC_SUPPORT_EMAIL`; none is present in
+   the mobile `.env.example`. The template instead lists unused Appwrite
+   database/collection variables even though production Appwrite is
+   identity-only. Retrieve the actual EAS environment assignments by name,
+   environment, and owner without placing their values in source or chat.
+2. **The source fallback legal/support domain is wrong.** It uses
+   `thirdandmanageable.com`, which currently has no DNS or mail records. The
+   live App Store seller site is `thirdmanageable.com`; its root, `/privacy`,
+   and `/terms` endpoints are healthy on Vercel, its nameservers are under
+   `domaincontrol.com`, and its mail is routed through Microsoft. Prove whether
+   the shipped EAS environment overrides the bad fallbacks. Also inventory the
+   registrar, DNS owner, website repository, original Vercel project, legal
+   content owner, and support mailbox.
+3. **The OAuth redirect bridge is undocumented.** The native Appwrite flow can
+   use `EXPO_PUBLIC_OAUTH_BRIDGE_URL`, but its production value, hosting project,
+   route behavior, authorized Appwrite platform/host relationship, and owner
+   have not been captured. This must be resolved before Google or Apple login
+   configuration changes.
+4. **The push sender is source-only, not an inventoried deployment.** The
+   mobile repository contains a daily-reminder script with no function package
+   manifest or Firebase deployment configuration. Its README calls it an
+   Appwrite Function while its implementation uses Firebase Admin, and the
+   Appwrite console inventory found Functions effectively unused. Treat remote
+   push delivery as unconfigured until a physical-device TestFlight test proves
+   the complete APNs → Expo → app path.
+5. **Staging Sign in with Apple is configured and smoke-tested.** The staging
+   Appwrite provider, dedicated Apple capability/Service ID, return URL, and
+   write-only private-key field are configured; a real account completed the
+   staging development-build flow, then signed out and signed back in. Keep the
+   released Apple identity and production Appwrite configuration unchanged.
+6. **Account recovery is not established.** The recovered native source has no
+   password-recovery screen or `createRecovery`/`updateRecovery` path, despite
+   older product documents describing forgot-password behavior. Inventory
+   Appwrite email/password settings, SMTP/templates, recovery URLs, password
+   policy, session policy, and abuse controls.
+7. **Operational monitoring is absent.** Neither the web nor native dependency
+   graph contains a production crash/error monitoring integration; Vercel Web
+   Analytics, which is itself not installed yet, would not cover the native
+   app. Name an approved mobile crash, backend error/trace, uptime, alerting,
+   and product-analytics stack before the replacement release.
+8. **An external care resource is an uncatalogued dependency.** The native app
+   links to the live “And Her Name Was Grace” SimplyBook page. Record partner
+   approval, link/content ownership, data-sharing expectations, monitoring, and
+   fallback behavior as part of the safety/support inventory.
+9. **Older documents contain stale production claims.** `FEATURE_ANALYSIS.md`
+   and `REDESIGN_BRIEF.md` describe Firebase Auth even though Appwrite is the
+   production identity provider, and both describe iOS 18 as the minimum while
+   the public App Store record reports iOS 15.1. `REDESIGN_BRIEF.md` §18.2 and
+   `WEB_PROTOYPE_DEBRIEF.md` still describe the former Vite/Render topology.
+   Treat this plan plus the dedicated 2026-08-05 handoff inventories as
+   authoritative until those historical documents are marked or corrected.
+10. **The historical “no deployments” statement above is no longer current.**
+    The LingIQ Vercel project now has four production-target deployments. The
+    newest deployment is protected by Vercel SSO, the project is GitHub-linked,
+    and Vercel currently exposes only Neon-managed environment variables. This
+    is a protected technical deployment, not authorization to connect live
+    Firebase/Appwrite data or attach the production custom domain.
+
+#### Remaining integration audits, in dependency order
+
+| Priority | Audit | Required record / exit condition |
+|---|---|---|
+| **P0** | Native GitHub ownership | Admin access; collaborators, deploy keys, Actions/secrets, branch protection, dependency alerts, release tags, and recovery owner recorded. |
+| **P0** | Expo/EAS organization and environments | Transfer from personal ownership; production/preview/development variable names and scopes, build/submit credentials, App Store Connect API key custody, update authority, and push credential state recorded. |
+| **P0** | Firebase/GCP read-only production inventory | Rules, indexes, counts/field shapes, TTL/backups/PITR, export, IAM, service accounts/keys, API restrictions, App Check, FCM, audit logs, and billing/budget ownership recorded without user content entering the repo. |
+| **P0** | Domain/legal/support/OAuth bridge | Registrar and DNS control, original Vercel project or export, website source, correct legal URLs, support mailbox, OAuth bridge URL/behavior, and rollback plan recorded. |
+| **P0** | APNs/Expo push delivery | `.p8` custody and all consumers known; intended key associated with EAS; token inventory, receipts, invalid-token cleanup, timezone policy, deep-link handling, and a physical-device TestFlight test complete. |
+| **P1** | Appwrite Auth control plane | Email/password/session/recovery settings, authorized hosts/platforms, Google client and redirects, Apple disabled state, SMTP/templates, keys, webhooks, dormant Functions, logs, billing, MFA, and recovery owners recorded. |
+| **P1** | Google OAuth and Gemini | Owning Cloud project, IAM/billing contacts, consent screen, client IDs/redirects, key restrictions, quota/budget, data retention/logging, model lifecycle, prompt governance, and server-side migration plan recorded. |
+| **P1** | Vercel/Neon production readiness | Team roles/MFA/billing, Services entitlement, Deployment Protection/custom-domain behavior, environment isolation, disposable Neon branch test, roles, pooling, backup/PITR, region, and HIPAA add-on/BAA boundary complete. |
+| **P1** | Apple release/commercial state | App Privacy, export compliance, age-rating questions, pricing/availability, support/review metadata, banking/agreements, active TestFlight build, provisioning UUID reconciliation, and dormant In-App Purchase decision complete. |
+| **P1** | Operations and safety partners | Crash/error monitoring, traces, uptime, alerts, product analytics, audit retention, support escalation, incident response, and SimplyBook partner dependency documented and tested. |
+
+#### Original Vercel access decision
+
+Access to the original Vercel account is **not required** to build the new app
+and backend in `ling-iq/third-and-manageable`. It is useful for a lossless
+inventory or transfer of the existing `thirdmanageable.com` marketing/legal
+site. Without that access, migration still requires registrar/DNS control, the
+website source, authoritative legal content, support-mailbox ownership, and
+approval to repoint the domain. Do not attach or repoint the domain during the
+read-only inventory.
+
+#### Explicitly deferred, not missing production integrations
+
+- Google Play release operations remain deferred; preserve Android identifiers
+  but do not expand this audit into Play Console setup yet.
+- Apple Health, Strava, and Terra are product decisions with no current runtime
+  integration or Apple capability dependency.
+- Stripe/RevenueCat are absent. Decide monetization first; iOS digital access
+  must be reconciled with the already-enabled but unused Apple In-App Purchase
+  capability before selecting a payment SDK.
+- Vercel Blob, Cron, Edge Config, and Analytics remain target-architecture
+  components, not current production integrations. The two bridge WAF rules are
+  now live, but the IP rule remains log-only and neither rule has completed its
+  protected-preview validation gate.
 
 ### Blocked on you
 
@@ -218,11 +522,15 @@ providers, platforms, and credentials remain unchanged.
    connector is not exposed in this Codex session, so there is no additional
    MCP authorization flow available here; do not describe CLI access as MCP
    access.
-7. **Create/enable the disposable Neon branch in the provider console.** The resource is provisioned and its baseline passed an isolated disposable-database test, but Vercel CLI exposes branch creation only through preview-deployment configuration/provider UI, the Marketplace MCP is read-only, and the in-app browser was unavailable. Enable “Create a database branch for deployment: Preview” or create a one-off branch in Neon, then run the same migration test against its unpooled URL and delete it.
+7. ~~**Create a one-off disposable Neon branch for the canonical identity
+   transaction and baseline.**~~ — **done 2026-08-06.** Both the four-case
+   production-adapter run and the 20-table baseline acceptance passed in unique
+   disposable databases, and both databases were removed. The current protected
+   Preview branch is configured to auto-delete on 2026-08-07.
 
 ### Technical go-live blockers
 
-1. ~~**Production dependency audit is not clean.**~~ — **resolved.** `npm audit --omit=dev` reports **0**, down from 16 (10 high, 5 moderate, 1 low). Every finding was transitive under `firebase-admin` or `next`, both already on their latest release, so npm's own suggested fix was a downgrade to `firebase-admin@10.3.0` / `next@9.3.3` — which this plan rules out. `overrides` pin the patched transitive versions instead: postcss and sharp under `next`; uuid and the brace-expansion/minimatch/glob/rimraf/gaxios/`@tootallnate/once` chain under `firebase-admin`. The whole `firebase-admin` block disappears at the §2.3 retirement gate.
+1. ~~**Production dependency audit is not clean.**~~ — **resolved.** `npm audit --omit=dev` reports **0**, down from 16 (10 high, 5 moderate, 1 low). Findings were transitive under `firebase-admin` or `next`. Next is current; Firebase Admin is intentionally pinned to 13.6.1 because 14.2.0 fails in the deployed Next.js runtime through its ESM-only `jose` 6 dependency. `overrides` pin the patched transitive versions: postcss and sharp under `next`; uuid and the brace-expansion/minimatch/glob/rimraf/gaxios/`@tootallnate/once` chain under `firebase-admin`. The whole `firebase-admin` block disappears at the §2.3 retirement gate.
    - `npm run check:audit` fails the production audit at `--audit-level=low`, so this cannot silently regress into the unexplained exception list §6.8 prohibits. Re-check the overrides on every `next`/`firebase-admin` bump and drop entries upstream has caught up to.
    - **Residual, dev-only:** the full audit is 63 → 17. What remains is a single `ajv` ReDoS (`GHSA-2g4f-4pwh-qvx6`, moderate, `$data` schemas) reached only through `@vercel/static-config`, which validates *our own* config at build time and is not attacker-controlled. It is not overridable globally — forcing ajv 8 breaks ESLint's own, unaffected, ajv 6 — and npm's nested override syntax does not match this graph. Dev tooling does not ship: the manifest guard proves the upload is runtime source only.
 2. ~~**The FastAPI bridge still models integer IDs and naive timestamps.**~~ — **resolved.** The bridge is ported onto the §3.1 baseline: UUID primary keys and JWT subjects, `timestamptz` everywhere via a `UtcDateTime` decorator that rejects naive values at the boundary, `date` for `check_ins.date` and `action_completions.week_of`, email in `user_emails` and the password hash in `password_credentials`, and the polymorphic `votes` table split into FK-backed `post_votes`/`comment_votes`. Startup no longer runs `create_all` + `alembic stamp` + `seed_forums` (§2.2 blocker 1) — Drizzle owns the schema, `python -m app.seed` owns seed data, and Alembic is deleted.

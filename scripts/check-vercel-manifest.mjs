@@ -53,10 +53,9 @@ const forbidden = [
             ) || /\.tsbuildinfo$/i.test(path),
     },
     {
-        // `web-prototype/` was the other entry here until Phase 1 step 10
-        // deleted it. `backend/` stays until the Phase 2 bridge retirement.
-        description: "reference application not part of the current deployment",
-        matches: (path) => /^backend\//.test(path),
+        description: "test or retired reference application",
+        matches: (path) =>
+            /^backend\/tests\//.test(path) || /^web-prototype\//.test(path),
     },
     {
         description: "local tooling or non-runtime business artifact",
@@ -78,10 +77,10 @@ const violations = files.flatMap(({ path }) =>
 );
 
 const framework = manifest.framework?.slug;
-if (framework !== "nextjs") {
+if (framework !== "services") {
     violations.push({
         path: "<framework>",
-        description: `expected nextjs, received ${framework ?? "unknown"}`,
+        description: `expected services, received ${framework ?? "unknown"}`,
     });
 }
 

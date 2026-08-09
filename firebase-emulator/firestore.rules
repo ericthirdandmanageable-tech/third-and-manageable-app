@@ -32,8 +32,13 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "display_name", "sport", "athlete_status", "school",
           "group_interest", "profile_pic", "ai_personality",
-          "verification_requested"
-        ]);
+          "verification_requested", "joined_at"
+        ])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["joined_at"])
+          || (!("joined_at" in resource.data)
+            && request.resource.data.joined_at is string
+            && request.resource.data.joined_at.size() > 0
+            && request.resource.data.joined_at.size() <= 64));
 
       allow delete: if false;
     }

@@ -12,6 +12,7 @@ const VALID_JWT = "header.payload.signature";
 function createDependencies(): MobileAuthBridgeDependencies {
     return {
         verifyAppwriteJwt: vi.fn().mockResolvedValue({ id: "appwrite-user-1" }),
+        isRateLimited: vi.fn().mockResolvedValue(false),
         mapCanonicalIdentities: vi.fn().mockResolvedValue({
             canonicalUserId: "00000000-0000-4000-8000-000000000001",
             firebaseUid: "appwrite-user-1",
@@ -19,6 +20,8 @@ function createDependencies(): MobileAuthBridgeDependencies {
         createFirebaseCustomToken: vi
             .fn()
             .mockResolvedValue("firebase-custom-token"),
+        recordStage: vi.fn(),
+        recordOutcome: vi.fn(),
     };
 }
 
@@ -55,8 +58,10 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
             error: "Invalid credentials",
         });
         expect(dependencies.verifyAppwriteJwt).not.toHaveBeenCalled();
+        expect(dependencies.isRateLimited).not.toHaveBeenCalled();
         expect(dependencies.mapCanonicalIdentities).not.toHaveBeenCalled();
         expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("rejected");
     });
 
     it("rejects an oversized JWT before calling a provider", async () => {
@@ -68,7 +73,9 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
 
         expect(response.status).toBe(401);
         expect(dependencies.verifyAppwriteJwt).not.toHaveBeenCalled();
+        expect(dependencies.isRateLimited).not.toHaveBeenCalled();
         expect(dependencies.mapCanonicalIdentities).not.toHaveBeenCalled();
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("rejected");
     });
 
     it("derives the Firebase UID only from the verified Appwrite response", async () => {
@@ -92,6 +99,11 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
         expect(
             vi.mocked(dependencies.verifyAppwriteJwt).mock.invocationCallOrder[0],
         ).toBeLessThan(
+            vi.mocked(dependencies.isRateLimited).mock.invocationCallOrder[0],
+        );
+        expect(
+            vi.mocked(dependencies.isRateLimited).mock.invocationCallOrder[0],
+        ).toBeLessThan(
             vi.mocked(dependencies.mapCanonicalIdentities).mock
                 .invocationCallOrder[0],
         );
@@ -106,6 +118,27 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
         await expect(response.json()).resolves.toEqual({
             firebaseCustomToken: "firebase-custom-token",
         });
+        expect(dependencies.recordStage).toHaveBeenNthCalledWith(
+            1,
+            "verify_appwrite",
+            "succeeded",
+        );
+        expect(dependencies.recordStage).toHaveBeenNthCalledWith(
+            2,
+            "rate_limit",
+            "succeeded",
+        );
+        expect(dependencies.recordStage).toHaveBeenNthCalledWith(
+            3,
+            "canonical_mapping",
+            "succeeded",
+        );
+        expect(dependencies.recordStage).toHaveBeenNthCalledWith(
+            4,
+            "firebase_token",
+            "succeeded",
+        );
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("succeeded");
     });
 
     it("maps an invalid, expired, or disabled Appwrite identity to 401", async () => {
@@ -123,6 +156,12 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
             error: "Invalid credentials",
         });
         expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
+        expect(dependencies.isRateLimited).not.toHaveBeenCalled();
+        expect(dependencies.recordStage).toHaveBeenCalledWith(
+            "verify_appwrite",
+            "failed",
+        );
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("rejected");
     });
 
     it("fails closed when Appwrite returns a malformed user ID", async () => {
@@ -130,18 +169,47 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
         vi.mocked(dependencies.verifyAppwriteJwt).mockResolvedValue({
             id: "../client-supplied-or-invalid",
         });
-        const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
-
         const response = await createFirebaseTokenHandler(dependencies)(
             createRequest(`Bearer ${VALID_JWT}`),
         );
 
         expect(response.status).toBe(503);
+        expect(dependencies.isRateLimited).not.toHaveBeenCalled();
         expect(dependencies.mapCanonicalIdentities).not.toHaveBeenCalled();
         expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
-        expect(log).toHaveBeenCalledWith(
-            "Mobile authentication bridge provider failure",
+        expect(dependencies.recordStage).toHaveBeenCalledWith(
+            "verify_appwrite",
+            "failed",
         );
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("unavailable");
+    });
+
+    it("rate-limits only after Appwrite verification and before database or Firebase work", async () => {
+        const dependencies = createDependencies();
+        vi.mocked(dependencies.isRateLimited).mockResolvedValue(true);
+
+        const response = await createFirebaseTokenHandler(dependencies)(
+            createRequest(`Bearer ${VALID_JWT}`),
+        );
+
+        expect(response.status).toBe(429);
+        expect(response.headers.get("cache-control")).toBe("no-store");
+        expect(response.headers.get("retry-after")).toBe("60");
+        await expect(response.json()).resolves.toEqual({
+            error: "Too many token exchange requests",
+        });
+        expect(dependencies.verifyAppwriteJwt).toHaveBeenCalledOnce();
+        expect(dependencies.isRateLimited).toHaveBeenCalledWith(
+            expect.any(Request),
+            "appwrite-user-1",
+        );
+        expect(dependencies.mapCanonicalIdentities).not.toHaveBeenCalled();
+        expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
+        expect(dependencies.recordStage).toHaveBeenCalledWith(
+            "rate_limit",
+            "succeeded",
+        );
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("rate_limited");
     });
 
     it("fails closed when canonical identity mapping fails", async () => {
@@ -149,8 +217,6 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
         vi.mocked(dependencies.mapCanonicalIdentities).mockRejectedValue(
             new Error("identity collision with sensitive provider subjects"),
         );
-        const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
-
         const response = await createFirebaseTokenHandler(dependencies)(
             createRequest(`Bearer ${VALID_JWT}`),
         );
@@ -158,12 +224,11 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
         expect(response.status).toBe(503);
         expect(response.headers.get("cache-control")).toBe("no-store");
         expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
-        expect(log).toHaveBeenCalledWith(
-            "Mobile authentication bridge provider failure",
+        expect(dependencies.recordStage).toHaveBeenCalledWith(
+            "canonical_mapping",
+            "failed",
         );
-        expect(log).not.toHaveBeenCalledWith(
-            expect.stringContaining("sensitive provider subjects"),
-        );
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("unavailable");
     });
 
     it("fails closed when identity mapping changes the Firebase UID", async () => {
@@ -172,14 +237,17 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
             canonicalUserId: "00000000-0000-4000-8000-000000000001",
             firebaseUid: "different-user",
         });
-        vi.spyOn(console, "error").mockImplementation(() => undefined);
-
         const response = await createFirebaseTokenHandler(dependencies)(
             createRequest(`Bearer ${VALID_JWT}`),
         );
 
         expect(response.status).toBe(503);
         expect(dependencies.createFirebaseCustomToken).not.toHaveBeenCalled();
+        expect(dependencies.recordStage).toHaveBeenCalledWith(
+            "canonical_mapping",
+            "failed",
+        );
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("unavailable");
     });
 
     it("returns a generic no-store 503 without logging provider details", async () => {
@@ -188,8 +256,6 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
         vi.mocked(dependencies.createFirebaseCustomToken).mockRejectedValue(
             secretBearingError,
         );
-        const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
-
         const response = await createFirebaseTokenHandler(dependencies)(
             createRequest(`Bearer ${VALID_JWT}`),
         );
@@ -199,21 +265,40 @@ describe("mobile Appwrite-to-Firebase token bridge", () => {
         await expect(response.json()).resolves.toEqual({
             error: "Authentication bridge unavailable",
         });
-        expect(log).toHaveBeenCalledWith(
-            "Mobile authentication bridge provider failure",
+        expect(dependencies.recordStage).toHaveBeenCalledWith(
+            "firebase_token",
+            "failed",
         );
-        expect(log).not.toHaveBeenCalledWith(secretBearingError);
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("unavailable");
     });
 
     it("fails closed if Firebase returns an empty token", async () => {
         const dependencies = createDependencies();
         vi.mocked(dependencies.createFirebaseCustomToken).mockResolvedValue("");
-        vi.spyOn(console, "error").mockImplementation(() => undefined);
-
         const response = await createFirebaseTokenHandler(dependencies)(
             createRequest(`Bearer ${VALID_JWT}`),
         );
 
         expect(response.status).toBe(503);
+        expect(dependencies.recordStage).toHaveBeenCalledWith(
+            "firebase_token",
+            "failed",
+        );
+        expect(dependencies.recordOutcome).toHaveBeenCalledWith("unavailable");
+    });
+
+    it("does not let an observability failure change a successful exchange", async () => {
+        const dependencies = createDependencies();
+        vi.mocked(dependencies.recordOutcome).mockImplementation(() => {
+            throw new Error("telemetry sink unavailable");
+        });
+        const response = await createFirebaseTokenHandler(dependencies)(
+            createRequest(`Bearer ${VALID_JWT}`),
+        );
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+            firebaseCustomToken: "firebase-custom-token",
+        });
     });
 });

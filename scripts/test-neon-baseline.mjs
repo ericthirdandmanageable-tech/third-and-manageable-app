@@ -60,6 +60,7 @@ try {
         "comment_votes",
         "comments",
         "commitments",
+        "forum_memberships",
         "forums",
         "password_credentials",
         "peer_support_requests",
@@ -217,7 +218,7 @@ try {
     });
 
     console.log(
-        `Neon baseline verified in disposable database ${databaseName}: 19 tables, idempotent migration journal, identity/role/audit writes, constraint rejection, and immutable audit events.`,
+        `Neon baseline verified in disposable database ${databaseName}: 20 tables, idempotent migration journal, identity/role/audit writes, constraint rejection, and immutable audit events.`,
     );
 } catch (error) {
     testFailure = error;

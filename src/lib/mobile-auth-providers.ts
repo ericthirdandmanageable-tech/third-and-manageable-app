@@ -1,15 +1,20 @@
 import { getAdminAuth } from "@/lib/firebase-admin";
+import { checkRateLimit } from "@vercel/firewall";
 import { mapCanonicalBridgeIdentities } from "@/lib/canonical-identity-mapping";
 import { createNeonCanonicalIdentityPersistence } from "@/lib/db/canonical-identity-persistence";
 import {
     FIREBASE_BRIDGE_CLAIMS,
     InvalidAppwriteIdentityError,
     type MobileAuthBridgeDependencies,
+    type MobileAuthBridgeOutcome,
+    type MobileAuthBridgeStage,
+    type MobileAuthBridgeStageOutcome,
 } from "@/lib/mobile-auth-bridge";
 import { Account, AppwriteException, Client } from "node-appwrite";
 
 const canonicalIdentityPersistence =
     createNeonCanonicalIdentityPersistence();
+const MOBILE_AUTH_USER_RATE_LIMIT_ID = "mobile-auth-verified-user";
 
 function getAppwriteConfiguration(): { endpoint: string; projectId: string } {
     const endpoint = process.env.APPWRITE_ENDPOINT;
@@ -49,6 +54,24 @@ async function verifyAppwriteJwt(jwt: string): Promise<{ id: string }> {
     }
 }
 
+async function isRateLimited(
+    request: Request,
+    verifiedAppwriteUserId: string,
+): Promise<boolean> {
+    const result = await checkRateLimit(MOBILE_AUTH_USER_RATE_LIMIT_ID, {
+        request,
+        // The SDK hashes this value with the rule ID before sending it to the
+        // Firewall rate-limit endpoint. It is never logged by this application.
+        rateLimitKey: verifiedAppwriteUserId,
+    });
+
+    if (result.error) {
+        throw new Error("Mobile authentication rate limit is unavailable");
+    }
+
+    return result.rateLimited;
+}
+
 async function createFirebaseCustomToken(
     uid: string,
     claims: Readonly<typeof FIREBASE_BRIDGE_CLAIMS>,
@@ -63,8 +86,35 @@ async function mapCanonicalIdentities(appwriteUserId: string) {
     );
 }
 
+function recordOutcome(outcome: MobileAuthBridgeOutcome): void {
+    console.info(
+        JSON.stringify({
+            event: "mobile_auth_bridge_exchange",
+            outcome,
+            bridgeVersion: FIREBASE_BRIDGE_CLAIMS.bridge_version,
+        }),
+    );
+}
+
+function recordStage(
+    stage: MobileAuthBridgeStage,
+    outcome: MobileAuthBridgeStageOutcome,
+): void {
+    console.info(
+        JSON.stringify({
+            event: "mobile_auth_bridge_stage",
+            stage,
+            outcome,
+            bridgeVersion: FIREBASE_BRIDGE_CLAIMS.bridge_version,
+        }),
+    );
+}
+
 export const mobileAuthBridgeProviders: MobileAuthBridgeDependencies = {
     verifyAppwriteJwt,
+    isRateLimited,
     mapCanonicalIdentities,
     createFirebaseCustomToken,
+    recordStage,
+    recordOutcome,
 };

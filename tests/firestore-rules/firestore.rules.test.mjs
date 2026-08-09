@@ -345,10 +345,16 @@ describe("private ownership", () => {
     }));
   });
 
-  test("allows only owner-managed profile fields, never verification or streak fields", async () => {
+  test("allows an owner to backfill joined_at once, but not protected profile fields", async () => {
     const alice = bridgedDb(ALICE);
 
     await assertSucceeds(updateDoc(doc(alice, "profiles", ALICE), { display_name: "Alice Updated" }));
+    await assertSucceeds(updateDoc(doc(alice, "profiles", ALICE), {
+      joined_at: `${TODAY}T12:00:00.000Z`,
+    }));
+    await assertFails(updateDoc(doc(alice, "profiles", ALICE), {
+      joined_at: `${TODAY}T13:00:00.000Z`,
+    }));
     await assertFails(updateDoc(doc(alice, "profiles", ALICE), { verified: true }));
     await assertFails(updateDoc(doc(alice, "profiles", ALICE), { streak: 999 }));
     await assertFails(updateDoc(doc(alice, "profiles", BOB), { display_name: "Taken over" }));
