@@ -13,6 +13,14 @@ replacement client is adopted would break production. Do not change Rules,
 data, API keys, APNs credentials, Appwrite platforms/providers, bundle identity,
 or minimum supported version as part of repository setup.
 
+**2026-08-09 read-only production audit:** Firebase still has only one Web app,
+Firebase Authentication is not initialized, App Check has no registered app,
+and the allow-all Firestore Rules remain deployed in `nam5`. Production
+Appwrite now shows both Google and Apple enabled; Apple uses the staging-named
+Service ID, four duplicate iOS platform registrations remain, and session
+length is 365 days. No provider, platform, session, Firebase Auth, App Check, or
+Rules setting was changed during the audit.
+
 ## What the supplied configuration does and does not unlock
 
 The supplied values identify Firebase project `third-and-manageable-app` and

@@ -43,7 +43,11 @@ Companion documents: `FEATURE_ANALYSIS.md` (feature/architecture inventory), `WE
 - [x] **Step 3 — provision and validate Neon Postgres.** Vercel project **created and linked**: `ling-iq/third-and-manageable` (`prj_QaCgXSSn1sXJSob2T0qhYSLiJ1ek`). Neon resource `third-and-manageable-db` is provisioned on the free plan in `iad1`, connected to production/preview/development, and injects pooled + unpooled Postgres variables. It was deliberately provisioned with `auth=false`; the first empty resource was immediately replaced after Neon's default `auth=true` conflicted with the Auth.js decision. On 2026-08-06, branch `codex-preview-auth-20260806` applied both migrations, the guarded canonical-identity suite passed all four transaction/concurrency cases, and the broader baseline passed all 20 tables, repeat migration, constraint, role/identity, and immutable-audit checks in separately created disposable databases. Those databases were removed. The branch is isolated from Preview via environment-specific URLs and auto-deletes on 2026-08-07.
   - ⚠️ `vercel link` auto-detected `backend/` and wrote a `vercel.json` rewriting **`/(.*)` → the FastAPI service**, which would have shadowed the entire admin app. **Deleted.** Worth knowing for Phase 2 step 11: Vercel detects and bridges the FastAPI service natively, so §2.2 is less work than assumed — but that config must not land until step 11.
 - [x] **Step 4 — SQLAlchemy → Drizzle baseline revised before application.** The initial 12-table draft has been replaced by a 19-table baseline implementing §3.1: UUID domain IDs; provider-subject identities and Firebase UID mapping support; normalized emails; isolated legacy credentials; revocable session records; active admin-role grants; trigger-enforced append-only audit logs; FK-backed post/comment votes; `date`/`timestamptz`; and database checks, uniqueness rules, partial/composite indexes, and soft-delete/retention fields. `npm run db:test:neon` applied the migration twice to an isolated temporary database in the Neon project, wrote identity/role/audit fixtures, proved constraint and audit-immutability rejection, and removed the database. Repeat the same acceptance test on a real Neon branch before marking Step 3 complete.
-- [~] **Step 5 — first deploy.** Pipeline **proven** (build + deploy + routes served), then **the deployment was removed**. See below.
+- [x] **Step 5 — protected smoke deploy.** On 2026-08-09 a fresh Preview
+  completed the manifest, application-auth, Deployment Protection, Neon, and
+  production-startup gates. `/` returned 200; the legacy forged admin cookie
+  redirected; an empty login returned 401. Firebase private-key variables
+  remained absent.
 
 #### ⚠️ Step 5 outcome — production went public, and was taken down
 
@@ -120,7 +124,10 @@ compiled-bundle assumptions with verified production facts:
   recreate, transfer, or submit with these assets during inventory.
 - [x] **Appwrite identity architecture confirmed.** Frankfurt project
   `69906e3f0020c208d8e7` holds 95 users and is identity-only. Google OAuth is
-  enabled; Apple OAuth is disabled/unconfigured. TablesDB has one empty profile
+  enabled. A 2026-08-09 read-only audit found Apple OAuth enabled with the
+  staging-named Service ID in production; treat that as configuration drift
+  requiring owner review, not as proof of a production-tested Apple flow.
+  TablesDB has one empty profile
   table; Storage, Functions, Messaging, webhooks, and API keys are effectively
   unused. Preserve original Apple platform `6990c81edd5bbeb8502e`; hold duplicate
   IDs `6a72715a000a8eae9a59`, `6a737c0500343aa54f6f`, and
@@ -513,7 +520,7 @@ read-only inventory.
 ### Blocked on you
 
 1. **Firebase client configuration and console state are recovered; privileged access is not yet verified.** Project `third-and-manageable-app` has no Firebase Auth, Storage is disabled, and Firestore Rules allow all reads/writes until 2029-03-16. Complete the no-change, least-privilege inventory in `FIREBASE_SAFE_HANDOFF.md`; Firebase writes, Rules publication, and Vercel credential injection remain on hold.
-2. **Finish Google/Apple identity configuration and custody—not inventory.** Appwrite project `69906e3f0020c208d8e7` holds 95 identities and Google OAuth; Apple OAuth is disabled. Apple account inventory is now complete, and it confirms no Services IDs or Sign in with Apple capability exist. Preserve Appwrite platform `6990c81edd5bbeb8502e` and hold the documented duplicates. Still confirm Google OAuth ownership, decide the Apple Services ID/domain/return-URL design, create it only under approved change control, and establish private-key/APNs `.p8` custody. This blocks final Auth.js Apple linking, but not the local identity-mapping implementation.
+2. **Finish Google/Apple identity configuration and custody—not inventory.** Appwrite project `69906e3f0020c208d8e7` holds the production identities. Google and Apple now both appear enabled; Apple uses the staging-named Service ID, and neither production provider has passed the TestFlight gate. Preserve the original Appwrite platform, hold the documented duplicate platforms, confirm provider ownership/redirects, and establish private-key/APNs `.p8` custody before relying on either configuration for release.
 3. **Rotate the leaked credentials when access is restored** — admin bootstrap password, then revoke + reissue the Firebase service-account key (§6.2).
 4. **Purchase Vercel's HIPAA add-on and complete/file the BAA before go-live.** A BAA is necessary but not sufficient; the application and every downstream processor still need the §6.8 controls and their own compliance review.
 5. ~~**Accept Neon's Marketplace terms**~~ — **done.** Provisioning and disposable-branch validation are now actionable.
@@ -858,10 +865,14 @@ between the two changes, against a backend that is about to be replaced anyway.
 11. **Bridge (deployment-gated):** once credentials are rotated and Vercel
 Services access is confirmed, configure Next.js and FastAPI as Services in the
 **existing single Vercel project**, with shared deployments/env and a
-same-origin `/bridge/*` route to FastAPI. Use Neon's pooled `DATABASE_URL`,
-run seed/migration work explicitly, and verify the bridge route plus production
-startup guards before removing Render. **Delete `render.yaml`. Render bill →
-$0**, and the 30-day free-Postgres deletion clock stops.
+same-origin `/bridge/*` route to FastAPI. **Protected Preview deployment
+completed on 2026-08-09:** the web/auth smoke passed, `/bridge/health` returned
+200, unauthenticated bridge access returned 401, and a database-backed missing
+login returned 401. The disposable 20-table baseline and four-case canonical
+identity transaction suite passed, and their databases were removed.
+`render.yaml` is deleted. The remote Render service and billing must still be
+decommissioned in Render after its traffic/rollback dependency is confirmed;
+source deletion alone does not stop that service.
 12. ~~Port `backend/app/services/{skills,journey,registry}.py` →
 `lib/core/`.~~ — **done during Phase 1**, with registry parity tests and
 DST-safe date-only journey math. Keep the Python parity tests until cutover.
