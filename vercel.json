@@ -8,19 +8,7 @@
     "bridge": {
       "root": "backend/",
       "framework": "fastapi",
-      "entrypoint": "main:app",
-      "routes": [
-        {
-          "src": "/bridge/(.*)",
-          "transforms": [
-            {
-              "type": "request.path",
-              "op": "set",
-              "args": "/$1"
-            }
-          ]
-        }
-      ]
+      "entrypoint": "main:app"
     }
   },
   "rewrites": [
