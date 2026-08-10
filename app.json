@@ -2,7 +2,7 @@
   "expo": {
     "name": "Third & Manageable",
     "slug": "third-and-manageable-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "owner": "eric.thirdandmanageable",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
