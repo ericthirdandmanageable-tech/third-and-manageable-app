@@ -215,6 +215,35 @@ replacement release:
 
 ## Immediate go/no-go
 
+### Production checkpoint — 2026-08-09
+
+- Mobile auth, callback, and recovery work is durable on mobile `main` at
+  `820e92c`; production submission configuration is at `448024d`, and the
+  release-version correction is at `fd906a8`.
+- EAS built production candidate `1.0.1 (8)` from `fd906a8` as build
+  `93a128b1-9b93-4781-a08b-c15f2d77f64a`. App Store Connect accepted it and
+  TestFlight lists it as ready in the existing `Third and manage Test` group.
+  It has zero recorded installs, so Apple and Google sign-in still require an
+  installed physical-device TestFlight test.
+- Production Appwrite has Apple and Google enabled. Apple's existing Services
+  ID registers both the staging and production Appwrite return URLs. Fresh
+  unauthenticated preflight requests reached the Apple and Google sign-in
+  pages without a Google redirect mismatch, and the production HTTPS callback
+  bridge rendered its native-app handoff.
+- Production Firestore Rules still contain the temporary allow-all rule through
+  2029-03-16. The replacement strict suite passes all 16 emulator cases, but it
+  was deliberately not published: the TestFlight adoption/minimum-version gate
+  is not met while build 8 has zero installs.
+- Production Firebase Authentication is not initialized, App Check has no
+  registered app or enforcement, and the project has only a Web app. The
+  auditing Google identity cannot list or create service-account keys, so an
+  owner with the required IAM permissions must rotate/revoke the legacy
+  Firebase Admin key. No Firebase private-key variables remain in Vercel.
+- The protected Vercel Services preview passed root, admin-auth rejection,
+  login rejection, FastAPI health, unauthenticated bridge, and database-backed
+  bridge smokes. Preview admin/session/JWT secrets were replaced; the live
+  Firebase IAM rotation remains the only credential-rotation blocker.
+
 Safe now:
 
 - console screenshots/exports of configuration;
