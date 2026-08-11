@@ -45,6 +45,70 @@
     }
 }
 
+/* ---------- App theme: liquid glass (Sideline Dusk / Campus Colors) ---------- */
+/*
+ * Toggled via `data-app-theme` on <html> (lib/athlete/use-app-theme.ts).
+ * With no attribute — or `data-app-theme="legacy"` — nothing below applies
+ * and the app renders exactly as it does today: the near-black/volt shell
+ * defined in the `@theme` block above.
+ *
+ * Every component already reads color through these same custom properties
+ * via Tailwind utilities (`bg-bg-surface`, `text-volt`, …) rather than hex
+ * literals, so redefining the tokens here re-skins the whole app without
+ * editing a single component's className.
+ */
+[data-app-theme="dusk"],
+[data-app-theme="school"] {
+    --color-bg-base: #eef4fc;
+    --color-bg-surface: rgba(255, 255, 255, 0.6);
+    --color-bg-elevated: rgba(255, 255, 255, 0.8);
+    --color-border-subtle: rgba(22, 35, 62, 0.12);
+
+    --color-text-primary: #16233e;
+    --color-text-secondary: #46536d;
+    --color-text-tertiary: #6c7690;
+
+    --color-volt: #2f6fed;
+    --color-volt-ink: #ffffff;
+    --color-sand: #ea8a57;
+
+    --color-sleep: #6d7fe0;
+    --color-activity: #ea8a57;
+    --color-hrv: #d1607f;
+    --color-danger: #c8394b;
+}
+
+/* Campus Colors starts from the same glass base as Sideline Dusk; the
+   school's own palette (resolved from `community-theme.ts`) is layered on
+   top as an inline style on the shell root — see ShellLayout — so it only
+   needs a JS dependency, never a second copy of these tokens. */
+
+[data-app-theme="dusk"] body,
+[data-app-theme="school"] body {
+    background-image:
+        radial-gradient(ellipse 55% 40% at 88% -8%, #ffd6a8 0%, transparent 55%),
+        linear-gradient(165deg, #eef4fc 0%, #dce8fb 55%, #eef4fc 100%);
+    background-repeat: no-repeat;
+}
+
+/* The one structural change color tokens alone can't express: real glass
+   needs blur. Every card in the app is built from these two surface
+   utilities, so this alone makes them glassy everywhere, with zero
+   per-component edits. */
+[data-app-theme="dusk"] [class*="bg-bg-surface"],
+[data-app-theme="dusk"] [class*="bg-bg-elevated"],
+[data-app-theme="school"] [class*="bg-bg-surface"],
+[data-app-theme="school"] [class*="bg-bg-elevated"] {
+    /*
+     * No `-webkit-backdrop-filter` fallback: current engines dropped the
+     * legacy alias entirely (confirmed against Chrome 149 while building
+     * this), and the build's CSS minifier was found to *strip the standard
+     * property* when both were present, silently killing the blur — so an
+     * old-Safari fallback here is worse than none.
+     */
+    backdrop-filter: blur(20px) saturate(1.4);
+}
+
 /* ---------- Signature elements ---------- */
 
 /* The Yard Line — 1px volt gradient rule under headers and on artifacts */

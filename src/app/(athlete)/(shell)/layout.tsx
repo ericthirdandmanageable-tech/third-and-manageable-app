@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -15,6 +15,7 @@ import {
 import clsx from "clsx";
 
 import { api } from "@/lib/athlete/api";
+import { AppThemeProvider, useAppTheme } from "@/lib/athlete/app-theme";
 import { useAuth } from "@/lib/athlete/auth";
 import { getCommunityTheme } from "@/lib/core/community-theme";
 
@@ -39,10 +40,26 @@ const mobileNavItems = [...navItems, { to: "/profile", icon: UserRound, label: "
 const isActive = (pathname: string, to: string) =>
     to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 
+/*
+ * The liquid-glass reskin (Sideline Dusk / Campus Colors) is scoped to the
+ * shell only — `AppThemeProvider` is mounted here, not up in the `(athlete)`
+ * route group, because `/login` and `/onboarding` have their own
+ * hand-authored dark design (hardcoded near-black backgrounds) that the
+ * theme's light-surface text tokens would render illegibly against.
+ */
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <AppThemeProvider>
+            <ShellChrome>{children}</ShellChrome>
+        </AppThemeProvider>
+    );
+}
+
+function ShellChrome({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const { user, loading } = useAuth();
+    const { theme: appTheme } = useAppTheme();
     const [intakeGate, setIntakeGate] = useState<{
         userId: string | null;
         state: "ready" | "needs-onboarding" | "unavailable";
@@ -52,6 +69,22 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         user && intakeGate.userId === user.id ? intakeGate.state : "loading";
     const inCommunity = pathname.startsWith("/community");
     const communityTheme = getCommunityTheme(user?.school);
+    /*
+     * Campus Colors reuses the same glass base as Sideline Dusk (see
+     * globals.css) and layers the athlete's verified school on top as an
+     * inline var override — the "signal" tokens only, so the structural
+     * liquid-glass system stays constant and just changes flavor. White
+     * text on `theme.primary` mirrors the convention Community already
+     * uses everywhere (buttons, avatars, the hero card).
+     */
+    const shellStyle =
+        appTheme === "school"
+            ? ({
+                  "--color-volt": communityTheme.primary,
+                  "--color-volt-ink": "#ffffff",
+                  "--color-sand": communityTheme.accent,
+              } as CSSProperties)
+            : undefined;
 
     useEffect(() => {
         if (loading || user) return;
@@ -110,7 +143,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     }
 
     return (
-        <div className="flex h-screen bg-bg-base overflow-hidden">
+        <div className="flex h-screen bg-bg-base overflow-hidden" style={shellStyle}>
             {/* Sidebar for Desktop */}
             <aside className="hidden md:flex flex-col w-64 border-r border-border-subtle bg-bg-surface">
                 <div className="p-6 pb-4">

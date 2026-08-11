@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Instrument_Serif, Inter, JetBrains_Mono, Raleway } from "next/font/google";
 
 import "./globals.css";
+import { APP_THEME_STORAGE_KEY } from "@/lib/core/app-theme";
 
 /*
  * Fonts are self-hosted at build time. The prototype pulled all three from
@@ -57,8 +58,20 @@ export default function RootLayout({
         >
             {/* Surface colours belong to the route groups, not here: the athlete
                 app and the admin portal are different designs sharing one
-                document. `body` only carries the base defined in globals.css. */}
-            <body>{children}</body>
+                document. `body` only carries the base defined in globals.css.
+                The inline script below is the one exception — it sets
+                `data-app-theme` before paint so a returning athlete who
+                chose Sideline Dusk/Campus Colors doesn't see a flash of the
+                legacy shell while React hydrates (lib/athlete/use-app-theme.ts
+                takes over from here). */}
+            <body>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `try{var p=location.pathname;var inShell=p!=="/login"&&!p.startsWith("/onboarding");var t=localStorage.getItem(${JSON.stringify(APP_THEME_STORAGE_KEY)});if(inShell&&(t==="legacy"||t==="dusk"||t==="school")){document.documentElement.setAttribute("data-app-theme",t);}}catch(e){}`,
+                    }}
+                />
+                {children}
+            </body>
         </html>
     );
 }

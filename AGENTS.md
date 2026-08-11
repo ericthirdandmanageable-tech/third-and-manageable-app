@@ -1,38 +1,18 @@
 <claude-mem-context>
 # Memory Context
 
-# [3rd_and_manageable] recent context, 2026-08-05 2:36pm PDT
+# [3rd_and_manageable] recent context, 2026-08-11 11:10am PDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (19,794t read) | 483,271t work | 96% savings
+Stats: 50 obs (19,501t read) | 536,730t work | 96% savings
 
 ### Jul 25, 2026
 S66 VS Code Claude Extension Installed via VSIX (Jul 25 at 1:33 PM)
 S64 Claude Code environment "doctor" session — health check and cleanup of Claude Code installation on Lucas's machine (Jul 25 at 1:33 PM)
 ### Jul 26, 2026
-1388 1:08p 🔵 Codex GPT-5.6 Model Family — Sol/Terra/Luna Tiers
-1389 1:13p 🔵 Phase 1 migration assessment reveals 2 deployment blockers and 2 product bugs
-1390 1:15p 🔵 Vercel Migration Plan — Two Deployment Blockers Identified
-1391 " 🔵 DST-Unsafe Date Math in Journey Calculations
-1392 " 🔵 Auth Hook Hydration Gap After Sign-In
-1393 " 🔵 VERCEL_MIGRATION_PLAN.md and README.md Contain Multiple Stale Claims
-1394 " 🔵 3rd_and_manageable Phase 1 Test Suite Passes with 86 pytest + 25 Vitest Tests
-1395 1:16p 🔵 Vercel Services Routing — Path-Prefix Pattern Confirmed for Bridge Topology Fix
-1396 " 🔵 FastAPI Startup DB Operations Removed for Fluid Compute Compatibility
-1397 1:17p 🔵 Vercel Migration Phase 1 — Two Deployment Blockers Identified
-1398 " 🔵 DST-Unsafe Date Arithmetic in Journey and Streak Calculations
-1399 " 🔵 Auth Transition Does Not Refresh Mounted Check-In or Game-Plan Hooks
-1400 " 🔵 VERCEL_MIGRATION_PLAN.md and README.md Contain Stale Statements
-1401 " ⚖️ Corrective Commit Required Before Phase 2 — Gating Criteria Defined
-1402 1:18p 🔵 Bridge Topology Blocker — NEXT_PUBLIC_API_URL Is Browser-Side, Incompatible with Private Service Binding
-1403 " 🔵 FastAPI Not Deployment-Safe — Weak JWT_SECRET, AUTO_VERIFY=true, and Stale CORS Origins
-1404 " 🔵 DST Bug in Journey-Math — Date Arithmetic Uses Wall-Clock Milliseconds, Breaks on Spring-Forward Night
-1405 " 🔵 Auth Transition Hydration Gap — useCheckIns and useGamePlan Don't Re-fetch on Sign-In
-1406 " 🔵 VERCEL_MIGRATION_PLAN.md and README.md Contain Multiple Stale Statements
-1407 " 🔵 Code Review — What Passed: 25 Vitest, 86 Pytest, TS, ESLint, Build, Schema, Audit, Vercel Manifest
 1408 1:19p 🔵 Code Review Identified Two Deployment Blockers for 3rd_and_manageable Phase 2
 1409 " 🔵 FastAPI Backend Has Insecure Production Defaults Blocking Redeployment
 1410 " 🔵 DST-Unsafe Date Arithmetic Bug Identified in Journey and Streak Calculations
@@ -65,6 +45,27 @@ S69 next.config — allowedDevOrigins includes 127.0.0.1 (Jul 27 at 10:12 AM)
 1435 " 🟣 scripts/firebase-readonly-inventory.mjs — Guarded Aggregate Firebase Inventory Script
 1436 " 🔵 3rd and Manageable Repo — Build and Route Map Confirmed
 1437 " 🔵 VERCEL_MIGRATION_PLAN.md — Open Blockers Catalogued
+### Aug 6, 2026
+1451 1:15p 🔵 Codex Chrome Browser API — getTabContext Unavailable, domSnapshot Present
+1472 9:02p 🔵 Expo Go Incompatibility Blocks iOS 26.5 Simulator UI Testing
+1473 " 🔵 Expo Go Incompatibility with iOS 26.5 Simulator — Custom Dev Build Required
+1474 9:03p 🔵 Expo Project Diagnostics — 3 Failures Including Missing react-native Peer Dep and Xcode Not Active
+1475 9:16p 🔵 Expo Go Incompatibility Blocks iOS Simulator Testing
+1476 " 🔵 Expo Go SDK Incompatibility Blocks iOS 26.5 Simulator Testing
+1477 9:41p 🔵 Expo Package Version Mismatches After Reinstall
+1478 9:42p 🔵 Expo SDK Package Version Mismatches Identified — Likely Resolved by npx Reinstall
+1479 " 🔵 Expo Version Pin Mismatch Caused SDK 46 Downgrade Cascade
+1480 9:43p 🔵 expo install --fix Persistently Targets SDK 46 Despite expo@54 Pin
+1481 9:44p 🔴 Expo SDK 54 Package Version Mismatches Resolved
+1482 " 🔵 15 npm Audit Vulnerabilities Require Expo SDK 57 Upgrade to Fix
+1483 10:07p 🔵 3rd_and_manageable — FloatingTabBar.tsx causes 41 Uncaught errors
+1484 10:08p 🔵 3rd_and_manageable — FloatingTabBar.tsx triggers 41 uncaught runtime errors
+1485 " 🔵 3rd_and_manageable — "property is not configurable" traced to React Compiler + Stack navigator
+1486 10:09p 🔵 3rd_and_manageable — "property is not configurable" root cause traced to React Compiler + React Navigation Stack
+1487 " 🔵 3rd_and_manageable — React Compiler conflicts with React Navigation Stack, causing 41 startup TypeErrors
+1488 10:10p 🔵 3rd_and_manageable — React Compiler + React Navigation Stack incompatibility causes 41 startup TypeErrors
+1489 10:24p 🔵 third-and-manageable-app — Dual Metro instances + DevTools WebSocket crash
+1490 10:25p 🔵 third-and-manageable-app dev environment — port map clarified, no duplicate Metro
 
-Access 483k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 537k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

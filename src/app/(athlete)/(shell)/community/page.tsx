@@ -29,6 +29,7 @@ import {
     type ApiForum,
     type ApiPostSummary,
 } from "@/lib/athlete/api";
+import { useAppTheme } from "@/lib/athlete/app-theme";
 import { useAuth } from "@/lib/athlete/auth";
 import { getCommunityTheme } from "@/lib/core/community-theme";
 
@@ -78,6 +79,7 @@ const isPostVisible = (
 export default function CommunityPage() {
     const router = useRouter();
     const { user } = useAuth();
+    const { theme: appTheme } = useAppTheme();
     const theme = getCommunityTheme(user?.school);
     const chatVariant = theme.key !== "tm";
     const [forums, setForums] = useState<ApiForum[]>([]);
@@ -248,18 +250,29 @@ export default function CommunityPage() {
         setFeedRevision((revision) => revision + 1);
     };
 
+    // Community's own surfaces are hand-authored (not the app's `--color-*`
+    // tokens — see community-theme.ts), so the shell-wide glass reskin can't
+    // reach them automatically. This gives its background the same
+    // dusk/campus atmosphere; the cards on top stay solid white for now.
     const style = {
         "--community-primary": theme.primary,
         "--community-primary-dark": theme.primaryDark,
         "--community-accent": theme.accent,
         "--community-soft": theme.soft,
         "--community-text": theme.text,
+        backgroundImage:
+            appTheme === "legacy"
+                ? undefined
+                : "radial-gradient(ellipse 55% 40% at 88% -8%, rgba(255,214,168,0.35) 0%, transparent 55%), linear-gradient(165deg, #fbf9f5 0%, #f3ede1 55%, #fbf9f5 100%)",
     } as CSSProperties;
 
     return (
         <div
             style={style}
-            className="relative min-h-full overflow-hidden bg-[#f6f7f9] text-[#111827] selection:bg-[var(--community-soft)]"
+            className={clsx(
+                "relative min-h-full overflow-hidden text-[#111827] selection:bg-[var(--community-soft)]",
+                appTheme === "legacy" ? "bg-[#f6f7f9]" : "bg-[#fbf9f5]",
+            )}
         >
             {chatVariant && (
                 <div
@@ -450,7 +463,7 @@ export default function CommunityPage() {
                     <div className="relative z-10 max-w-2xl">
                         <p
                             className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em]"
-                            style={{ color: theme.accent }}
+                            style={{ color: theme.accentOnDark }}
                         >
                             <MessageCircle className="h-4 w-4" /> Today&apos;s chat prompt
                         </p>

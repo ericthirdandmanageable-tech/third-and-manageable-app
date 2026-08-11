@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { contrastRatio, WCAG_AA_TEXT, WCAG_AA_UI } from "../src/lib/core/contrast";
 import { getCommunityTheme } from "../src/lib/core/community-theme";
 
 describe("community university theming", () => {
@@ -25,6 +26,37 @@ describe("community university theming", () => {
             expect(theme.key).toBe("tm");
             expect(theme.communityName).toBe("Third & Manageable Community");
             expect(theme.initials).toBe("T&M");
+        },
+    );
+});
+
+describe("community theme accessibility", () => {
+    it.each(["Third & Manageable", "Cleveland State University", "CWRU", "BGSU"])(
+        "gives %s a `text` color that meets WCAG AA (4.5:1) on the white community surface",
+        (school) => {
+            const theme = getCommunityTheme(school);
+
+            expect(contrastRatio(theme.text, "#ffffff")).toBeGreaterThanOrEqual(WCAG_AA_TEXT);
+        },
+    );
+
+    it.each(["Third & Manageable", "Cleveland State University", "CWRU", "BGSU"])(
+        "gives %s an `accentOnDark` that reads as text (4.5:1) on the primary-dark hero gradient",
+        (school) => {
+            const theme = getCommunityTheme(school);
+
+            expect(contrastRatio(theme.accentOnDark, theme.primaryDark)).toBeGreaterThanOrEqual(
+                WCAG_AA_TEXT,
+            );
+        },
+    );
+
+    it.each(["Third & Manageable", "Cleveland State University", "CWRU", "BGSU"])(
+        "gives %s an `accent` that clears UI-component contrast (3:1) as an icon/border on the page surface",
+        (school) => {
+            const theme = getCommunityTheme(school);
+
+            expect(contrastRatio(theme.accent, "#f6f7f9")).toBeGreaterThanOrEqual(WCAG_AA_UI);
         },
     );
 });
