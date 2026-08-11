@@ -17,6 +17,7 @@ import clsx from "clsx";
 import { api } from "@/lib/athlete/api";
 import { AppThemeProvider, useAppTheme } from "@/lib/athlete/app-theme";
 import { useAuth } from "@/lib/athlete/auth";
+import { getSchoolAppThemeSignal } from "@/lib/core/app-theme";
 import { getCommunityTheme } from "@/lib/core/community-theme";
 
 const navItems = [
@@ -69,18 +70,20 @@ function ShellChrome({ children }: { children: React.ReactNode }) {
         user && intakeGate.userId === user.id ? intakeGate.state : "loading";
     const inCommunity = pathname.startsWith("/community");
     const communityTheme = getCommunityTheme(user?.school);
+    const schoolSignal = getSchoolAppThemeSignal(communityTheme.primary);
     /*
      * Campus Colors reuses the same glass base as Sideline Dusk (see
      * globals.css) and layers the athlete's verified school on top as an
      * inline var override — the "signal" tokens only, so the structural
-     * liquid-glass system stays constant and just changes flavor. White
-     * text on `theme.primary` mirrors the convention Community already
-     * uses everywhere (buttons, avatars, the hero card).
+     * liquid-glass system stays constant and just changes flavor. The signal
+     * is the primary brand hue adjusted only as far as needed for small text on
+     * a light surface; using the raw BGSU orange here would make both links
+     * and white-on-orange buttons fail WCAG AA.
      */
     const shellStyle =
         appTheme === "school"
             ? ({
-                  "--color-volt": communityTheme.primary,
+                  "--color-volt": schoolSignal,
                   "--color-volt-ink": "#ffffff",
                   "--color-sand": communityTheme.accent,
               } as CSSProperties)
@@ -114,7 +117,10 @@ function ShellChrome({ children }: { children: React.ReactNode }) {
 
     if (loading || !user || intakeState !== "ready") {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-bg-base">
+            <div
+                className="app-shell flex min-h-screen items-center justify-center bg-bg-base"
+                style={shellStyle}
+            >
                 <div className="text-center">
                     <p className="font-serif text-2xl italic text-sand">Third &amp; Manageable</p>
                     <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-text-tertiary">
@@ -143,7 +149,7 @@ function ShellChrome({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="flex h-screen bg-bg-base overflow-hidden" style={shellStyle}>
+        <div className="app-shell flex h-screen bg-bg-base overflow-hidden" style={shellStyle}>
             {/* Sidebar for Desktop */}
             <aside className="hidden md:flex flex-col w-64 border-r border-border-subtle bg-bg-surface">
                 <div className="p-6 pb-4">
@@ -217,7 +223,7 @@ function ShellChrome({ children }: { children: React.ReactNode }) {
                             ? "border-t border-white/15 shadow-[0_-10px_30px_rgba(7,28,79,0.12)]"
                             : "bg-bg-surface border-t border-border-subtle",
                     )}
-                    style={inCommunity ? { backgroundColor: communityTheme.primary } : undefined}
+                    style={inCommunity ? { backgroundColor: communityTheme.text } : undefined}
                 >
                     {mobileNavItems.map((item) => (
                         <Link

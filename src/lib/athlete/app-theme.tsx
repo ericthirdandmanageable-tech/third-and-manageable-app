@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import {
+    getDefaultAppTheme,
     readStoredAppTheme,
     subscribeAppTheme,
     writeStoredAppTheme,
@@ -30,7 +31,7 @@ export const useAppTheme = () => useContext(AppThemeContext);
 const getServerSnapshot = () => null;
 
 /*
- * One provider, mounted once in the athlete route group (below AuthProvider,
+ * One provider, mounted once in the athlete shell (below AuthProvider,
  * since the smart default depends on `user.school`), so every consumer —
  * ShellLayout's `data-app-theme` attribute and Profile's Appearance switcher
  * — reads and writes the same state instead of racing two independent
@@ -46,8 +47,9 @@ const getServerSnapshot = () => null;
 export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     const { user } = useAuth();
     const stored = useSyncExternalStore(subscribeAppTheme, readStoredAppTheme, getServerSnapshot);
-    const hasSchoolMatch = getCommunityTheme(user?.school).key !== "tm";
-    const theme: AppTheme = stored ?? (hasSchoolMatch ? "school" : "dusk");
+    const hasVerifiedSchoolMatch =
+        Boolean(user?.verified) && getCommunityTheme(user?.school).key !== "tm";
+    const theme: AppTheme = stored ?? getDefaultAppTheme(hasVerifiedSchoolMatch);
 
     useEffect(() => {
         document.documentElement.setAttribute("data-app-theme", theme);

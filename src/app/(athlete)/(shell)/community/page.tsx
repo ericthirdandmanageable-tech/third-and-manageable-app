@@ -302,7 +302,7 @@ export default function CommunityPage() {
                             onClick={() => router.push("/support")}
                             className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(15,23,42,0.16)] transition hover:-translate-y-0.5"
                             style={{
-                                background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`,
+                                background: `linear-gradient(135deg, ${theme.text}, ${theme.primaryDark})`,
                             }}
                         >
                             <ShieldCheck className="h-4 w-4" /> Need Support
@@ -335,7 +335,7 @@ export default function CommunityPage() {
                         aria-label="Community stats"
                         className="mt-7 grid grid-cols-3 overflow-hidden rounded-[24px] px-2 py-5 text-white shadow-[0_14px_34px_rgba(15,23,42,0.14)] sm:px-5 sm:py-6"
                         style={{
-                            background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`,
+                            background: `linear-gradient(135deg, ${theme.text}, ${theme.primaryDark})`,
                         }}
                     >
                         {[
@@ -376,8 +376,8 @@ export default function CommunityPage() {
                                 style={
                                     topic === id
                                         ? {
-                                              borderColor: theme.primary,
-                                              backgroundColor: theme.primary,
+                                              borderColor: theme.text,
+                                              backgroundColor: theme.text,
                                               color: "white",
                                           }
                                         : {
@@ -457,7 +457,7 @@ export default function CommunityPage() {
                 <section
                     className="relative mt-6 overflow-hidden rounded-[24px] px-6 py-7 text-white shadow-[0_14px_30px_rgba(15,23,42,0.15)] sm:px-8"
                     style={{
-                        background: `radial-gradient(circle at 92% 25%, ${theme.accent}55, transparent 35%), linear-gradient(135deg, ${theme.primaryDark}, ${theme.primary})`,
+                        background: `radial-gradient(circle at 92% 25%, ${theme.accent}55, transparent 35%), linear-gradient(135deg, ${theme.primaryDark}, ${theme.text})`,
                     }}
                 >
                     <div className="relative z-10 max-w-2xl">
@@ -489,7 +489,7 @@ export default function CommunityPage() {
                     >
                         <span
                             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                            style={{ backgroundColor: theme.primary }}
+                            style={{ backgroundColor: theme.text }}
                         >
                             {initials(user?.display_name ?? "TM")}
                         </span>
@@ -587,7 +587,7 @@ export default function CommunityPage() {
                                     type="submit"
                                     disabled={posting || !forums.length}
                                     className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-45"
-                                    style={{ backgroundColor: theme.primary }}
+                                    style={{ backgroundColor: theme.text }}
                                 >
                                     {posting ? "Posting…" : "Post"} <Send className="h-3.5 w-3.5" />
                                 </button>
@@ -624,7 +624,7 @@ export default function CommunityPage() {
                                     className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
                                     style={
                                         feedScope === id
-                                            ? { backgroundColor: theme.primary, color: "white" }
+                                            ? { backgroundColor: theme.text, color: "white" }
                                             : { color: "#6b7280" }
                                     }
                                 >
@@ -678,7 +678,7 @@ export default function CommunityPage() {
                                 <button
                                     onClick={() => setComposerOpen(true)}
                                     className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-                                    style={{ backgroundColor: theme.primary }}
+                                    style={{ backgroundColor: theme.text }}
                                 >
                                     Write the first post <ChevronRight className="h-4 w-4" />
                                 </button>
@@ -704,7 +704,7 @@ export default function CommunityPage() {
                                         <div className="flex items-start gap-3">
                                             <span
                                                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                style={{ backgroundColor: theme.primary }}
+                                                style={{ backgroundColor: theme.text }}
                                             >
                                                 {initials(post.author_name)}
                                             </span>
@@ -807,7 +807,7 @@ export default function CommunityPage() {
                 >
                     <span
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white"
-                        style={{ backgroundColor: theme.primary }}
+                        style={{ backgroundColor: theme.text }}
                     >
                         <ShieldCheck className="h-5 w-5" />
                     </span>

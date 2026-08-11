@@ -118,8 +118,14 @@ export const ensureTextContrast = (
     if (contrastRatio(color, background) >= minRatio) return color;
 
     const [h, s, l] = rgbToHsl(hexToRgb(color));
-    const bgIsLight = relativeLuminance(background) > 0.5;
-    const step = bgIsLight ? -1 : 1;
+    // Choose the direction that can achieve the stronger endpoint contrast.
+    // A simple "luminance > .5" split is wrong for saturated mid-tones: for
+    // example BGSU orange has luminance .24, yet black is more readable on it
+    // than white. The black/white endpoint comparison handles that correctly.
+    const blackRatio = contrastRatio("#000000", background);
+    const whiteRatio = contrastRatio("#ffffff", background);
+    const towardBlack = blackRatio >= whiteRatio;
+    const step = towardBlack ? -1 : 1;
     const steps = 60;
 
     let best = color;
@@ -134,5 +140,5 @@ export const ensureTextContrast = (
         }
         if (ratio >= minRatio) return candidate;
     }
-    return bestRatio >= minRatio ? best : bgIsLight ? "#000000" : "#ffffff";
+    return bestRatio >= minRatio ? best : towardBlack ? "#000000" : "#ffffff";
 };

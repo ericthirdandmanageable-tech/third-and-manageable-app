@@ -67,11 +67,16 @@ const deriveSchoolTheme = (brand: SchoolBrand): CommunityTheme => {
     const accent =
         onLight ?? ensureTextContrast(brand.accentCandidates[0], PAGE_SURFACE, WCAG_AA_UI);
 
+    // The hero is a gradient. Its lighter endpoint uses the contrast-safe
+    // primary-derived `text` hue, so the eyebrow must clear both endpoints,
+    // not only the darker one.
     const onDark = brand.accentCandidates.find(
-        (candidate) => contrastRatio(candidate, brand.primaryDark) >= WCAG_AA_TEXT,
+        (candidate) =>
+            contrastRatio(candidate, brand.primaryDark) >= WCAG_AA_TEXT &&
+            contrastRatio(candidate, text) >= WCAG_AA_TEXT,
     );
     const accentOnDark =
-        onDark ?? ensureTextContrast(brand.accentCandidates[0], brand.primaryDark, WCAG_AA_TEXT);
+        onDark ?? ensureTextContrast(brand.accentCandidates[0], text, WCAG_AA_TEXT);
 
     return {
         key: brand.key,

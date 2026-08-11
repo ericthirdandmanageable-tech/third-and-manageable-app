@@ -47,7 +47,7 @@
 
 /* ---------- App theme: liquid glass (Sideline Dusk / Campus Colors) ---------- */
 /*
- * Toggled via `data-app-theme` on <html> (lib/athlete/use-app-theme.ts).
+ * Toggled via `data-app-theme` on <html> (lib/athlete/app-theme.tsx).
  * With no attribute — or `data-app-theme="legacy"` — nothing below applies
  * and the app renders exactly as it does today: the near-black/volt shell
  * defined in the `@theme` block above.
@@ -83,8 +83,8 @@
    top as an inline style on the shell root — see ShellLayout — so it only
    needs a JS dependency, never a second copy of these tokens. */
 
-[data-app-theme="dusk"] body,
-[data-app-theme="school"] body {
+[data-app-theme="dusk"] .app-shell,
+[data-app-theme="school"] .app-shell {
     background-image:
         radial-gradient(ellipse 55% 40% at 88% -8%, #ffd6a8 0%, transparent 55%),
         linear-gradient(165deg, #eef4fc 0%, #dce8fb 55%, #eef4fc 100%);
@@ -95,10 +95,10 @@
    needs blur. Every card in the app is built from these two surface
    utilities, so this alone makes them glassy everywhere, with zero
    per-component edits. */
-[data-app-theme="dusk"] [class*="bg-bg-surface"],
-[data-app-theme="dusk"] [class*="bg-bg-elevated"],
-[data-app-theme="school"] [class*="bg-bg-surface"],
-[data-app-theme="school"] [class*="bg-bg-elevated"] {
+[data-app-theme="dusk"] [class~="bg-bg-surface"],
+[data-app-theme="dusk"] [class~="bg-bg-elevated"],
+[data-app-theme="school"] [class~="bg-bg-surface"],
+[data-app-theme="school"] [class~="bg-bg-elevated"] {
     /*
      * No `-webkit-backdrop-filter` fallback: current engines dropped the
      * legacy alias entirely (confirmed against Chrome 149 while building
