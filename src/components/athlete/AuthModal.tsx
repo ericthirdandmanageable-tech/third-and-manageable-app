@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 
 import { useAuth } from "@/lib/athlete/auth";
 import { api } from "@/lib/athlete/api";
+import UniversityFinder from "./UniversityFinder";
 
 const AuthModal = ({ onClose }: { onClose: () => void }) => {
     const router = useRouter();
@@ -82,12 +83,10 @@ const AuthModal = ({ onClose }: { onClose: () => void }) => {
                                 onChange={(e) => setName(e.target.value)}
                                 className="w-full bg-bg-elevated border border-border-subtle rounded-full py-3 px-5 text-[15px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-all"
                             />
-                            <input
-                                aria-label="School (optional)"
-                                placeholder="School (optional)"
+                            <UniversityFinder
                                 value={school}
-                                onChange={(e) => setSchool(e.target.value)}
-                                className="w-full bg-bg-elevated border border-border-subtle rounded-full py-3 px-5 text-[15px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-all"
+                                onChange={setSchool}
+                                inputClassName="w-full bg-bg-elevated border border-border-subtle rounded-full py-3 px-5 text-[15px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-all"
                             />
                         </>
                     )}

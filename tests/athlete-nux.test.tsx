@@ -128,9 +128,13 @@ describe("login-first athlete NUX", () => {
         fireEvent.change(screen.getByPlaceholderText("Display name"), {
             target: { value: "Jordan Athlete" },
         });
-        fireEvent.change(screen.getByPlaceholderText("University or school"), {
-            target: { value: "Bowling Green State University" },
-        });
+        const universityFinder = screen.getByRole("combobox", { name: "University" });
+        fireEvent.change(universityFinder, { target: { value: "Bowling Gr" } });
+        fireEvent.click(
+            await screen.findByRole("option", {
+                name: /Bowling Green State University-Main Campus/i,
+            }),
+        );
         fireEvent.change(screen.getByPlaceholderText("Email address"), {
             target: { value: "jordan@example.com" },
         });
@@ -146,7 +150,7 @@ describe("login-first athlete NUX", () => {
                 "jordan@example.com",
                 "password",
                 "Jordan Athlete",
-                "Bowling Green State University",
+                "Bowling Green State University-Main Campus",
             ),
         );
         expect(replace).toHaveBeenCalledWith("/onboarding");

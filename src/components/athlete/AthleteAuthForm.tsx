@@ -7,6 +7,7 @@ import clsx from "clsx";
 
 import { api } from "@/lib/athlete/api";
 import { useAuth } from "@/lib/athlete/auth";
+import UniversityFinder from "./UniversityFinder";
 
 export default function AthleteAuthForm({
     initialMode = "login",
@@ -131,16 +132,16 @@ export default function AthleteAuthForm({
                                 className={fieldClass}
                             />
                         </label>
-                        <label>
-                            <span className="sr-only">School</span>
-                            <input
-                                autoComplete="organization"
-                                placeholder="University or school"
+                        <div>
+                            <UniversityFinder
                                 value={school}
-                                onChange={(event) => setSchool(event.target.value)}
-                                className={fieldClass}
+                                onChange={setSchool}
+                                inputClassName={fieldClass}
                             />
-                        </label>
+                            <p className="mt-1.5 px-1 text-[11px] text-white/38">
+                                Start typing to search. No verification required yet.
+                            </p>
+                        </div>
                     </div>
                 )}
 
