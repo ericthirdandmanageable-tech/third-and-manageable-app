@@ -1,5 +1,12 @@
 import { defineConfig } from "drizzle-kit";
 
+const databaseUrl = [
+    process.env.DATABASE_URL_UNPOOLED,
+    process.env.POSTGRES_URL_NON_POOLING,
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_URL,
+].find((value) => Boolean(value?.trim()));
+
 export default defineConfig({
     dialect: "postgresql",
     schema: "./src/lib/db/schema.ts",
@@ -8,8 +15,6 @@ export default defineConfig({
         // Migrations and DDL should use Neon's direct connection. Retain the
         // pooled URL as a local-development fallback, never as the documented
         // production migration path.
-        url:
-            process.env.DATABASE_URL_UNPOOLED ??
-            process.env.DATABASE_URL!,
+        url: databaseUrl!,
     },
 });

@@ -12,10 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // The Python bridge, deleted at the end of Phase 2 (VERCEL_MIGRATION_PLAN.md §4).
-    // `web-prototype/` is gone — its screens are in `src/app/(athlete)/` and its
-    // registries in `src/lib/core/`.
-    "backend/**",
   ]),
 ]);
 

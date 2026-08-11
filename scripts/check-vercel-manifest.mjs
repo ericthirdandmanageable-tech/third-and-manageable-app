@@ -55,7 +55,7 @@ const forbidden = [
     {
         description: "test or retired reference application",
         matches: (path) =>
-            /^backend\/tests\//.test(path) || /^web-prototype\//.test(path),
+            /^backend\//.test(path) || /^web-prototype\//.test(path),
     },
     {
         description: "local tooling or non-runtime business artifact",
@@ -77,10 +77,10 @@ const violations = files.flatMap(({ path }) =>
 );
 
 const framework = manifest.framework?.slug;
-if (framework !== "services") {
+if (framework !== "nextjs") {
     violations.push({
         path: "<framework>",
-        description: `expected services, received ${framework ?? "unknown"}`,
+        description: `expected nextjs, received ${framework ?? "unknown"}`,
     });
 }
 

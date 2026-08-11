@@ -6,8 +6,7 @@
  * authorization is explicit and auditable, externally referenced entities use
  * UUIDs, calendar values use `date`, and instants use UTC-aware `timestamptz`.
  *
- * The temporary FastAPI bridge must be updated to these types before it shares
- * the database. Do not weaken this baseline to match its old SQLite-era models.
+ * Do not weaken this baseline to match retired SQLite-era models.
  */
 import { sql } from "drizzle-orm";
 import {

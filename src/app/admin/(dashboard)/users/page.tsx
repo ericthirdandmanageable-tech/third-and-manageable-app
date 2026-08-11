@@ -1,6 +1,6 @@
 import CopyEmailButton from "@/components/CopyEmailButton";
 import StatusBadge from "@/components/StatusBadge";
-import { getAdminDb } from "@/lib/firebase-admin";
+import { listAdminUsers } from "@/lib/admin-data";
 import { Flame, Search, Shield, Users } from "lucide-react";
 import UserActions from "./UserActions";
 import VerifyButton from "./VerifyButton";
@@ -51,22 +51,7 @@ function isNewUser(dateStr: string): boolean {
 }
 
 async function getUsers(search?: string): Promise<Profile[]> {
-  const snap = await getAdminDb().collection("profiles").get();
-  let users = snap.docs.map((d) => ({
-    id: d.id,
-    display_name: d.data().display_name || "Unknown",
-    email: d.data().email || "",
-    sport: d.data().sport || "N/A",
-    athlete_status: d.data().athlete_status || "N/A",
-    school: d.data().school || "N/A",
-    streak: d.data().streak ?? 0,
-    verified: d.data().verified === true,
-    verification_requested: d.data().verification_requested === true,
-    joined_at: d.data().joined_at || "",
-    suspended: d.data().suspended === true,
-    banned: d.data().banned === true,
-    chat_banned: d.data().chat_banned === true,
-  }));
+  let users = await listAdminUsers();
 
   if (search) {
     const s = search.toLowerCase();

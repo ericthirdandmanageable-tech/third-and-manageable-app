@@ -1,89 +1,68 @@
-import { verifyAdmin } from "@/lib/auth";
-import { getAdminDb } from "@/lib/firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
+
+import { auditedAdminMutation } from "@/lib/admin-mutation";
+import { verifyAdmin } from "@/lib/auth";
+import { forums } from "@/lib/db/schema";
 
 const MAX_PROMPT_LENGTH = 280;
 
 export async function POST(request: NextRequest) {
-  const isAdmin = await verifyAdmin();
-  if (!isAdmin) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   const { roomId, prompt, authorName } = await request.json();
-
-  if (!roomId || typeof prompt !== "string" || typeof authorName !== "string") {
+  const cleanRoomId = typeof roomId === "string" ? roomId.trim() : "";
+  const cleanPrompt = typeof prompt === "string" ? prompt.trim() : "";
+  const cleanAuthor = typeof authorName === "string" ? authorName.trim() : "";
+  if (
+    !cleanRoomId ||
+    cleanRoomId.length > 120 ||
+    !cleanPrompt ||
+    cleanPrompt.length > MAX_PROMPT_LENGTH ||
+    !cleanAuthor ||
+    cleanAuthor.length > 80
+  ) {
     return NextResponse.json(
-      { error: "roomId, prompt, and authorName are required" },
+      { error: "Invalid room, prompt, or author" },
       { status: 400 },
     );
   }
 
-  if (prompt.trim().length === 0) {
-    return NextResponse.json(
-      { error: "Prompt cannot be empty" },
-      { status: 400 },
-    );
-  }
-
-  if (prompt.trim().length > MAX_PROMPT_LENGTH) {
-    return NextResponse.json(
-      { error: `Prompt must be ${MAX_PROMPT_LENGTH} characters or less` },
-      { status: 400 },
-    );
-  }
-
-  if (authorName.trim().length === 0) {
-    return NextResponse.json(
-      { error: "Author name is required" },
-      { status: 400 },
-    );
-  }
-
-  // Find or create the room doc by room_id field
-  const roomsSnap = await getAdminDb()
-    .collection("rooms")
-    .where("room_id", "==", roomId)
-    .limit(1)
-    .get();
-
-  if (roomsSnap.empty) {
-    // Room doc doesn't exist yet — create it
-    const isSchool = roomId.startsWith("school_");
-    const schoolName = isSchool
-      ? roomId
-          .replace("school_", "")
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (c: string) => c.toUpperCase())
-      : null;
-    await getAdminDb().collection("rooms").add({
-      room_id: roomId,
-      name:
-        roomId === "global"
-          ? "Global Athlete Room"
-          : schoolName
-            ? `${schoolName} Room`
-            : roomId,
-      type: isSchool ? "school" : "global",
-      school: schoolName,
-      daily_prompt: prompt.trim(),
-      daily_prompt_author: authorName.trim(),
-      daily_prompt_updated_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    });
-  } else {
-    const roomDoc = roomsSnap.docs[0];
-    await roomDoc.ref.update({
-      daily_prompt: prompt.trim(),
-      daily_prompt_author: authorName.trim(),
-      daily_prompt_updated_at: new Date().toISOString(),
-    });
-  }
-
+  const now = new Date();
+  await auditedAdminMutation(
+    request,
+    {
+      action: "forum.daily_prompt.set",
+      targetType: "forum",
+      targetId: cleanRoomId,
+    },
+    (tx) =>
+      tx
+        .insert(forums)
+        .values({
+          id: cleanRoomId,
+          title: cleanRoomId === "global" ? "Global Athlete Room" : cleanRoomId,
+          category: cleanRoomId.startsWith("school_") ? "School" : "Global",
+          description: "Athlete community",
+          icon: "users",
+          dailyPrompt: cleanPrompt,
+          dailyPromptAuthor: cleanAuthor,
+          dailyPromptUpdatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: forums.id,
+          set: {
+            dailyPrompt: cleanPrompt,
+            dailyPromptAuthor: cleanAuthor,
+            dailyPromptUpdatedAt: now,
+            updatedAt: now,
+          },
+        }),
+  );
   return NextResponse.json({
     success: true,
-    roomId,
-    daily_prompt: prompt.trim(),
-    daily_prompt_author: authorName.trim(),
+    roomId: cleanRoomId,
+    daily_prompt: cleanPrompt,
+    daily_prompt_author: cleanAuthor,
   });
 }

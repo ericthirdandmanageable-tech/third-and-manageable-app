@@ -1,118 +1,10 @@
 import PromptEditor from "@/components/PromptEditor";
-import { getAdminDb } from "@/lib/firebase-admin";
+import { getAdminCommunityData } from "@/lib/admin-data";
 import { Hash, MessageCircle, MessagesSquare, Shield } from "lucide-react";
 import MessageModeration from "./MessageModeration";
 
-interface Message {
-  id: string;
-  room_id: string;
-  user_id: string;
-  display_name: string;
-  sport: string;
-  content: string;
-  created_at: string;
-}
-
-interface Room {
-  id: string;
-  room_id: string;
-  name: string;
-  type: string;
-  messageCount: number;
-  daily_prompt: string;
-  daily_prompt_author: string;
-  daily_prompt_updated_at: string;
-}
-
 async function getCommunityData() {
-  const [roomsSnap, messagesSnap] = await Promise.all([
-    getAdminDb().collection("rooms").get(),
-    getAdminDb().collection("messages").get(),
-  ]);
-
-  const messageCounts = new Map<string, number>();
-  const discoveredRoomIds = new Set<string>();
-  const allMessages: Message[] = messagesSnap.docs.map((d) => {
-    const data = d.data();
-    const roomId = data.room_id || "";
-    if (roomId) discoveredRoomIds.add(roomId);
-    messageCounts.set(roomId, (messageCounts.get(roomId) || 0) + 1);
-    return {
-      id: d.id,
-      room_id: roomId,
-      user_id: data.user_id || "",
-      display_name: data.display_name || "Unknown",
-      sport: data.sport || "",
-      content: data.content || "",
-      created_at: data.created_at || "",
-    };
-  });
-
-  // Build rooms from Firestore docs
-  const roomMap = new Map<string, Room>();
-  for (const d of roomsSnap.docs) {
-    const data = d.data();
-    const rid = data.room_id || d.id;
-    roomMap.set(rid, {
-      id: d.id,
-      room_id: rid,
-      name: data.name || (rid === "global" ? "Global Athlete Room" : rid),
-      type: data.type || (rid === "global" ? "global" : "school"),
-      messageCount: messageCounts.get(rid) || 0,
-      daily_prompt: data.daily_prompt || "",
-      daily_prompt_author: data.daily_prompt_author || "",
-      daily_prompt_updated_at: data.daily_prompt_updated_at || "",
-    });
-  }
-
-  // Also discover rooms from messages that don't have docs yet
-  for (const rid of discoveredRoomIds) {
-    if (!roomMap.has(rid)) {
-      const isSchool = rid.startsWith("school_");
-      const schoolName = isSchool
-        ? rid
-            .replace("school_", "")
-            .replace(/_/g, " ")
-            .replace(/\b\w/g, (c) => c.toUpperCase())
-        : null;
-      roomMap.set(rid, {
-        id: rid,
-        room_id: rid,
-        name:
-          rid === "global"
-            ? "Global Athlete Room"
-            : schoolName
-              ? `${schoolName} Room`
-              : rid,
-        type: isSchool ? "school" : "global",
-        messageCount: messageCounts.get(rid) || 0,
-        daily_prompt: "",
-        daily_prompt_author: "",
-        daily_prompt_updated_at: "",
-      });
-    }
-  }
-
-  // Always ensure global room exists for prompt editing
-  if (!roomMap.has("global")) {
-    roomMap.set("global", {
-      id: "global",
-      room_id: "global",
-      name: "Global Athlete Room",
-      type: "global",
-      messageCount: 0,
-      daily_prompt: "",
-      daily_prompt_author: "",
-      daily_prompt_updated_at: "",
-    });
-  }
-
-  const rooms = Array.from(roomMap.values());
-  const recentMessages = allMessages
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, 50);
-
-  return { rooms, recentMessages, totalMessages: allMessages.length };
+  return getAdminCommunityData();
 }
 
 export default async function CommunityPage() {
@@ -246,7 +138,7 @@ export default async function CommunityPage() {
           ))}
           {rooms.length === 0 && (
             <div className="col-span-full bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-500">
-              No rooms found
+              No forums found. Run the forum seed migration first.
             </div>
           )}
         </div>
@@ -275,7 +167,7 @@ export default async function CommunityPage() {
           ))}
           {rooms.length === 0 && (
             <div className="col-span-full bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-500">
-              No rooms found. Create rooms in Firestore first.
+              No forums found. Run the forum seed migration first.
             </div>
           )}
         </div>

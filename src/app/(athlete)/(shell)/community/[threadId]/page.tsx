@@ -279,7 +279,7 @@ export default function ForumPage() {
                     </p>
                     <p className="text-[14px] text-text-secondary">
                         {loadFailed
-                            ? "No demo posts were substituted. Reconnect the Services bridge and try again."
+                            ? "No demo posts were substituted. Please reconnect and try again."
                             : "No posts yet — the first one usually breaks the ice for everyone."}
                     </p>
                 </div>

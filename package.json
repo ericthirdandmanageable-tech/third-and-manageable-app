@@ -15,8 +15,9 @@
     "test:firestore-rules": "node scripts/run-firestore-rules-tests.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:test:neon": "vercel --scope ling-iq env run -e development -- node scripts/test-neon-baseline.mjs",
-    "db:test:canonical-identity": "vercel --scope ling-iq env run -e development -- node scripts/test-neon-canonical-identity.mjs",
+    "db:test:neon": "vercel env run -e development --scope ling-iq -- node scripts/test-neon-baseline.mjs",
+    "db:test:canonical-identity": "vercel env run -e development --scope ling-iq -- node scripts/test-neon-canonical-identity.mjs",
+    "db:test:athlete-api": "vercel env run -e development --scope ling-iq -- node scripts/test-neon-athlete-api.mjs",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
@@ -24,6 +25,8 @@
     "@opentelemetry/api": "^1.9.0",
     "@vercel/firewall": "^1.2.3",
     "@vercel/oidc": "^3.8.2",
+    "ai": "^6.0.249",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "firebase-admin": "13.6.1",

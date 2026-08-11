@@ -4,8 +4,8 @@
  * `./paths` automatically creates its forum here. Other forums (Local /
  * Sport / Support) are standalone entries below.
  *
- * Mirrors `backend/app/routes/community.py::seed_forums`. Icons are lucide
- * names — see the note in `./paths`.
+ * The same catalog is seeded into Postgres by `drizzle/0002_seed_forums.sql`.
+ * Icons are lucide names — see the note in `./paths`.
  */
 
 import { WORK_PATHS } from "./paths";

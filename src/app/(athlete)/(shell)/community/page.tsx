@@ -656,7 +656,7 @@ export default function CommunityPage() {
                             </h3>
                             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6b7280]">
                                 {loadFailed
-                                    ? "No sample posts were substituted. Reconnect the Services bridge and this feed will load real conversations."
+                                    ? "No sample posts were substituted. Reconnect and this feed will load real conversations."
                                     : feedScope === "joined"
                                       ? "Try Discover, join another community, or start a conversation where you already belong."
                                       : "There are no posts in this topic yet. Share a question, a win, or the thing you’re working through."}

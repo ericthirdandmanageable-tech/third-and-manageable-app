@@ -15,6 +15,13 @@
       "when": 1785879896030,
       "tag": "0001_overrated_warpath",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786472525902,
+      "tag": "0002_seed_forums",
+      "breakpoints": true
     }
   ]
 }

@@ -1,41 +1,16 @@
 /*
- * API client for the Third & Manageable backend (FastAPI bridge).
+ * API client for the Third & Manageable Next.js Route Handlers.
  * Every call returns null on network/HTTP failure so callers can show explicit
  * empty or unavailable states without leaking transport concerns into pages.
  *
- * The bridge is temporary: at Phase 2 these paths become Route Handlers under
- * `app/api/` and `BASE` goes away (VERCEL_MIGRATION_PLAN.md §2.0). This file
- * is the porting checklist — every endpoint the athlete app depends on is
- * typed here and nowhere else.
+ * Every endpoint is typed here and nowhere else.
  *
  * Every id on the wire is a UUID string. The Drizzle baseline replaced the
  * integer primary keys the prototype was written against, so `Number(postId)`
  * on a route param is now `NaN` — the conversions are gone, not relaxed.
  */
 
-import { athleteApiBase } from "@/lib/bridge";
-
-/*
- * The bridge is **same-origin**, reachable under this prefix on the app's own
- * origin. That is not cosmetic: these calls run in the browser, so an absolute
- * cross-origin base would need CORS *and* a second public FastAPI origin —
- * and a private server-only Service Binding, which the plan previously
- * specified, is unreachable from a browser altogether (§2.0).
- *
- * Who serves the prefix depends on the environment, and neither is this file's
- * concern:
- *   · production — a platform rewrite in `vercel.json` (Phase 2 step 11)
- *   · development — a `next.config.ts` rewrite to the local uvicorn
- * When the Route Handlers land, the prefix becomes `/api` and the rewrites go.
- */
-export { BRIDGE_PREFIX } from "@/lib/bridge";
-
-/*
- * `NEXT_PUBLIC_API_URL` remains only as an escape hatch for pointing a local
- * build at a remote bridge. Setting it re-introduces cross-origin requests, so
- * that bridge must then send CORS headers for this origin.
- */
-const BASE = athleteApiBase(process.env.NEXT_PUBLIC_API_URL);
+const BASE = "/api";
 
 const TOKEN_KEY = "tm_access_token";
 const USER_KEY = "tm_user";

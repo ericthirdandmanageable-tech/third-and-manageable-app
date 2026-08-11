@@ -1,10 +1,8 @@
 /*
  * WEEKLY ACTION REGISTRY — the fifteen categorized habits (§6.5).
  *
- * This is the TypeScript source of truth. It must stay identical to
- * `backend/app/services/registry.py::WEEKLY_ACTIONS` until the Python bridge
- * is retired; `backend/tests/test_bridge_compat.py` pins the backend side and
- * `tests/action-registry.test.ts` pins that the two agree.
+ * This is the single runtime source of truth after the Phase 2 Python cutover.
+ * `tests/core-registry.test.ts` pins the taxonomy and its invariants.
  *
  * The admin's taxonomy won over the backend's old generic `a1`-`a4` because
  * the retained CWRU Firestore `completions` already use these keys — the pilot

@@ -1,7 +1,6 @@
 /*
  * Journey math — the 90-day arc is earned, not hardcoded. Pure helpers over
- * check-in dates (YYYY-MM-DD), mirroring `backend/app/services/journey.py` so
- * the offline experience derives the same numbers the backend would.
+ * check-in dates (YYYY-MM-DD), shared by the UI and Route Handlers.
  */
 
 export const TOTAL_DAYS = 90;
