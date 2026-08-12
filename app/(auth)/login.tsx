@@ -1,3 +1,4 @@
+import { GlassSurface } from "@/components/ui/liquid-glass";
 import { useAuth } from "@/context/auth";
 import { signIn, signInWithApple, signInWithGoogle } from "@/services/auth";
 import { Ionicons } from "@expo/vector-icons";
@@ -77,7 +78,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-transparent">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -89,7 +90,7 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="px-7 pt-8 pb-8">
+          <GlassSurface tone="strong" className="mx-5 px-7 pt-8 pb-8">
             {/* Logo */}
             <View className="items-center mb-6">
               <Image
@@ -268,7 +269,7 @@ export default function LoginScreen() {
                 </Text>
               </Text>
             </View>
-          </View>
+          </GlassSurface>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

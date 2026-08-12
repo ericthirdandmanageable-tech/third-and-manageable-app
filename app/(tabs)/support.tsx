@@ -1,192 +1,104 @@
+import {
+  GlassButton,
+  GlassSurface,
+  ScreenHeader,
+  SectionLabel,
+} from "@/components/ui/liquid-glass";
 import { LEGAL_LINKS } from "@/constants/legal";
-import { RESOURCES, Resource } from "@/constants/resources";
+import { RESOURCES, type Resource } from "@/constants/resources";
+import { useAppTheme } from "@/context/app-theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import {
-  Linking,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SupportScreen() {
-  const handleResourcePress = (resource: Resource) => {
-    if (resource.url) {
-      Linking.openURL(resource.url);
-    } else if (resource.phone) {
-      Linking.openURL(`tel:${resource.phone}`);
-    }
+  const { colors } = useAppTheme();
+  const openResource = (resource: Resource) => {
+    if (resource.url) void Linking.openURL(resource.url);
+    else if (resource.phone) void Linking.openURL(`tel:${resource.phone}`);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View className="mb-5">
-          <Text className="text-sm text-silver-500 mb-0.5">You&apos;re Not Alone</Text>
-          <Text className="text-2xl font-raleway-extrabold text-silver-900">
-            Support
-          </Text>
-          <Text className="text-sm text-silver-400 mt-1">
-            Resources to help you through the transition.
-          </Text>
-        </View>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScreenHeader eyebrow="Always within reach" title="Support" subtitle="Asking for help is a strength rep. Crisis, peer, and practical resources stay one tap away." icon="heart-circle-outline" />
 
-        {/* Crisis banner */}
-        <View
-          className="bg-red-50 rounded-2xl p-4 mb-5 border border-red-200"
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.03,
-            shadowRadius: 4,
-            elevation: 1,
-          }}
-        >
-          <View className="flex-row items-center mb-2">
-            <Ionicons name="warning-outline" size={18} color="#DC2626" />
-            <Text className="text-sm font-raleway-bold text-red-700 ml-2">
-              In Crisis?
-            </Text>
+        <GlassSurface tone="strong" style={[styles.crisis, { borderColor: `${colors.danger}50` }]}>
+          <View style={[styles.crisisIcon, { backgroundColor: `${colors.danger}18` }]}>
+            <Ionicons name="warning-outline" size={23} color={colors.danger} />
           </View>
-          <Text className="text-xs text-red-600 leading-5 mb-2">
-            If you or someone you know is in immediate danger, call 911 or
-            call/text 988 for the Suicide & Crisis Lifeline.
-          </Text>
-          <TouchableOpacity
-            className="bg-red-600 py-2.5 rounded-xl items-center"
-            onPress={() => Linking.openURL("tel:988")}
-            activeOpacity={0.8}
-          >
-            <Text className="text-white text-sm font-raleway-bold">
-              Call 988 Crisis Line
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.crisisCopy}>
+            <Text style={[styles.crisisTitle, { color: colors.textPrimary }]}>If you’re in immediate danger</Text>
+            <Text style={[styles.crisisBody, { color: colors.textSecondary }]}>Call 911, or call/text 988 for the Suicide & Crisis Lifeline in the United States.</Text>
+          </View>
+          <GlassButton label="Call 988" icon="call-outline" variant="danger" compact onPress={() => void Linking.openURL("tel:988")} />
+        </GlassSurface>
+
+        <View style={styles.sectionHeading}>
+          <SectionLabel>Resources</SectionLabel>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Choose the kind of help you need</Text>
         </View>
 
-        {/* Resource cards */}
         {RESOURCES.map((resource) => (
-          <TouchableOpacity
-            key={resource.id}
-            className="bg-white rounded-3xl p-5 mb-3"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.05,
-              shadowRadius: 8,
-              elevation: 3,
-            }}
-            onPress={() => handleResourcePress(resource)}
-            activeOpacity={resource.url || resource.phone ? 0.7 : 1}
-          >
-            <View className="flex-row items-start">
-              <View className="w-10 h-10 rounded-full bg-dp-50 items-center justify-center mr-3 mt-0.5">
-                <Ionicons
-                  name={resource.icon as any}
-                  size={20}
-                  color="#040485"
-                />
+          <Pressable key={resource.id} onPress={() => openResource(resource)}>
+            <GlassSurface interactive style={styles.resource}>
+              <View style={[styles.resourceIcon, { backgroundColor: colors.signalSoft }]}>
+                <Ionicons name={resource.icon as keyof typeof Ionicons.glyphMap} size={21} color={colors.signal} />
               </View>
-              <View className="flex-1">
-                <Text className="text-base font-raleway-bold text-silver-900 mb-1">
-                  {resource.title}
-                </Text>
-                <Text className="text-sm text-silver-500 leading-5">
-                  {resource.description}
-                </Text>
-                {(resource.url || resource.phone) && (
-                  <View className="flex-row items-center mt-2">
-                    <Ionicons
-                      name={resource.phone && !resource.url?.startsWith("http") ? "call-outline" : "open-outline"}
-                      size={12}
-                      color="#0618A8"
-                    />
-                    <Text className="text-xs font-raleway-semibold text-dp-500 ml-1">
-                      {resource.phone && !resource.url?.startsWith("http")
-                        ? `Call ${resource.phone}`
-                        : "Open Resource"}
-                    </Text>
-                  </View>
-                )}
+              <View style={styles.resourceCopy}>
+                <Text style={[styles.resourceTitle, { color: colors.textPrimary }]}>{resource.title}</Text>
+                <Text style={[styles.resourceBody, { color: colors.textSecondary }]}>{resource.description}</Text>
+                {resource.url || resource.phone ? (
+                  <Text style={[styles.resourceAction, { color: colors.signal }]}>{resource.phone && !resource.url?.startsWith("http") ? `Call ${resource.phone}` : "Open resource"}</Text>
+                ) : null}
               </View>
-            </View>
-          </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={17} color={colors.textTertiary} />
+            </GlassSurface>
+          </Pressable>
         ))}
 
-        <View
-          className="bg-white rounded-3xl p-5 mb-3"
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.05,
-            shadowRadius: 8,
-            elevation: 3,
-          }}
-        >
-          <View className="flex-row items-center mb-2">
-            <Ionicons name="shield-checkmark-outline" size={18} color="#040485" />
-            <Text className="text-base font-raleway-bold text-silver-900 ml-2">
-              Community Safety
-            </Text>
+        <GlassSurface style={styles.safety}>
+          <View style={styles.safetyTitleRow}>
+            <Ionicons name="shield-checkmark-outline" size={19} color={colors.signal} />
+            <Text style={[styles.resourceTitle, { color: colors.textPrimary }]}>Community safety</Text>
           </View>
-          <Text className="text-sm text-silver-500 leading-5 mb-3">
-            If you see harmful content in community chat, long press the message
-            and select Report Message or Block User.
-          </Text>
-          <TouchableOpacity
-            className="flex-row items-center justify-between py-2"
-            onPress={() => Linking.openURL(`mailto:${LEGAL_LINKS.supportEmail}`)}
-            activeOpacity={0.7}
-          >
-            <Text className="text-sm font-raleway-semibold text-dp-600">
-              Contact Support
-            </Text>
-            <Ionicons name="mail-outline" size={16} color="#040485" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-row items-center justify-between py-2"
-            onPress={() => Linking.openURL(LEGAL_LINKS.privacy)}
-            activeOpacity={0.7}
-          >
-            <Text className="text-sm font-raleway-semibold text-dp-600">
-              Privacy Policy
-            </Text>
-            <Ionicons name="open-outline" size={16} color="#040485" />
-          </TouchableOpacity>
-        </View>
+          <Text style={[styles.resourceBody, { color: colors.textSecondary }]}>Long-press a community message to report harmful content or block an account. Those controls remain available in every room.</Text>
+          <View style={styles.safetyButtons}>
+            <GlassButton label="Email support" icon="mail-outline" variant="glass" compact onPress={() => void Linking.openURL(`mailto:${LEGAL_LINKS.supportEmail}`)} />
+            <GlassButton label="Privacy" icon="open-outline" variant="glass" compact onPress={() => void Linking.openURL(LEGAL_LINKS.privacy)} />
+          </View>
+        </GlassSurface>
 
-        {/* Bottom encouragement */}
-        <View
-          className="bg-dp-700 rounded-3xl p-5 mt-1"
-          style={{
-            shadowColor: "#030366",
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.25,
-            shadowRadius: 12,
-            elevation: 8,
-          }}
-        >
-          <View className="flex-row items-center mb-3">
-            <View className="w-7 h-7 rounded-full bg-white/15 items-center justify-center mr-2">
-              <Ionicons name="heart-outline" size={16} color="#A1A8EB" />
-            </View>
-            <Text className="text-xs font-raleway-bold text-white/60 uppercase tracking-wider">
-              Remember
-            </Text>
-          </View>
-          <Text className="text-white text-sm leading-6">
-            Asking for help isn&apos;t weakness - it&apos;s the same discipline that made
-            you an athlete. The strongest people know when to lean on others.
-          </Text>
-        </View>
+        <GlassSurface tone="signal" style={styles.reminder}>
+          <Text style={[styles.reminderQuote, { color: colors.textPrimary }]}>“The strongest people know when to lean on the team.”</Text>
+          <Text style={[styles.reminderMeta, { color: colors.signal }]}>ASKING IS A STRENGTH REP</Text>
+        </GlassSurface>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
+  content: { paddingBottom: 120 },
+  crisis: { marginHorizontal: 20, padding: 17, flexDirection: "row", alignItems: "center", gap: 12 },
+  crisisIcon: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+  crisisCopy: { flex: 1 },
+  crisisTitle: { fontFamily: "Raleway-Bold", fontSize: 13 },
+  crisisBody: { fontFamily: "Raleway-Medium", fontSize: 10, lineHeight: 15, marginTop: 4 },
+  sectionHeading: { marginHorizontal: 20, marginTop: 28, marginBottom: 12 },
+  sectionTitle: { fontFamily: "InstrumentSerif-Regular", fontSize: 27, lineHeight: 31 },
+  resource: { marginHorizontal: 20, marginBottom: 10, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+  resourceIcon: { width: 44, height: 44, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  resourceCopy: { flex: 1 },
+  resourceTitle: { fontFamily: "Raleway-Bold", fontSize: 14 },
+  resourceBody: { fontFamily: "Raleway-Medium", fontSize: 11, lineHeight: 17, marginTop: 3 },
+  resourceAction: { fontFamily: "DMMono-Medium", fontSize: 8, textTransform: "uppercase", marginTop: 7 },
+  safety: { marginHorizontal: 20, marginTop: 8, padding: 18 },
+  safetyTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  safetyButtons: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 15 },
+  reminder: { margin: 20, padding: 22 },
+  reminderQuote: { fontFamily: "InstrumentSerif-Italic", fontSize: 25, lineHeight: 30 },
+  reminderMeta: { fontFamily: "DMMono-Medium", fontSize: 8, letterSpacing: 1.3, marginTop: 12 },
+});

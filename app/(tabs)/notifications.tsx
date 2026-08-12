@@ -1,3 +1,5 @@
+import { GlassSurface } from "@/components/ui/liquid-glass";
+import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
 import {
   getStoredNotifications,
@@ -56,6 +58,7 @@ function formatTimestamp(dateStr: string): string {
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
+  const { colors } = useAppTheme();
   const [notifications, setNotifications] = useState<StoredNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -125,18 +128,11 @@ export default function NotificationsScreen() {
 
     return (
       <TouchableOpacity
-        className={`mx-5 mb-3 rounded-2xl p-4 ${isUnread ? "bg-dp-50" : "bg-white"
-          }`}
-        style={{
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: isUnread ? 0.08 : 0.04,
-          shadowRadius: isUnread ? 6 : 4,
-          elevation: isUnread ? 3 : 2,
-        }}
+        className="mx-5 mb-3"
         onPress={() => handleTapNotification(item)}
         activeOpacity={0.7}
       >
+        <GlassSurface tone={isUnread ? "signal" : "regular"} className="p-4">
         <View className="flex-row">
           <View
             className={`w-9 h-9 rounded-full items-center justify-center mr-3 ${isUnread ? "bg-dp-600" : "bg-silver-100"
@@ -169,14 +165,15 @@ export default function NotificationsScreen() {
             </Text>
           </View>
         </View>
+        </GlassSurface>
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       {/* Header */}
-      <View className="px-5 pt-3 pb-4 flex-row items-center">
+      <GlassSurface tone="strong" className="mx-5 mt-2 px-4 py-3 flex-row items-center">
         <TouchableOpacity
           className="flex-row items-center mr-4"
           onPress={() => router.back()}
@@ -201,11 +198,11 @@ export default function NotificationsScreen() {
             </Text>
           </TouchableOpacity>
         )}
-      </View>
+      </GlassSurface>
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#040485" />
+          <ActivityIndicator size="large" color={colors.signal} />
         </View>
       ) : notifications.length === 0 ? (
         <View className="flex-1 items-center justify-center px-10">
@@ -232,8 +229,8 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#040485"
-              colors={["#040485"]}
+              tintColor={colors.signal}
+              colors={[colors.signal]}
             />
           }
         />

@@ -1,363 +1,257 @@
+import { GlassButton, GlassSurface, SectionLabel } from "@/components/ui/liquid-glass";
+import { useAppTheme } from "@/context/app-theme";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    FlatList,
-    Image,
-    ImageSourcePropType,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
-    ViewToken,
+  Animated,
+  FlatList,
+  Image,
+  type ImageSourcePropType,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+  type ViewToken,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
 interface CarouselSlide {
   id: string;
+  eyebrow: string;
   title: string;
   subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
   image: ImageSourcePropType;
 }
 
 const SLIDES: CarouselSlide[] = [
   {
     id: "1",
-    title: "Your Next Chapter",
+    eyebrow: "Built for the next chapter",
+    title: "You are more than the jersey.",
     subtitle:
-      "Third & Manageable helps you rebuild confidence, structure, and momentum after sport — one day at a time.",
+      "Rebuild confidence, structure, and momentum after sport—one honest rep at a time.",
+    icon: "flag-outline",
     image: require("@/assets/images/carousel-slide-1.jpg"),
   },
   {
     id: "2",
-    title: "Daily Check-Ins",
+    eyebrow: "Thirty seconds of film",
+    title: "Check in before you check out.",
     subtitle:
-      "A 30-second emotional check-in with The Clipboard. Share how you're feeling and get personalized support.",
+      "Name what today feels like, then get a private response from your Clipboard coach.",
+    icon: "pulse-outline",
     image: require("@/assets/images/carousel-slide-2.jpg"),
   },
   {
     id: "3",
-    title: "Athlete Community",
+    eyebrow: "A team that gets it",
+    title: "The locker room still exists.",
     subtitle:
-      "Connect with current and former athletes who understand your journey. Verified, moderated, and safe.",
+      "Connect with current and former athletes in a verified, moderated community.",
+    icon: "people-outline",
     image: require("@/assets/images/carousel-slide-3.jpg"),
   },
   {
     id: "4",
-    title: "Structured Support",
+    eyebrow: "Structure without the whistle",
+    title: "Turn uncertainty into a game plan.",
     subtitle:
-      "A daily game plan, progress tracking, wellness resources, and a community that has your back.",
+      "Translate your skills, explore career paths, track progress, and keep the next rep small.",
+    icon: "map-outline",
     image: require("@/assets/images/carousel-slide-4.jpg"),
   },
 ];
 
 export default function WelcomeScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<CarouselSlide>>(null);
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const { colors } = useAppTheme();
+  const activeSlide = SLIDES[activeIndex];
 
-  // Animated values for dot transitions
   const dotAnimations = useRef(
-    SLIDES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)),
+    SLIDES.map((_, index) => new Animated.Value(index === 0 ? 1 : 0)),
   ).current;
 
-  // Animate dots when activeIndex changes
   useEffect(() => {
-    dotAnimations.forEach((anim, i) => {
-      Animated.spring(anim, {
-        toValue: i === activeIndex ? 1 : 0,
+    dotAnimations.forEach((animation, index) => {
+      Animated.spring(animation, {
+        toValue: index === activeIndex ? 1 : 0,
         useNativeDriver: false,
         friction: 6,
         tension: 80,
       }).start();
     });
-  }, [activeIndex]);
+  }, [activeIndex, dotAnimations]);
 
-  // Auto-advance carousel
   useEffect(() => {
     autoPlayRef.current = setInterval(() => {
-      setActiveIndex((prev) => {
-        const next = (prev + 1) % SLIDES.length;
+      setActiveIndex((previous) => {
+        const next = (previous + 1) % SLIDES.length;
         flatListRef.current?.scrollToIndex({ index: next, animated: true });
         return next;
       });
-    }, 4000);
+    }, 5_000);
     return () => {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };
   }, []);
 
   const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0 && viewableItems[0].index != null) {
-        setActiveIndex(viewableItems[0].index);
-      }
+    ({ viewableItems }: { viewableItems: ViewToken<CarouselSlide>[] }) => {
+      const index = viewableItems[0]?.index;
+      if (index != null) setActiveIndex(index);
     },
     [],
   );
 
-  const viewabilityConfig = useRef({
-    viewAreaCoveragePercentThreshold: 50,
-  }).current;
-
-  const renderSlide = ({ item }: { item: CarouselSlide }) => (
-    <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}>
-      {/* Full-screen background image */}
-      <Image
-        source={item.image}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: SCREEN_WIDTH,
-          height: SCREEN_HEIGHT,
-        }}
-        resizeMode="cover"
-      />
-    </View>
-  );
+  const stopAutoPlay = () => {
+    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    autoPlayRef.current = null;
+  };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#000" }}>
-      <StatusBar
-        barStyle="light-content"
-        translucent
-        backgroundColor="transparent"
-      />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Full-screen carousel (background images) */}
       <FlatList
         ref={flatListRef}
         data={SLIDES}
         keyExtractor={(item) => item.id}
-        renderItem={renderSlide}
+        renderItem={({ item }) => (
+          <Image source={item.image} style={{ width, height }} resizeMode="cover" />
+        )}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        snapToInterval={SCREEN_WIDTH}
+        snapToInterval={width}
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        getItemLayout={(_, index) => ({
-          length: SCREEN_WIDTH,
-          offset: SCREEN_WIDTH * index,
-          index,
-        })}
-        onScrollBeginDrag={() => {
-          if (autoPlayRef.current) {
-            clearInterval(autoPlayRef.current);
-            autoPlayRef.current = null;
-          }
-        }}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+        viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+        onScrollBeginDrag={stopAutoPlay}
+        style={StyleSheet.absoluteFill}
       />
 
-      {/* Dark gradient overlay from bottom for readability */}
       <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.3)", "rgba(0,0,0,0.85)"]}
-        locations={[0, 0.4, 1]}
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: SCREEN_HEIGHT * 0.65,
-        }}
         pointerEvents="none"
+        colors={["rgba(5,12,28,0.08)", "rgba(5,12,28,0.3)", "rgba(5,12,28,0.88)"]}
+        locations={[0, 0.46, 1]}
+        style={StyleSheet.absoluteFill}
       />
 
-      {/* Top: Logo — white on dark background */}
-      <View
-        style={{
-          position: "absolute",
-          top: insets.top + 12,
-          left: 0,
-          right: 0,
-          alignItems: "center",
-          zIndex: 10,
-        }}
+      <GlassSurface
+        tone="subtle"
+        radius={999}
+        style={[styles.brand, { top: insets.top + 12 }]}
       >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Image
-            source={require("@/assets/images/logo.png")}
-            style={{
-              width: 44,
-              height: 44,
-              marginRight: 10,
-              tintColor: "#FFFFFF",
-            }}
-            resizeMode="contain"
-          />
-          <Text
-            style={{
-              fontFamily: "Raleway-ExtraBold",
-              fontSize: 18,
-              color: "#FFFFFF",
-              textShadowColor: "rgba(0,0,0,0.5)",
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 4,
-            }}
-          >
-            Third & Manageable
-          </Text>
-        </View>
-      </View>
+        <Image
+          source={require("@/assets/images/logo.png")}
+          style={[styles.logo, { tintColor: colors.signal }]}
+          resizeMode="contain"
+        />
+        <Text style={styles.brandName}>Third & Manageable</Text>
+      </GlassSurface>
 
-      {/* Bottom content overlay: text, dots, buttons */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          paddingBottom: insets.bottom + 20,
-          paddingHorizontal: 24,
-        }}
+      <GlassSurface
+        tone="strong"
+        radius={32}
+        style={[styles.storyCard, { bottom: insets.bottom + 14 }]}
       >
-        {/* Slide text */}
-        <View style={{ marginBottom: 20 }}>
-          <Text
-            style={{
-              fontFamily: "Raleway-Bold",
-              fontSize: 28,
-              color: "#FFFFFF",
-              textAlign: "left",
-              marginBottom: 8,
-              textShadowColor: "rgba(0,0,0,0.6)",
-              textShadowOffset: { width: 0, height: 2 },
-              textShadowRadius: 6,
-            }}
-          >
-            {SLIDES[activeIndex].title}
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Raleway-Regular",
-              fontSize: 15,
-              color: "rgba(255,255,255,0.85)",
-              textAlign: "left",
-              lineHeight: 22,
-              textShadowColor: "rgba(0,0,0,0.4)",
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 3,
-            }}
-          >
-            {SLIDES[activeIndex].subtitle}
-          </Text>
+        <View style={styles.storyTopline}>
+          <View style={[styles.storyIcon, { backgroundColor: colors.signalSoft }]}>
+            <Ionicons name={activeSlide.icon} size={17} color={colors.signal} />
+          </View>
+          <SectionLabel>{activeSlide.eyebrow}</SectionLabel>
         </View>
 
-        {/* Pagination dots */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 24,
-            gap: 6,
-          }}
-        >
-          {SLIDES.map((_, idx) => {
-            const dotWidth = dotAnimations[idx].interpolate({
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{activeSlide.title}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{activeSlide.subtitle}</Text>
+
+        <View style={styles.dots} accessibilityLabel={`Slide ${activeIndex + 1} of ${SLIDES.length}`}>
+          {SLIDES.map((slide, index) => {
+            const widthAnimation = dotAnimations[index].interpolate({
               inputRange: [0, 1],
-              outputRange: [8, 28],
+              outputRange: [7, 28],
             });
-            const dotColor = dotAnimations[idx].interpolate({
+            const opacity = dotAnimations[index].interpolate({
               inputRange: [0, 1],
-              outputRange: ["rgba(255,255,255,0.4)", "#FFFFFF"],
+              outputRange: [0.25, 1],
             });
             return (
               <Animated.View
-                key={idx}
-                style={{
-                  height: 4,
-                  width: dotWidth,
-                  borderRadius: 2,
-                  backgroundColor: dotColor,
-                }}
+                key={slide.id}
+                style={[styles.dot, { width: widthAnimation, opacity, backgroundColor: colors.signal }]}
               />
             );
           })}
         </View>
 
-        {/* Buttons */}
-        <TouchableOpacity
-          style={{
-            backgroundColor: "#FFFFFF",
-            paddingVertical: 16,
-            borderRadius: 14,
-            alignItems: "center",
-            marginBottom: 10,
-          }}
+        <GlassButton
+          label="Sign in"
+          icon="arrow-forward"
           onPress={() => router.push("/(auth)/login")}
-          activeOpacity={0.8}
-        >
-          <Text
-            style={{
-              fontFamily: "Raleway-Bold",
-              color: "#040485",
-              fontSize: 16,
-              letterSpacing: 0.5,
-            }}
-          >
-            Sign In
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{
-            backgroundColor: "transparent",
-            paddingVertical: 16,
-            borderRadius: 14,
-            alignItems: "center",
-            borderWidth: 1.5,
-            borderColor: "rgba(255,255,255,0.5)",
-          }}
+          style={styles.primaryButton}
+        />
+        <GlassButton
+          label="Create an account"
+          icon="add-circle-outline"
+          variant="glass"
           onPress={() => router.push("/(auth)/register")}
-          activeOpacity={0.8}
-        >
-          <Text
-            style={{
-              fontFamily: "Raleway-Bold",
-              color: "#FFFFFF",
-              fontSize: 16,
-              letterSpacing: 0.5,
-            }}
-          >
-            Create Account
-          </Text>
-        </TouchableOpacity>
+        />
 
-        <Text
-          style={{
-            marginTop: 14,
-            textAlign: "center",
-            color: "rgba(255,255,255,0.72)",
-            fontSize: 12,
-            lineHeight: 18,
-            fontFamily: "Raleway-Medium",
-          }}
-        >
-          By continuing, you agree to our{" "}
-          <Text
-            style={{ color: "#FFFFFF", fontFamily: "Raleway-Bold" }}
-            onPress={() => router.push("/(legal)/terms")}
-          >
-            Terms
-          </Text>{" "}
-          and{" "}
-          <Text
-            style={{ color: "#FFFFFF", fontFamily: "Raleway-Bold" }}
-            onPress={() => router.push("/(legal)/privacy")}
-          >
-            Privacy Policy
-          </Text>
-          .
-        </Text>
-      </View>
+        <Text style={[styles.legal, { color: colors.textTertiary }]}>By continuing, you agree to our <Text style={[styles.legalLink, { color: colors.signal }]} onPress={() => router.push("/(legal)/terms")}>Terms</Text> and <Text style={[styles.legalLink, { color: colors.signal }]} onPress={() => router.push("/(legal)/privacy")}>Privacy Policy</Text>.</Text>
+      </GlassSurface>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#071426" },
+  brand: {
+    position: "absolute",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  logo: { width: 28, height: 28 },
+  brandName: {
+    color: "#FFFFFF",
+    fontFamily: "Raleway-Bold",
+    fontSize: 14,
+    letterSpacing: -0.2,
+    textShadowColor: "rgba(5,12,28,0.42)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  storyCard: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    padding: 20,
+  },
+  storyTopline: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
+  storyIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  title: {
+    fontFamily: "InstrumentSerif-Regular",
+    fontSize: 36,
+    lineHeight: 38,
+    letterSpacing: -0.7,
+    marginBottom: 8,
+  },
+  subtitle: { fontFamily: "Raleway-Medium", fontSize: 14, lineHeight: 20 },
+  dots: { flexDirection: "row", alignItems: "center", gap: 5, marginVertical: 16 },
+  dot: { height: 4, borderRadius: 2 },
+  primaryButton: { marginBottom: 9 },
+  legal: { fontFamily: "Raleway-Medium", fontSize: 10, textAlign: "center", marginTop: 12 },
+  legalLink: { fontFamily: "Raleway-Bold", fontSize: 10 },
+});

@@ -1,3 +1,6 @@
+import { GlassSurface, ScreenHeader } from "@/components/ui/liquid-glass";
+import { type AppTheme } from "@/constants/app-theme";
+import { useAppTheme } from "@/context/app-theme";
 import { SPORTS } from "@/constants/sports";
 import { useAuth } from "@/context/auth";
 import {
@@ -26,6 +29,32 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const APPEARANCE_OPTIONS: {
+  value: AppTheme;
+  label: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  {
+    value: "dusk",
+    label: "Sideline Dusk",
+    description: "Calm, blue-forward glass.",
+    icon: "partly-sunny-outline",
+  },
+  {
+    value: "school",
+    label: "Campus Colors",
+    description: "Your verified school palette.",
+    icon: "school-outline",
+  },
+  {
+    value: "legacy",
+    label: "Legacy Neon",
+    description: "The original mobile look.",
+    icon: "flash-outline",
+  },
+];
+
 function formatMemberSince(dateStr?: string): string {
   if (!dateStr) return "Just joined";
   const d = new Date(dateStr);
@@ -39,7 +68,17 @@ function formatMemberSince(dateStr?: string): string {
 
 export default function ProfileScreen() {
   const { user, profile, refreshUser, refreshProfile } = useAuth();
+  const {
+    theme: appTheme,
+    setTheme: setAppTheme,
+    colors: appThemeColors,
+    hasVerifiedSchoolMatch,
+  } = useAppTheme();
   const sport = profile ? SPORTS[profile.sport as SportKey] : null;
+  const userId = user?.$id;
+  const userCreatedAt = user?.$createdAt;
+  const hasProfile = Boolean(profile);
+  const joinedAt = profile?.joined_at;
   const [remindersEnabled, setRemindersEnabled] = useState(false);
 
   // Edit modal state
@@ -185,13 +224,13 @@ export default function ProfileScreen() {
 
   // Backfill joined_at for existing users who signed up before this field was added
   useEffect(() => {
-    if (user?.$id && profile && !profile.joined_at) {
+    if (userId && hasProfile && !joinedAt) {
       upsertProfile({
-        id: user.$id,
-        joined_at: user.$createdAt ?? new Date().toISOString(),
+        id: userId,
+        joined_at: userCreatedAt ?? new Date().toISOString(),
       }).then(() => refreshProfile());
     }
-  }, [user?.$id, profile?.joined_at]);
+  }, [hasProfile, joinedAt, refreshProfile, userCreatedAt, userId]);
 
   const toggleReminders = async (value: boolean) => {
     setRemindersEnabled(value);
@@ -226,7 +265,7 @@ export default function ProfileScreen() {
     } finally {
       setEditSaving(false);
     }
-  }, [user?.$id, editDisplayName, editSaving]);
+  }, [user?.$id, editDisplayName, editSaving, refreshProfile]);
 
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -287,23 +326,23 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="mb-6">
-          <Text className="text-sm text-silver-500 mb-0.5">Profile</Text>
-          <Text className="text-2xl font-raleway-extrabold text-silver-900">
-            Your Account
-          </Text>
-        </View>
+        <ScreenHeader
+          eyebrow="Identity, privacy, and preferences"
+          title="Your Profile"
+          subtitle="The athlete you were and the person you're becoming can live in the same place."
+          icon="person-outline"
+        />
 
         {/* Avatar & Name Card */}
-        <View
-          className="bg-white rounded-3xl p-6 mb-4 items-center"
+        <GlassSurface
+          tone="strong"
+          className="bg-app-surface rounded-3xl p-6 mb-4 items-center"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -343,7 +382,7 @@ export default function ProfileScreen() {
               )}
             </View>
             <View
-              className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white items-center justify-center"
+              className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-app-surface items-center justify-center"
               style={{
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 2 },
@@ -418,11 +457,11 @@ export default function ProfileScreen() {
               Edit Profile
             </Text>
           </TouchableOpacity>
-        </View>
+        </GlassSurface>
 
         {/* Account Details Card */}
-        <View
-          className="bg-white rounded-3xl p-5 mb-4"
+        <GlassSurface
+          className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -551,11 +590,85 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </GlassSurface>
+
+        {/* Appearance */}
+        <GlassSurface
+          tone="signal"
+          className="bg-app-surface rounded-3xl p-5 mb-4"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
+            elevation: 3,
+          }}
+        >
+          <View className="flex-row items-center mb-1">
+            <View className="w-7 h-7 rounded-full bg-dp-50 items-center justify-center mr-2">
+              <Ionicons
+                name="color-palette-outline"
+                size={16}
+                color={appThemeColors.signal}
+              />
+            </View>
+            <Text className="text-base font-raleway-bold text-silver-900">
+              Appearance
+            </Text>
+          </View>
+          <Text className="text-xs text-silver-400 mb-4">
+            {hasVerifiedSchoolMatch
+              ? "Campus Colors uses your verified school palette across the app."
+              : "Verify a supported school to unlock its palette as your smart default."}
+          </Text>
+
+          <View accessibilityRole="radiogroup" className="gap-2">
+            {APPEARANCE_OPTIONS.map((option) => {
+              const selected = appTheme === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  accessibilityLabel={option.label}
+                  accessibilityHint={option.description}
+                  activeOpacity={0.75}
+                  className={`rounded-2xl border-2 p-4 flex-row items-center ${
+                    selected
+                      ? "border-dp-600 bg-dp-50"
+                      : "border-silver-100 bg-silver-50"
+                  }`}
+                  onPress={() => setAppTheme(option.value)}
+                >
+                  <View className="w-9 h-9 rounded-full items-center justify-center bg-app-surface mr-3">
+                    <Ionicons
+                      name={option.icon}
+                      size={19}
+                      color={selected ? appThemeColors.signal : appThemeColors.textSecondary}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-raleway-bold text-silver-900">
+                      {option.label}
+                    </Text>
+                    <Text className="text-[11px] text-silver-500 mt-0.5">
+                      {option.description}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={selected ? "radio-button-on" : "radio-button-off"}
+                    size={20}
+                    color={selected ? appThemeColors.signal : appThemeColors.textSecondary}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </GlassSurface>
 
         {/* Notifications Card */}
-        <View
-          className="bg-white rounded-3xl p-5 mb-4"
+        <GlassSurface
+          className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -593,11 +706,11 @@ export default function ProfileScreen() {
               thumbColor={remindersEnabled ? "#040485" : "#BDBDBD"}
             />
           </View>
-        </View>
+        </GlassSurface>
 
         {/* The Clipboard Personality */}
-        <View
-          className="bg-white rounded-3xl p-5 mb-4"
+        <GlassSurface
+          className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -691,12 +804,12 @@ export default function ProfileScreen() {
               );
             })}
           </View>
-        </View>
+        </GlassSurface>
 
         {/* Quick Links */}
         <View className="flex-row gap-3 mb-4">
           <TouchableOpacity
-            className="flex-1 bg-white rounded-3xl p-4 items-center"
+            className="flex-1 bg-app-surface rounded-3xl p-4 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -713,7 +826,7 @@ export default function ProfileScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="flex-1 bg-white rounded-3xl p-4 items-center"
+            className="flex-1 bg-app-surface rounded-3xl p-4 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -732,8 +845,8 @@ export default function ProfileScreen() {
         </View>
 
         {/* Legal Card */}
-        <View
-          className="bg-white rounded-3xl p-5 mb-4"
+        <GlassSurface
+          className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -772,7 +885,7 @@ export default function ProfileScreen() {
             </Text>
             <Ionicons name="chevron-forward" size={16} color="#9E9E9E" />
           </TouchableOpacity>
-        </View>
+        </GlassSurface>
 
         {/* App Info Card */}
         <View
@@ -806,7 +919,7 @@ export default function ProfileScreen() {
 
         {/* Sign Out */}
         <TouchableOpacity
-          className="bg-white rounded-3xl py-4 items-center mb-3"
+          className="bg-app-surface rounded-3xl py-4 items-center mb-3"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -846,7 +959,7 @@ export default function ProfileScreen() {
         onShow={() => setTimeout(() => editInputRef.current?.focus(), 350)}
       >
         <View className="flex-1 justify-end bg-black/40">
-          <View className="bg-white rounded-t-3xl px-6 pt-6 pb-10">
+          <View className="bg-app-surface rounded-t-3xl px-6 pt-6 pb-10">
             <View className="flex-row items-center justify-between mb-6">
               <Text className="text-lg font-raleway-extrabold text-silver-900">
                 Edit Profile

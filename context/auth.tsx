@@ -1,6 +1,12 @@
 import { getCurrentUser, getProfile } from "@/services/auth";
 import { Profile } from "@/types";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { Models } from "react-native-appwrite";
 
 interface AuthContextType {
@@ -30,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
@@ -44,9 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
     }
-  };
+  }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user?.$id) {
       setProfile(null);
       return;
@@ -57,11 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error("Error fetching profile:", err);
     }
-  };
+  }, [user?.$id]);
 
   useEffect(() => {
     refreshUser().finally(() => setIsLoading(false));
-  }, []);
+  }, [refreshUser]);
 
   return (
     <AuthContext.Provider

@@ -1,3 +1,4 @@
+import { GlassSurface } from "@/components/ui/liquid-glass";
 import { resetPassword } from "@/services/auth";
 import { router, useGlobalSearchParams, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -9,7 +10,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -61,12 +61,12 @@ export default function ResetPasswordScreen() {
   const hasValidLink = Boolean(userId && secret);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-transparent">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="flex-1 px-7 justify-center">
+        <GlassSurface tone="strong" className="flex-1 mx-5 my-8 px-7 justify-center">
           <Text className="text-3xl font-raleway-extrabold text-silver-900 mb-2">
             Choose a new password
           </Text>
@@ -120,7 +120,7 @@ export default function ResetPasswordScreen() {
               </Text>
             )}
           </TouchableOpacity>
-        </View>
+        </GlassSurface>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

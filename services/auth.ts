@@ -40,7 +40,10 @@ const SESSION_VERIFY_MAX_ATTEMPTS = 6;
 const SESSION_VERIFY_BASE_DELAY_MS = 250;
 
 function getPasswordRecoveryUrl(): string {
-  const recoveryUrl = process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_URL?.trim();
+  const recoveryUrl = (
+    process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_URL ??
+    process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_BRIDGE_URL
+  )?.trim();
   if (!recoveryUrl?.startsWith("https://")) {
     throw new Error(
       "Password recovery is unavailable. Please contact support for help resetting your password.",

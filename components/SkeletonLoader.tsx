@@ -55,7 +55,7 @@ function SkeletonBox({
 export function SkeletonCard() {
   return (
     <View
-      className="bg-white rounded-3xl p-5 mb-3"
+      className="bg-app-surface rounded-3xl p-5 mb-3"
       style={{
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -81,7 +81,7 @@ export function HomeScreenSkeleton() {
 
       {/* Progress card */}
       <View
-        className="bg-white rounded-3xl p-5 mb-4"
+        className="bg-app-surface rounded-3xl p-5 mb-4"
         style={{
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
@@ -98,7 +98,7 @@ export function HomeScreenSkeleton() {
       {/* Stats row */}
       <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
         <View
-          className="flex-1 bg-white rounded-3xl p-5 items-center"
+          className="flex-1 bg-app-surface rounded-3xl p-5 items-center"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -111,7 +111,7 @@ export function HomeScreenSkeleton() {
           <SkeletonBox width={60} height={10} />
         </View>
         <View
-          className="flex-1 bg-white rounded-3xl p-5 items-center"
+          className="flex-1 bg-app-surface rounded-3xl p-5 items-center"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -127,11 +127,11 @@ export function HomeScreenSkeleton() {
 
       {/* Quick links */}
       <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-        <View className="flex-1 bg-white rounded-3xl p-4 items-center" style={{ elevation: 3 }}>
+        <View className="flex-1 bg-app-surface rounded-3xl p-4 items-center" style={{ elevation: 3 }}>
           <SkeletonBox width={40} height={40} borderRadius={20} style={{ marginBottom: 8 }} />
           <SkeletonBox width={50} height={10} />
         </View>
-        <View className="flex-1 bg-white rounded-3xl p-4 items-center" style={{ elevation: 3 }}>
+        <View className="flex-1 bg-app-surface rounded-3xl p-4 items-center" style={{ elevation: 3 }}>
           <SkeletonBox width={40} height={40} borderRadius={20} style={{ marginBottom: 8 }} />
           <SkeletonBox width={50} height={10} />
         </View>
@@ -166,7 +166,7 @@ export function ProgressScreenSkeleton() {
         {[1, 2, 3, 4].map((i) => (
           <View
             key={i}
-            className="flex-1 bg-white rounded-2xl p-3 items-center"
+            className="flex-1 bg-app-surface rounded-2xl p-3 items-center"
             style={{ elevation: 2 }}
           >
             <SkeletonBox width={30} height={24} style={{ marginBottom: 6 }} />
@@ -191,7 +191,7 @@ export function GamePlanScreenSkeleton() {
 
       {/* Action card */}
       <View
-        className="bg-white rounded-3xl p-6 mb-4"
+        className="bg-app-surface rounded-3xl p-6 mb-4"
         style={{ elevation: 3 }}
       >
         <SkeletonBox width={80} height={20} borderRadius={10} style={{ marginBottom: 16 }} />
@@ -202,7 +202,7 @@ export function GamePlanScreenSkeleton() {
 
       {/* Week calendar */}
       <View
-        className="bg-white rounded-3xl p-5 mb-4"
+        className="bg-app-surface rounded-3xl p-5 mb-4"
         style={{ elevation: 3 }}
       >
         <SkeletonBox width={140} height={12} style={{ marginBottom: 16 }} />
@@ -218,11 +218,11 @@ export function GamePlanScreenSkeleton() {
 
       {/* Stats */}
       <View style={{ flexDirection: "row", gap: 12 }}>
-        <View className="flex-1 bg-white rounded-3xl p-4" style={{ elevation: 3 }}>
+        <View className="flex-1 bg-app-surface rounded-3xl p-4" style={{ elevation: 3 }}>
           <SkeletonBox width={40} height={28} style={{ marginBottom: 6 }} />
           <SkeletonBox width={60} height={10} />
         </View>
-        <View className="flex-1 bg-white rounded-3xl p-4" style={{ elevation: 3 }}>
+        <View className="flex-1 bg-app-surface rounded-3xl p-4" style={{ elevation: 3 }}>
           <SkeletonBox width={40} height={28} style={{ marginBottom: 6 }} />
           <SkeletonBox width={60} height={10} />
         </View>

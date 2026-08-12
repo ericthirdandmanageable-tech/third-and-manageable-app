@@ -1,3 +1,4 @@
+import { GlassSurface } from "@/components/ui/liquid-glass";
 import { requestPasswordRecovery } from "@/services/auth";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -41,12 +42,12 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-transparent">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="flex-1 px-7 justify-center">
+        <GlassSurface tone="strong" className="flex-1 mx-5 my-8 px-7 justify-center">
           <Text className="text-3xl font-raleway-extrabold text-silver-900 mb-2">
             Reset password
           </Text>
@@ -114,7 +115,7 @@ export default function ForgotPasswordScreen() {
               Back
             </Text>
           </TouchableOpacity>
-        </View>
+        </GlassSurface>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

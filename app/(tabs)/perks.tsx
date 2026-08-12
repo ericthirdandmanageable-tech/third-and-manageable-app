@@ -1,3 +1,5 @@
+import { GlassSurface, ScreenHeader } from "@/components/ui/liquid-glass";
+import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
 import { PERKS, Perk, TIER_COLORS, TIER_LABELS } from "@/constants/perks";
 import { getCompletionCount } from "@/services/gameplan";
@@ -15,6 +17,7 @@ interface PerkStatus {
 
 export default function PerksScreen() {
   const { user, profile } = useAuth();
+  const { colors } = useAppTheme();
   const [perkStatuses, setPerkStatuses] = useState<PerkStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [unlockedCount, setUnlockedCount] = useState(0);
@@ -75,8 +78,8 @@ export default function PerksScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-cream items-center justify-center">
-        <ActivityIndicator size="large" color="#040485" />
+      <SafeAreaView className="flex-1 bg-transparent items-center justify-center">
+        <ActivityIndicator size="large" color={colors.signal} />
       </SafeAreaView>
     );
   }
@@ -84,22 +87,18 @@ export default function PerksScreen() {
   const tiers: Perk["tier"][] = ["bronze", "silver", "gold", "platinum"];
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="mb-5">
-          <Text className="text-sm text-silver-500 mb-0.5">Rewards</Text>
-          <Text className="text-2xl font-raleway-extrabold text-silver-900">
-            Perks
-          </Text>
-          <Text className="text-sm text-silver-400 mt-1">
-            Earn rewards by showing up consistently.
-          </Text>
-        </View>
+        <ScreenHeader
+          eyebrow="Rewards that mark the reps"
+          title="Perks"
+          subtitle="Earned through consistency—not comparison."
+          icon="trophy-outline"
+        />
 
         {/* Summary card */}
         <View
@@ -168,9 +167,9 @@ export default function PerksScreen() {
 
               {/* Perk cards */}
               {tierPerks.map(({ perk, unlocked, progress, currentValue }) => (
-                <View
+                <GlassSurface
                   key={perk.id}
-                  className={`bg-white rounded-2xl p-4 mb-2 ${
+                  className={`bg-app-surface rounded-2xl p-4 mb-2 ${
                     unlocked ? "" : "opacity-80"
                   }`}
                   style={{
@@ -241,7 +240,7 @@ export default function PerksScreen() {
                       </Text>
                     </View>
                   )}
-                </View>
+                </GlassSurface>
               ))}
             </View>
           );

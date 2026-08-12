@@ -1,4 +1,6 @@
 import { getTodayPrompt, PROMPT_CATEGORY_LABELS } from "@/constants/prompts";
+import { GlassSurface } from "@/components/ui/liquid-glass";
+import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
 import {
   blockUser,
@@ -131,6 +133,7 @@ function renderMentionText(content: string, isMe: boolean) {
 
 export default function CommunityScreen() {
   const { user, profile } = useAuth();
+  const { colors } = useAppTheme();
   const [bottomInset, setBottomInset] = useState(
     Platform.OS === "ios" ? 90 : 85,
   );
@@ -402,7 +405,9 @@ export default function CommunityScreen() {
           onLongPress={() => openMessageActions(item)}
           delayLongPress={250}
         >
-          <View
+          <GlassSurface
+            tone={isMe ? "signal" : "regular"}
+            radius={18}
             className={`rounded-2xl px-4 py-3 max-w-[85%] ${isMe ? "bg-dp-600" : "bg-white"
               }`}
             style={
@@ -418,7 +423,7 @@ export default function CommunityScreen() {
             }
           >
             {renderMentionText(item.content, isMe)}
-          </View>
+          </GlassSurface>
         </Pressable>
         <Text className="text-[10px] text-silver-400 mt-1 mx-1">
           {getTimeAgo(item.created_at)}
@@ -428,10 +433,10 @@ export default function CommunityScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-cream" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
       <View className="flex-1">
         {/* Header */}
-        <View className="px-5 pt-3 pb-2">
+        <GlassSurface tone="strong" style={{ marginHorizontal: 20, marginTop: 8, padding: 16 }}>
           <View className="flex-row items-center justify-between mb-2">
             <View className="flex-1 mr-3">
               <View className="flex-row items-center">
@@ -485,16 +490,7 @@ export default function CommunityScreen() {
           </View>
 
           {/* Room tabs */}
-          <View
-            className="flex-row bg-white rounded-xl p-1 mb-2"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.04,
-              shadowRadius: 4,
-              elevation: 2,
-            }}
-          >
+          <GlassSurface radius={14} tone="subtle" className="flex-row rounded-xl p-1 mb-2">
             <TouchableOpacity
               className={`flex-1 py-2 rounded-lg items-center ${activeTab === "global" ? "bg-dp-600" : ""
                 }`}
@@ -524,7 +520,7 @@ export default function CommunityScreen() {
                 </Text>
               </TouchableOpacity>
             )}
-          </View>
+          </GlassSurface>
 
           {/* Verified badge */}
           <View className="flex-row items-center mb-1">
@@ -536,10 +532,11 @@ export default function CommunityScreen() {
           <Text className="text-[10px] text-silver-400 mb-1">
             Long press a message to report content or block a user.
           </Text>
-        </View>
+        </GlassSurface>
 
         {/* Today's Prompt */}
-        <View
+        <GlassSurface
+          tone="signal"
           className="mx-5 mb-2 bg-dp-700 rounded-2xl p-4"
           style={{
             shadowColor: "#030366",
@@ -566,12 +563,12 @@ export default function CommunityScreen() {
               — {currentRoom.daily_prompt_author}
             </Text>
           ) : null}
-        </View>
+        </GlassSurface>
 
         {/* Messages */}
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#040485" />
+            <ActivityIndicator size="large" color={colors.signal} />
           </View>
         ) : visibleMessages.length === 0 ? (
           <View className="flex-1 items-center justify-center px-10">
@@ -596,9 +593,12 @@ export default function CommunityScreen() {
         )}
 
         {/* Message Input — floats above keyboard when open, above tab bar when closed */}
-        <View
-          className="px-4 py-3 bg-white border-t border-silver-100"
+        <GlassSurface
+          tone="strong"
+          radius={28}
+          className="mx-3 px-3 py-2"
           style={{
+            marginBottom: 8,
             paddingBottom: bottomInset,
           }}
         >
@@ -655,7 +655,7 @@ export default function CommunityScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </GlassSurface>
 
         {/* Mini Profile Drawer */}
         <Modal
@@ -677,7 +677,7 @@ export default function CommunityScreen() {
           >
             <TouchableOpacity activeOpacity={1}>
               <View
-                className="bg-white rounded-t-3xl px-6 pt-5 pb-10"
+                className="bg-app-surface rounded-t-3xl px-6 pt-5 pb-10"
                 style={{
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: -4 },
@@ -693,7 +693,7 @@ export default function CommunityScreen() {
 
                 {profileLoading ? (
                   <View className="items-center py-10">
-                    <ActivityIndicator size="large" color="#040485" />
+                    <ActivityIndicator size="large" color={colors.signal} />
                   </View>
                 ) : selectedProfile ? (
                   <View className="items-center">
@@ -800,7 +800,7 @@ export default function CommunityScreen() {
         >
           <View className="flex-1 justify-end bg-black/40">
             <View
-              className="bg-white rounded-t-3xl px-6 pt-6 pb-10"
+              className="bg-app-surface rounded-t-3xl px-6 pt-6 pb-10"
               style={{
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: -4 },

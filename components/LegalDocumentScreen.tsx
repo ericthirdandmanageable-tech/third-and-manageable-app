@@ -1,3 +1,4 @@
+import { GlassSurface } from "@/components/ui/liquid-glass";
 import { LegalDocument, LEGAL_LINKS } from "@/constants/legal";
 import { Ionicons } from "@expo/vector-icons";
 import { Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -15,7 +16,7 @@ export default function LegalDocumentScreen({
   hostedLabel,
 }: Props) {
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
@@ -32,9 +33,9 @@ export default function LegalDocumentScreen({
         </View>
 
         {document.sections.map((section) => (
-          <View
+          <GlassSurface
             key={section.heading}
-            className="bg-white rounded-3xl p-5 mb-3"
+            className="bg-app-surface rounded-3xl p-5 mb-3"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -54,7 +55,7 @@ export default function LegalDocumentScreen({
                 {paragraph}
               </Text>
             ))}
-          </View>
+          </GlassSurface>
         ))}
 
         <TouchableOpacity
@@ -72,7 +73,7 @@ export default function LegalDocumentScreen({
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="bg-white rounded-2xl p-4 flex-row items-center justify-between"
+          className="bg-app-surface rounded-2xl p-4 flex-row items-center justify-between"
           onPress={() => Linking.openURL(`mailto:${LEGAL_LINKS.supportEmail}`)}
           activeOpacity={0.8}
           style={{

@@ -1,4 +1,6 @@
 import { SkeletonCard } from "@/components/SkeletonLoader";
+import { GlassSurface } from "@/components/ui/liquid-glass";
+import { useAppTheme } from "@/context/app-theme";
 import { SPORTS } from "@/constants/sports";
 import { useAuth } from "@/context/auth";
 import { ChatMessage, getAIResponse, getChatResponse } from "@/lib/gemini";
@@ -93,6 +95,7 @@ function formatSessionDate(dateStr: string): string {
 
 export default function CheckInScreen() {
   const { user, profile, refreshProfile } = useAuth();
+  const { colors } = useAppTheme();
   const sport = profile ? SPORTS[profile.sport as SportKey] : null;
 
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
@@ -322,8 +325,10 @@ export default function CheckInScreen() {
             </Text>
           </View>
         )}
-        <View
-          className={`rounded-2xl px-4 py-3 max-w-[85%] ${isUser ? "bg-dp-600" : "bg-white"
+        <GlassSurface
+          tone={isUser ? "signal" : "regular"}
+          radius={18}
+          className={`rounded-2xl px-4 py-3 max-w-[85%] ${isUser ? "bg-dp-600" : "bg-app-surface"
             }`}
           style={
             isUser
@@ -343,14 +348,14 @@ export default function CheckInScreen() {
           >
             {item.content}
           </Text>
-        </View>
+        </GlassSurface>
       </View>
     );
   };
 
   if (checkingToday) {
     return (
-      <SafeAreaView className="flex-1 bg-cream">
+      <SafeAreaView className="flex-1 bg-transparent">
         <View style={{ padding: 20 }}>
           <SkeletonCard />
           <SkeletonCard />
@@ -365,7 +370,7 @@ export default function CheckInScreen() {
     if (viewingSession) {
       // Viewing a specific past session
       return (
-        <SafeAreaView className="flex-1 bg-cream" edges={["top"]}>
+        <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
           {/* Header */}
           <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
             <TouchableOpacity
@@ -427,7 +432,7 @@ export default function CheckInScreen() {
 
     // History list
     return (
-      <SafeAreaView className="flex-1 bg-cream" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
         {/* Header */}
         <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
           <TouchableOpacity
@@ -476,7 +481,7 @@ export default function CheckInScreen() {
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
               <TouchableOpacity
-                className="bg-white rounded-2xl p-4 mb-3"
+                className="bg-app-surface rounded-2xl p-4 mb-3"
                 style={{
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: 1 },
@@ -519,7 +524,7 @@ export default function CheckInScreen() {
   // ─── Chat Mode ───────────────────────────────────────────────────
   if (todayCheckIn && chatMode) {
     return (
-      <SafeAreaView className="flex-1 bg-cream" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
         <View className="flex-1">
           {/* Chat Header */}
           <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
@@ -580,7 +585,7 @@ export default function CheckInScreen() {
 
           {/* Chat Input — floats above keyboard when open, above tab bar when closed */}
           <View
-            className="px-4 py-3 bg-white border-t border-silver-100"
+            className="px-4 py-3 bg-app-surface border-t border-silver-100"
             style={{
               paddingBottom: bottomInset,
             }}
@@ -624,7 +629,7 @@ export default function CheckInScreen() {
   if (todayCheckIn) {
     const moodInfo = MOODS.find((m) => m.value === todayCheckIn.mood);
     return (
-      <SafeAreaView className="flex-1 bg-cream">
+      <SafeAreaView className="flex-1 bg-transparent">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
@@ -675,8 +680,8 @@ export default function CheckInScreen() {
           </View>
 
           {/* Mood summary */}
-          <View
-            className="bg-white rounded-3xl p-6 mb-4 items-center"
+          <GlassSurface
+            className="bg-app-surface rounded-3xl p-6 mb-4 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -700,7 +705,7 @@ export default function CheckInScreen() {
                 {`"${todayCheckIn.note}"`}
               </Text>
             ) : null}
-          </View>
+          </GlassSurface>
 
           {/* AI Response */}
           {aiResponse ? (
@@ -749,7 +754,7 @@ export default function CheckInScreen() {
 
           {/* Chat History Button */}
           <TouchableOpacity
-            className="bg-white rounded-2xl py-4 mb-4 flex-row items-center justify-center border border-silver-200"
+            className="bg-app-surface rounded-2xl py-4 mb-4 flex-row items-center justify-center border border-silver-200"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 1 },
@@ -770,8 +775,9 @@ export default function CheckInScreen() {
           </TouchableOpacity>
 
           {/* Encouragement */}
-          <View
-            className="bg-white rounded-3xl p-4"
+          <GlassSurface
+            tone="signal"
+            className="bg-app-surface rounded-3xl p-4"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -783,14 +789,14 @@ export default function CheckInScreen() {
             <Text className="text-sm text-silver-600 text-center leading-5">
               You showed up today. That&apos;s what matters. See you tomorrow.
             </Text>
-          </View>
+          </GlassSurface>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
@@ -852,8 +858,8 @@ export default function CheckInScreen() {
         </View>
 
         {/* Mood Selector */}
-        <View
-          className="bg-white rounded-3xl p-5 mb-4"
+        <GlassSurface
+          className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -873,7 +879,7 @@ export default function CheckInScreen() {
                   }`}
                 style={
                   selectedMood === mood.value
-                    ? { borderWidth: 2, borderColor: "#040485" }
+                    ? { borderWidth: 2, borderColor: colors.signal }
                     : { borderWidth: 2, borderColor: "transparent" }
                 }
                 onPress={() => setSelectedMood(mood.value)}
@@ -895,11 +901,12 @@ export default function CheckInScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </GlassSurface>
 
         {/* Note Input */}
-        <View
-          className="bg-white rounded-3xl p-5 mb-4"
+        <GlassSurface
+          tone="strong"
+          className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -924,7 +931,7 @@ export default function CheckInScreen() {
           <Text className="text-xs text-silver-400 text-right mt-2">
             {note.length}/500
           </Text>
-        </View>
+        </GlassSurface>
 
         {/* Submit Button */}
         <TouchableOpacity

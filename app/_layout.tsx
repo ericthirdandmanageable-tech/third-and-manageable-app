@@ -1,9 +1,10 @@
-import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { useAppTheme, AppThemeProvider } from "@/context/app-theme";
 import { useFonts } from "expo-font";
 import { Slot, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ActivityIndicator, Text, TextInput, View } from "react-native";
 import * as Linking from "expo-linking";
 import "react-native-reanimated";
@@ -28,6 +29,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { user, profile, isLoading } = useAuth();
+  const { colors } = useAppTheme();
   const segments = useSegments();
   const router = useRouter();
 
@@ -111,8 +113,8 @@ function RootNavigator() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#040485" />
+      <View className="flex-1 justify-center items-center bg-transparent">
+        <ActivityIndicator size="large" color={colors.signal} />
       </View>
     );
   }
@@ -120,8 +122,33 @@ function RootNavigator() {
   return (
     <>
       <Slot />
-      <StatusBar style="dark" />
+      <StatusBar style={segments[0] === "(auth)" ? "light" : "dark"} />
     </>
+  );
+}
+
+function ThemedApplication() {
+  const { colors } = useAppTheme();
+  const navigationTheme = useMemo(
+    () => ({
+      ...DefaultTheme,
+      colors: {
+        ...DefaultTheme.colors,
+        primary: colors.signal,
+        background: "transparent",
+        card: "transparent",
+        text: colors.textPrimary,
+        border: colors.borderStrong,
+        notification: colors.danger,
+      },
+    }),
+    [colors],
+  );
+
+  return (
+    <ThemeProvider value={navigationTheme}>
+      <RootNavigator />
+    </ThemeProvider>
   );
 }
 
@@ -132,6 +159,10 @@ export default function RootLayout() {
     "Raleway-SemiBold": require("@expo-google-fonts/raleway/600SemiBold/Raleway_600SemiBold.ttf"),
     "Raleway-Bold": require("@expo-google-fonts/raleway/700Bold/Raleway_700Bold.ttf"),
     "Raleway-ExtraBold": require("@expo-google-fonts/raleway/800ExtraBold/Raleway_800ExtraBold.ttf"),
+    "InstrumentSerif-Regular": require("@expo-google-fonts/instrument-serif/400Regular/InstrumentSerif_400Regular.ttf"),
+    "InstrumentSerif-Italic": require("@expo-google-fonts/instrument-serif/400Regular_Italic/InstrumentSerif_400Regular_Italic.ttf"),
+    "DMMono-Regular": require("@expo-google-fonts/dm-mono/400Regular/DMMono_400Regular.ttf"),
+    "DMMono-Medium": require("@expo-google-fonts/dm-mono/500Medium/DMMono_500Medium.ttf"),
   });
 
   useEffect(() => {
@@ -146,11 +177,11 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider value={DarkTheme}>
-        <AuthProvider>
-          <RootNavigator />
-        </AuthProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <AppThemeProvider>
+          <ThemedApplication />
+        </AppThemeProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
