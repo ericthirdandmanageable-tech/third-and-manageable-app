@@ -24,6 +24,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -44,6 +45,8 @@ const getDailyTip = () => {
 export default function HomeScreen() {
   const { user, profile, isLoading } = useAuth();
   const { colors, schoolTheme, theme } = useAppTheme();
+  const { width } = useWindowDimensions();
+  const compact = width < 420;
   const sport = profile ? SPORTS[profile.sport as SportKey] : null;
   const [unreadCount, setUnreadCount] = useState(0);
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
@@ -125,7 +128,11 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        <GlassSurface tone="strong" radius={30} style={styles.hero}>
+        <GlassSurface
+          tone="strong"
+          radius={30}
+          style={[styles.hero, compact && styles.heroCompact]}
+        >
           <LinearGradient
             pointerEvents="none"
             colors={[`${colors.signal}20`, `${colors.signalDark}08`, "transparent"]}
@@ -134,7 +141,15 @@ export default function HomeScreen() {
             style={StyleSheet.absoluteFill}
           />
           <Text style={[styles.heroEyebrow, { color: colors.signal }]}>Your next chapter · today’s huddle</Text>
-          <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>Welcome back, {profile.display_name}.</Text>
+          <Text
+            style={[
+              styles.heroTitle,
+              compact && styles.heroTitleCompact,
+              { color: colors.textPrimary },
+            ]}
+          >
+            Welcome back, {profile.display_name}.
+          </Text>
           <Text style={[styles.heroBody, { color: colors.textSecondary }]}>The jersey can change. The way you show up doesn’t have to.</Text>
           <View style={styles.identityRow}>
             <View style={[styles.identityPill, { backgroundColor: colors.signalSoft }]}>
@@ -274,8 +289,10 @@ const styles = StyleSheet.create({
   badge: { position: "absolute", right: -3, top: -3, minWidth: 17, height: 17, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   badgeText: { color: "white", fontFamily: "DMMono-Medium", fontSize: 7 },
   hero: { margin: 20, marginTop: 8, padding: 24, minHeight: 235, justifyContent: "flex-end" },
+  heroCompact: { marginHorizontal: 16, padding: 20, minHeight: 210 },
   heroEyebrow: { fontFamily: "DMMono-Medium", fontSize: 9, textTransform: "uppercase", letterSpacing: 1.4 },
   heroTitle: { fontFamily: "InstrumentSerif-Regular", fontSize: 40, lineHeight: 43, marginTop: 8 },
+  heroTitleCompact: { fontSize: 35, lineHeight: 38 },
   heroBody: { fontFamily: "Raleway-Medium", fontSize: 13, lineHeight: 20, maxWidth: 290, marginTop: 8 },
   identityRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 17 },
   identityPill: { minHeight: 29, borderRadius: 15, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10 },

@@ -132,39 +132,42 @@ export default function NotificationsScreen() {
         onPress={() => handleTapNotification(item)}
         activeOpacity={0.7}
       >
-        <GlassSurface tone={isUnread ? "signal" : "regular"} className="p-4">
-        <View className="flex-row">
-          <View
-            className={`w-9 h-9 rounded-full items-center justify-center mr-3 ${isUnread ? "bg-dp-600" : "bg-silver-100"
-              }`}
-          >
-            <Ionicons
-              name={iconName}
-              size={18}
-              color={isUnread ? "#fff" : iconColor}
-            />
-          </View>
-          <View className="flex-1">
-            <View className="flex-row items-center justify-between mb-1">
-              <Text
-                className={`text-sm font-raleway-bold ${isUnread ? "text-dp-700" : "text-silver-900"
-                  }`}
-                numberOfLines={1}
-              >
-                {item.title}
-              </Text>
-              {isUnread && (
-                <View className="w-2 h-2 rounded-full bg-dp-600 ml-2" />
-              )}
+        <GlassSurface
+          tone={isUnread ? "signal" : "regular"}
+          style={{ padding: 16 }}
+        >
+          <View className="flex-row">
+            <View
+              className={`w-9 h-9 rounded-full items-center justify-center mr-3 ${isUnread ? "bg-dp-600" : "bg-silver-100"
+                }`}
+            >
+              <Ionicons
+                name={iconName}
+                size={18}
+                color={isUnread ? "#fff" : iconColor}
+              />
             </View>
-            <Text className="text-xs text-silver-500 leading-4">
-              {item.body}
-            </Text>
-            <Text className="text-[10px] text-silver-400 mt-1.5">
-              {formatTimestamp(item.timestamp)}
-            </Text>
+            <View className="flex-1">
+              <View className="flex-row items-center justify-between mb-1">
+                <Text
+                  className={`text-sm font-raleway-bold ${isUnread ? "text-dp-700" : "text-silver-900"
+                    }`}
+                  numberOfLines={1}
+                >
+                  {item.title}
+                </Text>
+                {isUnread && (
+                  <View className="w-2 h-2 rounded-full bg-dp-600 ml-2" />
+                )}
+              </View>
+              <Text className="text-xs text-silver-500 leading-4">
+                {item.body}
+              </Text>
+              <Text className="text-[10px] text-silver-400 mt-1.5">
+                {formatTimestamp(item.timestamp)}
+              </Text>
+            </View>
           </View>
-        </View>
         </GlassSurface>
       </TouchableOpacity>
     );
@@ -173,7 +176,17 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-transparent">
       {/* Header */}
-      <GlassSurface tone="strong" className="mx-5 mt-2 px-4 py-3 flex-row items-center">
+      <GlassSurface
+        tone="strong"
+        style={{
+          marginHorizontal: 20,
+          marginTop: 8,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
         <TouchableOpacity
           className="flex-row items-center mr-4"
           onPress={() => router.back()}

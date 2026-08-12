@@ -310,17 +310,22 @@ function CareerIntakeModal({
           )}
         </ScrollView>
         <View style={styles.modalFooter}>
-          {step > 0 ? <GlassButton label="Back" variant="glass" onPress={() => setStep((value) => value - 1)} style={styles.footerButton} /> : null}
-          <GlassButton
-            label={step === 2 ? "Build my map" : "Continue"}
-            icon={step === 2 ? "sparkles-outline" : "arrow-forward"}
-            disabled={step === 0 ? !role : step === 1 ? !favorite : reliedOn.trim().length < 12}
-            onPress={() => {
-              if (step < 2) setStep((value) => value + 1);
-              else void onComplete({ role, favorite, reliedOn: reliedOn.trim() });
-            }}
-            style={styles.footerButton}
-          />
+          {step > 0 ? (
+            <View style={styles.footerButton}>
+              <GlassButton label="Back" variant="glass" onPress={() => setStep((value) => value - 1)} />
+            </View>
+          ) : null}
+          <View style={styles.footerButton}>
+            <GlassButton
+              label={step === 2 ? "Build my map" : "Continue"}
+              icon={step === 2 ? "sparkles-outline" : "arrow-forward"}
+              disabled={step === 0 ? !role : step === 1 ? !favorite : reliedOn.trim().length < 12}
+              onPress={() => {
+                if (step < 2) setStep((value) => value + 1);
+                else void onComplete({ role, favorite, reliedOn: reliedOn.trim() });
+              }}
+            />
+          </View>
         </View>
       </SafeAreaView>
     </Modal>

@@ -122,7 +122,13 @@ function RootNavigator() {
   return (
     <>
       <Slot />
-      <StatusBar style={segments[0] === "(auth)" ? "light" : "dark"} />
+      <StatusBar
+        style={
+          segments[0] === "(auth)" && segments[1] === "welcome"
+            ? "light"
+            : "dark"
+        }
+      />
     </>
   );
 }

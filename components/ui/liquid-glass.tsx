@@ -16,6 +16,7 @@ import {
   View,
   type ViewProps,
   type ViewStyle,
+  useWindowDimensions,
 } from "react-native";
 
 export type GlassTone = "regular" | "strong" | "subtle" | "signal";
@@ -159,46 +160,65 @@ export function GlassButton({
       : colors.textPrimary;
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      collapsable={false}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        compact && styles.buttonCompact,
-        {
-          opacity: disabled ? 0.45 : pressed ? 0.84 : 1,
-          transform: [{ scale: pressed ? 0.985 : 1 }],
-        },
-        style,
-      ]}
-    >
-      <View
-        pointerEvents="none"
-        style={[
-          styles.buttonBackdrop,
-          {
-            backgroundColor: isPrimary ? colors.signal : colors.surfaceStrong,
-            borderColor: isPrimary ? colors.signal : colors.borderStrong,
-          },
-        ]}
-      />
-      <View pointerEvents="none" style={styles.buttonContent}>
-        {icon ? <Ionicons name={icon} size={compact ? 16 : 18} color={foreground} /> : null}
-        <Text
-          style={[
-            styles.buttonLabel,
-            compact && styles.buttonLabelCompact,
-            { color: foreground },
-            textStyle,
-          ]}
-        >
-          {label}
-        </Text>
-      </View>
-    </Pressable>
+    <View style={style}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        collapsable={false}
+        disabled={disabled}
+        onPress={onPress}
+        style={styles.buttonPressable}
+      >
+        {({ pressed }) => (
+          <View
+            style={[
+              styles.buttonFrame,
+              compact && styles.buttonFrameCompact,
+              {
+                opacity: disabled ? 0.45 : pressed ? 0.84 : 1,
+                transform: [{ scale: pressed ? 0.985 : 1 }],
+              },
+            ]}
+          >
+            <View
+              pointerEvents="none"
+              style={[
+                styles.buttonBackdrop,
+                {
+                  backgroundColor: isPrimary ? colors.signal : colors.surfaceStrong,
+                  borderColor: isPrimary ? colors.signal : colors.borderStrong,
+                },
+              ]}
+            />
+            <View
+              pointerEvents="none"
+              style={[
+                styles.buttonContent,
+                compact && styles.buttonContentCompact,
+              ]}
+            >
+              {icon ? (
+                <Ionicons
+                  name={icon}
+                  size={compact ? 16 : 18}
+                  color={foreground}
+                />
+              ) : null}
+              <Text
+                style={[
+                  styles.buttonLabel,
+                  compact && styles.buttonLabelCompact,
+                  { color: foreground },
+                  textStyle,
+                ]}
+              >
+                {label}
+              </Text>
+            </View>
+          </View>
+        )}
+      </Pressable>
+    </View>
   );
 }
 
@@ -218,8 +238,10 @@ export function ScreenHeader({
   action,
 }: ScreenHeaderProps) {
   const { colors } = useAppTheme();
+  const { width } = useWindowDimensions();
+  const compact = width < 420;
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, compact && styles.headerCompact]}>
       <View style={styles.headerCopy}>
         {eyebrow ? (
           <Text style={[styles.eyebrow, { color: colors.signal }]}>{eyebrow}</Text>
@@ -230,7 +252,15 @@ export function ScreenHeader({
               <Ionicons name={icon} size={20} color={colors.signal} />
             </View>
           ) : null}
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          <Text
+            style={[
+              styles.title,
+              compact && styles.titleCompact,
+              { color: colors.textPrimary },
+            ]}
+          >
+            {title}
+          </Text>
         </View>
         {subtitle ? (
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
@@ -241,10 +271,18 @@ export function ScreenHeader({
   );
 }
 
-export function SectionLabel({ children }: { children: ReactNode }) {
+export function SectionLabel({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: TextStyle;
+}) {
   const { colors } = useAppTheme();
   return (
-    <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{children}</Text>
+    <Text style={[styles.sectionLabel, { color: colors.textSecondary }, style]}>
+      {children}
+    </Text>
   );
 }
 
@@ -252,12 +290,18 @@ const styles = StyleSheet.create({
   nativeGlassBackground: {
     backgroundColor: "transparent",
   },
-  button: {
-    minHeight: 50,
+  buttonPressable: {
+    alignSelf: "stretch",
+  },
+  buttonFrame: {
+    height: 50,
     borderRadius: 25,
-    alignItems: "stretch",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  buttonFrameCompact: {
+    height: 40,
+    borderRadius: 20,
   },
   buttonBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -265,15 +309,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   buttonContent: {
+    height: 50,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     paddingHorizontal: 20,
   },
-  buttonCompact: {
-    minHeight: 38,
-    borderRadius: 19,
+  buttonContentCompact: {
+    height: 40,
     paddingHorizontal: 14,
   },
   buttonLabel: {
@@ -291,6 +335,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 18,
+  },
+  headerCompact: {
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 15,
   },
   headerCopy: {
     flex: 1,
@@ -319,6 +368,10 @@ const styles = StyleSheet.create({
     fontFamily: "InstrumentSerif-Regular",
     fontSize: 38,
     lineHeight: 42,
+  },
+  titleCompact: {
+    fontSize: 34,
+    lineHeight: 37,
   },
   subtitle: {
     fontFamily: "Raleway-Medium",

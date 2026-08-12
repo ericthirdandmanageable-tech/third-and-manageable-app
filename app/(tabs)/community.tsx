@@ -490,7 +490,11 @@ export default function CommunityScreen() {
           </View>
 
           {/* Room tabs */}
-          <GlassSurface radius={14} tone="subtle" className="flex-row rounded-xl p-1 mb-2">
+          <GlassSurface
+            radius={14}
+            tone="subtle"
+            style={{ flexDirection: "row", padding: 4, marginBottom: 8 }}
+          >
             <TouchableOpacity
               className={`flex-1 py-2 rounded-lg items-center ${activeTab === "global" ? "bg-dp-600" : ""
                 }`}

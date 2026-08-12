@@ -1,20 +1,14 @@
-import { GlassSurface } from "@/components/ui/liquid-glass";
+import { AuthField, AuthScaffold } from "@/components/auth/AuthScaffold";
+import { GlassButton, GlassSurface, SectionLabel } from "@/components/ui/liquid-glass";
+import { useAppTheme } from "@/context/app-theme";
 import { requestPasswordRecovery } from "@/services/auth";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 export default function ForgotPasswordScreen() {
+  const { colors } = useAppTheme();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [requested, setRequested] = useState(false);
@@ -29,7 +23,6 @@ export default function ForgotPasswordScreen() {
     setSubmitting(true);
     try {
       await requestPasswordRecovery(normalizedEmail);
-      // Do not disclose whether an account exists for the supplied address.
       setRequested(true);
     } catch (error: any) {
       Alert.alert(
@@ -42,81 +35,57 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-transparent">
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <GlassSurface tone="strong" className="flex-1 mx-5 my-8 px-7 justify-center">
-          <Text className="text-3xl font-raleway-extrabold text-silver-900 mb-2">
-            Reset password
-          </Text>
-          <Text className="text-base text-silver-400 mb-8 leading-6">
-            Enter your email and we&apos;ll send a one-hour reset link.
-          </Text>
-
-          {requested ? (
-            <View className="bg-dp-50 rounded-2xl p-5">
-              <Text className="text-base font-raleway-bold text-dp-700 mb-2">
-                Check your email
-              </Text>
-              <Text className="text-sm text-silver-600 leading-5 mb-5">
-                If an account exists for that address, a reset link is on its
-                way. Open it on this device to choose a new password.
-              </Text>
-              <TouchableOpacity
-                className="bg-dp-600 py-4 rounded-2xl items-center"
-                onPress={() => router.replace("/(auth)/login")}
-              >
-                <Text className="text-white text-base font-raleway-bold">
-                  Back to sign in
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <Text className="text-xs font-raleway-semibold text-silver-500 uppercase tracking-wider mb-2">
-                Email
-              </Text>
-              <TextInput
-                className="bg-silver-50 border border-silver-200 rounded-2xl px-4 py-4 text-base text-silver-900 mb-6"
-                placeholder="you@example.com"
-                placeholderTextColor="#AEAEB2"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-                value={email}
-                onChangeText={setEmail}
-                onSubmitEditing={handleRequest}
-                returnKeyType="send"
-              />
-              <TouchableOpacity
-                className={`bg-dp-600 py-4 rounded-2xl items-center ${submitting ? "opacity-60" : ""}`}
-                onPress={handleRequest}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text className="text-white text-base font-raleway-bold">
-                    Send reset link
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
-
-          <TouchableOpacity
-            className="items-center mt-6"
-            onPress={() => router.back()}
-          >
-            <Text className="text-sm font-raleway-semibold text-dp-600">
-              Back
-            </Text>
-          </TouchableOpacity>
+    <AuthScaffold
+      eyebrow="Account recovery"
+      title={requested ? "Check your email." : "Reset your password."}
+      subtitle={
+        requested
+          ? "If an account exists for that address, a one-hour reset link is on its way."
+          : "Enter the email attached to your athlete profile."
+      }
+    >
+      {requested ? (
+        <GlassSurface tone="signal" style={styles.confirmation}>
+          <View style={[styles.confirmationIcon, { backgroundColor: colors.signalSoft }]}>
+            <Ionicons name="mail-outline" size={22} color={colors.signal} />
+          </View>
+          <View style={styles.confirmationCopy}>
+            <SectionLabel style={styles.confirmationLabel}>Link requested</SectionLabel>
+            <Text style={[styles.confirmationText, { color: colors.textSecondary }]}>Open the email on this device to choose a new password.</Text>
+          </View>
         </GlassSurface>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      ) : (
+        <AuthField
+          label="Email"
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          value={email}
+          onChangeText={setEmail}
+          onSubmitEditing={() => void handleRequest()}
+          returnKeyType="send"
+        />
+      )}
+
+      <GlassButton
+        label={requested ? "Back to sign in" : submitting ? "Sending…" : "Send reset link"}
+        icon={requested ? "arrow-back" : "mail-outline"}
+        disabled={submitting}
+        onPress={requested ? () => router.replace("/(auth)/login") : () => void handleRequest()}
+      />
+      {!requested ? (
+        <GlassButton label="Back" variant="glass" onPress={() => router.back()} />
+      ) : null}
+    </AuthScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  confirmation: { padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+  confirmationIcon: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  confirmationCopy: { flex: 1 },
+  confirmationLabel: { marginBottom: 3 },
+  confirmationText: { fontFamily: "Raleway-Medium", fontSize: 12, lineHeight: 18 },
+});

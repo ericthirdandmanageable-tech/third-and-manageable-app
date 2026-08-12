@@ -9,6 +9,7 @@ import {
   Text,
   type ViewStyle,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -36,11 +37,24 @@ export function OnboardingScaffold({
   scroll?: boolean;
 }) {
   const { colors } = useAppTheme();
+  const { width, height } = useWindowDimensions();
+  const compact = width < 420 || height < 860;
   const body = (
-    <View style={styles.body}>
-      <GlassSurface tone="strong" style={styles.header}>
+    <View style={[styles.body, compact && styles.bodyCompact]}>
+      <GlassSurface
+        tone="strong"
+        style={[styles.header, compact && styles.headerCompact]}
+      >
         <Text style={[styles.step, { color: colors.signal }]}>Step {step} of 4</Text>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+        <Text
+          style={[
+            styles.title,
+            compact && styles.titleCompact,
+            { color: colors.textPrimary },
+          ]}
+        >
+          {title}
+        </Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
         <View style={styles.progressRow}>
           {[1, 2, 3, 4].map((value) => (
@@ -74,22 +88,20 @@ export function OnboardingScaffold({
       ) : (
         <View style={styles.flex}>{body}</View>
       )}
-      <View style={styles.footer}>
+      <View style={[styles.footer, compact && styles.footerCompact]}>
         {onBack ? (
-          <GlassButton
-            label="Back"
-            variant="glass"
-            onPress={onBack}
-            style={styles.backButton}
-          />
+          <View style={styles.backButton}>
+            <GlassButton label="Back" variant="glass" onPress={onBack} />
+          </View>
         ) : null}
-        <GlassButton
-          label={loading ? "Saving…" : primaryLabel}
-          icon={step === 4 ? "sparkles-outline" : "arrow-forward"}
-          disabled={primaryDisabled || loading}
-          onPress={onPrimary}
-          style={styles.primaryButton}
-        />
+        <View style={styles.primaryButton}>
+          <GlassButton
+            label={loading ? "Saving…" : primaryLabel}
+            icon={step === 4 ? "sparkles-outline" : "arrow-forward"}
+            disabled={primaryDisabled || loading}
+            onPress={onPrimary}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -171,7 +183,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 120 },
   body: { flex: 1, paddingHorizontal: 20, paddingTop: 12, gap: 12 },
+  bodyCompact: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
   header: { padding: 22, marginBottom: 4 },
+  headerCompact: { padding: 18 },
   step: {
     fontFamily: "DMMono-Medium",
     fontSize: 10,
@@ -184,6 +198,7 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     marginTop: 8,
   },
+  titleCompact: { fontSize: 32, lineHeight: 35 },
   subtitle: {
     fontFamily: "Raleway-Medium",
     fontSize: 13,
@@ -213,6 +228,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
   },
+  footerCompact: { left: 16, right: 16, bottom: 12 },
   backButton: { flex: 1 },
   primaryButton: { flex: 2 },
 });

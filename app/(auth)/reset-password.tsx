@@ -1,17 +1,9 @@
-import { GlassSurface } from "@/components/ui/liquid-glass";
+import { AuthField, AuthScaffold } from "@/components/auth/AuthScaffold";
+import { GlassButton } from "@/components/ui/liquid-glass";
 import { resetPassword } from "@/services/auth";
 import { router, useGlobalSearchParams, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert } from "react-native";
 
 function firstParameter(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] || "" : value || "";
@@ -31,6 +23,7 @@ export default function ResetPasswordScreen() {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const hasValidLink = Boolean(userId && secret);
 
   const handleReset = async () => {
     if (password.length < 8) {
@@ -58,70 +51,45 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  const hasValidLink = Boolean(userId && secret);
-
   return (
-    <SafeAreaView className="flex-1 bg-transparent">
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <GlassSurface tone="strong" className="flex-1 mx-5 my-8 px-7 justify-center">
-          <Text className="text-3xl font-raleway-extrabold text-silver-900 mb-2">
-            Choose a new password
-          </Text>
-          <Text className="text-base text-silver-400 mb-8 leading-6">
-            {hasValidLink
-              ? "Choose a password with at least 8 characters."
-              : "This reset link is incomplete or has expired. Request a new one to continue."}
-          </Text>
+    <AuthScaffold
+      eyebrow="Account recovery"
+      title={hasValidLink ? "Choose a new password." : "This link is incomplete."}
+      subtitle={
+        hasValidLink
+          ? "Use at least eight characters, then return to your next chapter."
+          : "Request a fresh reset link to continue securely."
+      }
+    >
+      {hasValidLink ? (
+        <>
+          <AuthField
+            label="New password"
+            placeholder="At least 8 characters"
+            secureTextEntry
+            autoComplete="new-password"
+            value={password}
+            onChangeText={setPassword}
+          />
+          <AuthField
+            label="Confirm password"
+            placeholder="Repeat your password"
+            secureTextEntry
+            autoComplete="new-password"
+            value={confirmation}
+            onChangeText={setConfirmation}
+            onSubmitEditing={() => void handleReset()}
+            returnKeyType="done"
+          />
+        </>
+      ) : null}
 
-          {hasValidLink && (
-            <>
-              <Text className="text-xs font-raleway-semibold text-silver-500 uppercase tracking-wider mb-2">
-                New password
-              </Text>
-              <TextInput
-                className="bg-silver-50 border border-silver-200 rounded-2xl px-4 py-4 text-base text-silver-900 mb-4"
-                placeholder="New password"
-                placeholderTextColor="#AEAEB2"
-                secureTextEntry
-                autoComplete="new-password"
-                value={password}
-                onChangeText={setPassword}
-              />
-              <Text className="text-xs font-raleway-semibold text-silver-500 uppercase tracking-wider mb-2">
-                Confirm password
-              </Text>
-              <TextInput
-                className="bg-silver-50 border border-silver-200 rounded-2xl px-4 py-4 text-base text-silver-900 mb-6"
-                placeholder="Repeat new password"
-                placeholderTextColor="#AEAEB2"
-                secureTextEntry
-                autoComplete="new-password"
-                value={confirmation}
-                onChangeText={setConfirmation}
-                onSubmitEditing={handleReset}
-                returnKeyType="done"
-              />
-            </>
-          )}
-
-          <TouchableOpacity
-            className={`bg-dp-600 py-4 rounded-2xl items-center ${submitting ? "opacity-60" : ""}`}
-            onPress={hasValidLink ? handleReset : () => router.replace("/(auth)/forgot-password")}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-base font-raleway-bold">
-                {hasValidLink ? "Update password" : "Request a new link"}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </GlassSurface>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <GlassButton
+        label={hasValidLink ? (submitting ? "Updating…" : "Update password") : "Request a new link"}
+        icon={hasValidLink ? "lock-closed-outline" : "refresh-outline"}
+        disabled={submitting}
+        onPress={hasValidLink ? () => void handleReset() : () => router.replace("/(auth)/forgot-password")}
+      />
+    </AuthScaffold>
   );
 }

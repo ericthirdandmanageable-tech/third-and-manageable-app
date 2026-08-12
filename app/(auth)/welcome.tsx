@@ -74,6 +74,8 @@ export default function WelcomeScreen() {
   const { width, height } = useWindowDimensions();
   const { colors } = useAppTheme();
   const activeSlide = SLIDES[activeIndex];
+  const compact = width < 420 || height < 880;
+  const expansive = height >= 930;
 
   const dotAnimations = useRef(
     SLIDES.map((_, index) => new Animated.Value(index === 0 ? 1 : 0)),
@@ -149,7 +151,11 @@ export default function WelcomeScreen() {
       <GlassSurface
         tone="subtle"
         radius={999}
-        style={[styles.brand, { top: insets.top + 12 }]}
+        style={[
+          styles.brand,
+          compact && styles.brandCompact,
+          { top: insets.top + (compact ? 8 : 12) },
+        ]}
       >
         <Image
           source={require("@/assets/images/logo.png")}
@@ -161,20 +167,37 @@ export default function WelcomeScreen() {
 
       <GlassSurface
         tone="strong"
-        radius={32}
-        style={[styles.storyCard, { bottom: insets.bottom + 14 }]}
+        radius={compact ? 28 : 32}
+        style={[
+          styles.storyCard,
+          compact && styles.storyCardCompact,
+          expansive && styles.storyCardExpansive,
+          { bottom: insets.bottom + (compact ? 8 : 14) },
+        ]}
       >
         <View style={styles.storyTopline}>
           <View style={[styles.storyIcon, { backgroundColor: colors.signalSoft }]}>
             <Ionicons name={activeSlide.icon} size={17} color={colors.signal} />
           </View>
-          <SectionLabel>{activeSlide.eyebrow}</SectionLabel>
+          <SectionLabel style={styles.storyEyebrow}>{activeSlide.eyebrow}</SectionLabel>
         </View>
 
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{activeSlide.title}</Text>
+        <Text
+          style={[
+            styles.title,
+            compact && styles.titleCompact,
+            expansive && styles.titleExpansive,
+            { color: colors.textPrimary },
+          ]}
+        >
+          {activeSlide.title}
+        </Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{activeSlide.subtitle}</Text>
 
-        <View style={styles.dots} accessibilityLabel={`Slide ${activeIndex + 1} of ${SLIDES.length}`}>
+        <View
+          style={[styles.dots, compact && styles.dotsCompact]}
+          accessibilityLabel={`Slide ${activeIndex + 1} of ${SLIDES.length}`}
+        >
           {SLIDES.map((slide, index) => {
             const widthAnimation = dotAnimations[index].interpolate({
               inputRange: [0, 1],
@@ -223,6 +246,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
+  brandCompact: { paddingVertical: 7, paddingHorizontal: 12 },
   logo: { width: 28, height: 28 },
   brandName: {
     color: "#FFFFFF",
@@ -239,7 +263,10 @@ const styles = StyleSheet.create({
     right: 14,
     padding: 20,
   },
+  storyCardCompact: { left: 12, right: 12, padding: 16 },
+  storyCardExpansive: { padding: 22 },
   storyTopline: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
+  storyEyebrow: { flex: 1, marginBottom: 0 },
   storyIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   title: {
     fontFamily: "InstrumentSerif-Regular",
@@ -248,8 +275,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
     marginBottom: 8,
   },
+  titleCompact: { fontSize: 31, lineHeight: 33, letterSpacing: -0.45 },
+  titleExpansive: { fontSize: 38, lineHeight: 40 },
   subtitle: { fontFamily: "Raleway-Medium", fontSize: 14, lineHeight: 20 },
   dots: { flexDirection: "row", alignItems: "center", gap: 5, marginVertical: 16 },
+  dotsCompact: { marginVertical: 12 },
   dot: { height: 4, borderRadius: 2 },
   primaryButton: { marginBottom: 9 },
   legal: { fontFamily: "Raleway-Medium", fontSize: 10, textAlign: "center", marginTop: 12 },
