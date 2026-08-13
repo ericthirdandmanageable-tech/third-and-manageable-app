@@ -116,7 +116,7 @@ export default function ClipboardChatPage() {
     return (
         <div className="flex h-full relative">
             <div className="flex-1 flex flex-col h-full max-w-4xl mx-auto w-full">
-                <header className="px-6 py-4 border-b border-border-subtle bg-bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
+                <header className="liquid-glass sticky top-0 z-10 border-b border-border-subtle bg-bg-surface/80 px-6 py-4">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-volt flex items-center justify-center shrink-0">
@@ -240,7 +240,7 @@ export default function ClipboardChatPage() {
                     <div ref={endRef} />
                 </div>
 
-                <div className="p-4 bg-bg-surface border-t border-border-subtle">
+                <div className="liquid-glass border-t border-border-subtle bg-bg-surface p-4">
                     <div className="relative flex items-center">
                         <input
                             type="text"
@@ -250,13 +250,13 @@ export default function ClipboardChatPage() {
                             onKeyDown={(e) => e.key === "Enter" && sendUserMessage(input)}
                             placeholder="Message The Clipboard..."
                             disabled={isTyping}
-                            className="w-full bg-bg-elevated border border-border-subtle text-text-primary text-[15px] rounded-full py-3 pl-5 pr-14 focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition-all disabled:opacity-50 placeholder:text-text-tertiary"
+                            className="w-full rounded-full border border-border-subtle bg-bg-elevated py-3.5 pl-5 pr-16 text-[15px] text-text-primary transition-all placeholder:text-text-tertiary focus:border-volt focus:outline-none focus:ring-1 focus:ring-volt disabled:opacity-50"
                         />
                         <button
                             onClick={() => sendUserMessage(input)}
                             disabled={!input.trim() || isTyping}
                             aria-label="Send"
-                            className="absolute right-2 w-10 h-10 rounded-full bg-volt text-volt-ink flex items-center justify-center hover:bg-volt/90 transition-all disabled:opacity-40"
+                            className="absolute right-1.5 flex h-11 w-11 items-center justify-center rounded-full bg-volt text-volt-ink transition-all hover:bg-volt/90 disabled:opacity-40"
                         >
                             <Send className="w-4 h-4" />
                         </button>

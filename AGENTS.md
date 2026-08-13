@@ -1,26 +1,23 @@
 <claude-mem-context>
 # Memory Context
 
-# [3rd_and_manageable] recent context, 2026-08-11 4:36pm PDT
+# [3rd_and_manageable] recent context, 2026-08-13 2:31pm PDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (21,696t read) | 760,559t work | 97% savings
+Stats: 50 obs (22,272t read) | 757,771t work | 97% savings
 
 ### Jul 25, 2026
 S66 VS Code Claude Extension Installed via VSIX (Jul 25 at 1:33 PM)
 S64 Claude Code environment "doctor" session — health check and cleanup of Claude Code installation on Lucas's machine (Jul 25 at 1:33 PM)
 S69 next.config — allowedDevOrigins includes 127.0.0.1 (Jul 25 at 1:37 PM)
 ### Aug 11, 2026
-1743 11:58a 🟣 Third and Manageable iOS 1.0.1 (build 8) Submitted to TestFlight
 1747 11:59a 🟣 Third and Manageable — TestFlight 1.0.1 (build 8) Production Candidate Shipped
 1748 " ✅ Apple and Google OAuth Return URLs Registered for Production
 1749 " ✅ Firestore Security Rules — 16 Emulator Tests Pass, Rules Withheld from Production
 1750 " 🔴 Vercel Credential Rotation — Preview Admin/Session/JWT Secrets Replaced, Firebase Key Removed
-1751 " 🟣 FastAPI Bridge Deployed to Vercel Preview and Smoke-Tested
-1752 " 🔵 EXPO_PUBLIC_GEMINI_API_KEY Embedded as Public Mobile Env Value — Security Debt Documented
 1753 12:18p ⚖️ Third and Manageable — UI Redesign Scope and Design Direction Defined
 1754 " ⚖️ 3rd & Manageable — Liquid Glass UI Redesign Scoped
 1755 12:21p 🔵 3rd_and_manageable Core Library Structure Mapped for UI Redesign
@@ -65,6 +62,9 @@ S72 3rd_and_manageable liquid-glass UI redesign — implement 3-theme system (Le
 1824 " 🔴 UniversityFinder Accessible Name Bug — label Wrapping Listbox
 1825 4:35p 🟣 University Search Unit Test Suite Added
 1826 4:36p 🟣 University Finder Autocomplete Replaces Plain Text School Input in Onboarding
+1827 4:37p 🟣 University Finder Autocomplete Dropdown — Onboarding Flow
+1828 4:38p 🟣 UniversityFinder Autocomplete Component — Onboarding Flow
+1829 " 🟣 University Search Engine + College Scorecard Data Pipeline
 
-Access 761k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 758k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

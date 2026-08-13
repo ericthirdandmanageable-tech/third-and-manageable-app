@@ -29,10 +29,10 @@ export default function AthleteLoginPage() {
     }, [loading, router, user]);
 
     return (
-        <main className="relative min-h-screen overflow-hidden bg-[#080a0d] px-5 py-8 text-white sm:px-8 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)] lg:gap-12 lg:px-12">
+        <main className="safe-viewport relative overflow-x-hidden bg-[#080a0d] px-5 text-white sm:px-8 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)] lg:gap-12 lg:px-12">
             <div className="pointer-events-none absolute inset-0 opacity-75 [background:radial-gradient(circle_at_15%_20%,rgba(200,240,75,0.12),transparent_28%),radial-gradient(circle_at_85%_80%,rgba(139,147,248,0.09),transparent_32%)]" />
 
-            <section className="relative hidden min-h-[calc(100vh-4rem)] flex-col justify-between rounded-[32px] border border-white/8 bg-[linear-gradient(145deg,#171a20,#0e1014)] p-10 shadow-2xl lg:flex">
+            <section className="relative hidden min-h-[calc(100svh-3rem)] flex-col justify-between rounded-[32px] border border-white/8 bg-[linear-gradient(145deg,#171a20,#0e1014)] p-10 shadow-2xl lg:flex">
                 <div>
                     <p className="font-serif text-2xl italic text-sand">Third &amp; Manageable</p>
                     <div className="yard-line mt-5 w-40" />
@@ -64,8 +64,8 @@ export default function AthleteLoginPage() {
                 </p>
             </section>
 
-            <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center">
-                <div className="w-full max-w-lg rounded-[28px] border border-white/9 bg-[#13161b]/90 p-6 shadow-2xl backdrop-blur sm:p-9">
+            <section className="relative flex min-h-[calc(100svh-3rem)] items-center justify-center">
+                <div className="w-full max-w-lg rounded-[32px] border border-white/9 bg-[#13161b]/90 p-6 shadow-2xl backdrop-blur sm:p-9">
                     <div className="mb-8 lg:hidden">
                         <p className="font-serif text-2xl italic text-sand">Third &amp; Manageable</p>
                         <div className="yard-line mt-4 w-32" />

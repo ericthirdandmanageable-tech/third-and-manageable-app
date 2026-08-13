@@ -106,7 +106,7 @@ export default function UniversityFinder({
             />
             <Search
                 aria-hidden="true"
-                className="pointer-events-none absolute right-4 top-[1.15rem] h-4 w-4 text-white/38"
+                className="pointer-events-none absolute right-4 top-[1.15rem] h-4 w-4 text-white/50"
             />
 
             {open && value.trim() && (
@@ -114,17 +114,17 @@ export default function UniversityFinder({
                     id={listboxId}
                     role="listbox"
                     aria-label="U.S. universities"
-                    className="absolute z-40 mt-2 max-h-72 w-full min-w-[18rem] overflow-y-auto rounded-2xl border border-white/12 bg-[#111b2c]/98 p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+                    className="absolute z-40 mt-2 max-h-[42svh] w-full overflow-y-auto overscroll-contain rounded-2xl border border-white/16 bg-[#111b2c]/98 p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.45)] backdrop-blur-xl"
                 >
                     {searchIsStale ? (
-                        <p className="px-3 py-3 text-sm text-white/55">Searching…</p>
+                        <p className="px-3 py-3 text-sm text-white/65">Searching…</p>
                     ) : !universities && !directoryUnavailable ? (
-                        <p className="px-3 py-3 text-sm text-white/55">
+                        <p className="px-3 py-3 text-sm text-white/65">
                             Loading university directory…
                         </p>
                     ) : results.length ? (
                         results.map((university, index) => {
-                            const [scorecardId, name, city, state] = university;
+                            const [scorecardId, name, city, state, isMainCampus] = university;
                             const selected = name === value;
                             return (
                                 <button
@@ -137,16 +137,23 @@ export default function UniversityFinder({
                                     onMouseEnter={() => setActiveIndex(index)}
                                     onClick={() => selectUniversity(university)}
                                     className={clsx(
-                                        "flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition",
+                                        "flex min-h-12 w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition",
                                         index === activeIndex
                                             ? "bg-volt/12 text-white"
                                             : "text-white/78 hover:bg-white/7 hover:text-white",
                                     )}
                                 >
                                     <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-sm font-semibold">{name}</span>
-                                        <span className="mt-0.5 block text-xs text-white/45">
-                                            {city}, {state}
+                                        <span className="block text-sm font-semibold leading-snug">
+                                            {name}
+                                        </span>
+                                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-white/55">
+                                            <span>{city}, {state}</span>
+                                            {isMainCampus === 1 && (
+                                                <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[10px] font-medium text-white/70">
+                                                    Main campus
+                                                </span>
+                                            )}
                                         </span>
                                     </span>
                                     {selected && (
@@ -156,7 +163,7 @@ export default function UniversityFinder({
                             );
                         })
                     ) : (
-                        <p className="px-3 py-3 text-sm leading-relaxed text-white/55">
+                        <p className="px-3 py-3 text-sm leading-relaxed text-white/65">
                             {directoryUnavailable
                                 ? "The directory is unavailable. You can still continue with the name you entered."
                                 : "No matching university. You can still continue with the name you entered."}
