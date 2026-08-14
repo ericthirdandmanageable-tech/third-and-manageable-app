@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -15,7 +15,9 @@ import {
 import clsx from "clsx";
 
 import { api } from "@/lib/athlete/api";
+import { AppThemeProvider, useAppTheme } from "@/lib/athlete/app-theme";
 import { useAuth } from "@/lib/athlete/auth";
+import { getSchoolAppThemeSignal } from "@/lib/core/app-theme";
 import { getCommunityTheme } from "@/lib/core/community-theme";
 
 const navItems = [
@@ -39,10 +41,26 @@ const mobileNavItems = [...navItems, { to: "/profile", icon: UserRound, label: "
 const isActive = (pathname: string, to: string) =>
     to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 
+/*
+ * The liquid-glass reskin (Sideline Dusk / Campus Colors) is scoped to the
+ * shell only — `AppThemeProvider` is mounted here, not up in the `(athlete)`
+ * route group, because `/login` and `/onboarding` have their own
+ * hand-authored dark design (hardcoded near-black backgrounds) that the
+ * theme's light-surface text tokens would render illegibly against.
+ */
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <AppThemeProvider>
+            <ShellChrome>{children}</ShellChrome>
+        </AppThemeProvider>
+    );
+}
+
+function ShellChrome({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const { user, loading } = useAuth();
+    const { theme: appTheme } = useAppTheme();
     const [intakeGate, setIntakeGate] = useState<{
         userId: string | null;
         state: "ready" | "needs-onboarding" | "unavailable";
@@ -52,6 +70,24 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         user && intakeGate.userId === user.id ? intakeGate.state : "loading";
     const inCommunity = pathname.startsWith("/community");
     const communityTheme = getCommunityTheme(user?.school);
+    const schoolSignal = getSchoolAppThemeSignal(communityTheme.primary);
+    /*
+     * Campus Colors reuses the same glass base as Sideline Dusk (see
+     * globals.css) and layers the athlete's verified school on top as an
+     * inline var override — the "signal" tokens only, so the structural
+     * liquid-glass system stays constant and just changes flavor. The signal
+     * is the primary brand hue adjusted only as far as needed for small text on
+     * a light surface; using the raw BGSU orange here would make both links
+     * and white-on-orange buttons fail WCAG AA.
+     */
+    const shellStyle =
+        appTheme === "school"
+            ? ({
+                  "--color-volt": schoolSignal,
+                  "--color-volt-ink": "#ffffff",
+                  "--color-sand": communityTheme.accent,
+              } as CSSProperties)
+            : undefined;
 
     useEffect(() => {
         if (loading || user) return;
@@ -81,7 +117,10 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
     if (loading || !user || intakeState !== "ready") {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-bg-base">
+            <div
+                className="app-shell flex min-h-[100svh] items-center justify-center bg-bg-base"
+                style={shellStyle}
+            >
                 <div className="text-center">
                     <p className="font-serif text-2xl italic text-sand">Third &amp; Manageable</p>
                     <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-text-tertiary">
@@ -110,9 +149,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     }
 
     return (
-        <div className="flex h-screen bg-bg-base overflow-hidden">
+        <div className="app-shell flex h-[100svh] overflow-hidden bg-bg-base" style={shellStyle}>
             {/* Sidebar for Desktop */}
-            <aside className="hidden md:flex flex-col w-64 border-r border-border-subtle bg-bg-surface">
+            <aside className="liquid-glass hidden w-64 flex-col border-r border-border-subtle bg-bg-surface md:flex">
                 <div className="p-6 pb-4">
                     <h1 className="font-serif text-2xl text-sand italic">Third &amp; Manageable</h1>
                     <div className="yard-line mt-4" />
@@ -174,17 +213,23 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
             {/* Main Content Area */}
             <main className="relative flex min-w-0 flex-1 flex-col">
-                <div className="flex-1 overflow-y-auto pb-20 md:pb-0">{children}</div>
+                <div className="flex-1 overflow-y-auto pb-28 md:pb-0">{children}</div>
 
                 {/* Bottom Navigation for Mobile */}
                 <nav
                     className={clsx(
-                        "md:hidden absolute bottom-0 w-full flex justify-around p-2 z-40 transition-colors",
+                        "mobile-tab-bar liquid-glass absolute z-40 flex justify-around rounded-[30px] border px-1.5 py-1.5 transition-colors md:hidden",
                         inCommunity
-                            ? "border-t border-white/15 shadow-[0_-10px_30px_rgba(7,28,79,0.12)]"
-                            : "bg-bg-surface border-t border-border-subtle",
+                            ? "border-white/20 shadow-[0_16px_40px_rgba(7,28,79,0.24)]"
+                            : "border-border-subtle bg-bg-surface/90",
                     )}
-                    style={inCommunity ? { backgroundColor: communityTheme.primary } : undefined}
+                    style={
+                        inCommunity
+                            ? {
+                                  backgroundColor: `color-mix(in srgb, ${communityTheme.text} 88%, transparent)`,
+                              }
+                            : undefined
+                    }
                 >
                     {mobileNavItems.map((item) => (
                         <Link
@@ -192,17 +237,17 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                             href={item.to}
                             aria-current={isActive(pathname, item.to) ? "page" : undefined}
                             className={clsx(
-                                "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors",
+                                "flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[22px] px-1 py-1.5 transition-colors",
                                 inCommunity
                                     ? isActive(pathname, item.to)
-                                        ? "text-white"
-                                        : "text-white/55"
+                                        ? "bg-white/14 text-white"
+                                        : "text-white/60 hover:bg-white/8 hover:text-white"
                                     : isActive(pathname, item.to)
-                                      ? "text-volt"
-                                      : "text-text-tertiary",
+                                      ? "bg-volt/12 text-volt"
+                                      : "text-text-tertiary hover:bg-bg-elevated hover:text-text-secondary",
                             )}
                         >
-                            <item.icon className="w-6 h-6" />
+                            <item.icon className="h-5.5 w-5.5" />
                             <span className="text-[10px] font-medium">{item.label}</span>
                         </Link>
                     ))}

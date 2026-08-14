@@ -1,4 +1,4 @@
-# The root Next.js app and the temporary FastAPI bridge are both runtime source.
+# The deployable runtime is the root Next.js app only.
 
 # Local/private configuration
 .env
@@ -37,7 +37,7 @@ AGENTS.md
 next-env.d.ts
 
 # Reference implementations and non-runtime artifacts
-backend/tests/
+backend/
 web-prototype/
 business proposal/
 kickbacks-v2.vsix

@@ -1,9 +1,8 @@
 /*
  * JOURNEY REGISTRY — the 90-day arc.
  *
- * Mirrors `backend/app/services/registry.py` (`JOURNEY_PHASES`, `JOURNEY`)
- * exactly; when the Python bridge is retired at the end of Phase 2 this file
- * is what remains. Weekly actions used to live here as `WEEKLY_ACTIONS`
+ * This is the single runtime source of truth after the Phase 2 Python cutover.
+ * Weekly actions used to live here as `WEEKLY_ACTIONS`
  * (`a1`-`a4`) — they were superseded by the fifteen categorized habits and
  * now live in `./actions`, per VERCEL_MIGRATION_PLAN.md §6.5.
  */

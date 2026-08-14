@@ -47,19 +47,19 @@ App Store Connect state has now been inventoried independently in
 `third-and-manageable-apple-inventory-2026-08-05.md`.
 
 Do not add `firebase/app` or these Web values to the new athlete client yet.
-The current Next.js/FastAPI build has its own local auth and data path. Pointing
+The current Next.js Route Handler build has its own Postgres auth and data path. Pointing
 it directly at the production Firebase project would create two writers and
 make rollback and reconciliation materially harder.
 
 ## Isolation lanes
 
-| Lane | Data and identity | Deployment rule |
-|---|---|---|
-| Released App Store app | Appwrite Auth + unauthenticated direct Firestore | Freeze except for an independently reviewed emergency fix; strict Rules require a replacement build |
-| Local development | Local FastAPI database and Firebase demo-project emulators when needed | Never fall through to production Firebase |
-| Protected web preview | Disposable Neon branch + separate staging Appwrite/Firebase projects | Keep all production provider credentials absent; use keyless Preview-only Google federation |
+| Lane                       | Data and identity                                                                                   | Deployment rule                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Released App Store app     | Appwrite Auth + unauthenticated direct Firestore                                                    | Freeze except for an independently reviewed emergency fix; strict Rules require a replacement build               |
+| Local development          | Disposable Neon databases and Firebase demo-project emulators when needed                           | Never fall through to production Firebase                                                                         |
+| Protected web preview      | Disposable Neon branch + separate staging Appwrite/Firebase projects                                | Keep all production provider credentials absent; use keyless Preview-only Google federation                       |
 | Replacement mobile staging | Separate staging Appwrite/Firebase projects reached through the path-restricted public Vercel relay | Use only generated/synthetic test users; keep the protection bypass server-side and production credentials absent |
-| Replacement production | Same App Store record and bundle ID only at the controlled cutover | TestFlight first; retain Firebase compatibility and rollback window |
+| Replacement production     | Same App Store record and bundle ID only at the controlled cutover                                  | TestFlight first; retain Firebase compatibility and rollback window                                               |
 
 The staging compatibility implementation now includes both an authenticated
 client sign-out endpoint and a signed Appwrite session/status webhook that call

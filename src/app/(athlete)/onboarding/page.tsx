@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import clsx from "clsx";
 
 import IntakeFlow from "@/components/athlete/IntakeFlow";
@@ -107,11 +107,11 @@ export default function OnboardingPage() {
     };
 
     const stepShell = (children: React.ReactNode) => (
-        <div className="w-full max-w-xl animate-rise">
-            <p className="font-mono text-[11px] uppercase tracking-widest text-text-tertiary text-center mb-6">
-                Third &amp; Manageable · Step {coreIndex + 1} of {coreSteps.length}
+        <div className="my-auto w-full max-w-xl animate-rise">
+            <p className="mb-4 text-center text-[13px] font-medium text-text-secondary">
+                Step {coreIndex + 1} of {coreSteps.length}
             </p>
-            <div className="bg-bg-surface rounded-[20px] border border-border-subtle p-6 md:p-8 grain">
+            <div className="grain rounded-[28px] border border-border-subtle bg-bg-surface p-6 md:p-8">
                 {children}
             </div>
         </div>
@@ -125,17 +125,29 @@ export default function OnboardingPage() {
     ) => (
         <div className="flex items-center justify-between mt-6">
             <button
+                type="button"
                 onClick={onBack}
-                className="flex items-center gap-1 text-[13px] text-text-tertiary hover:text-text-secondary transition-all"
+                disabled={busy}
+                className="-ml-3 flex min-h-11 items-center gap-1 rounded-full px-3 text-[13px] text-text-tertiary transition-all hover:bg-bg-elevated hover:text-text-secondary disabled:opacity-40"
             >
                 <ChevronLeft className="w-4 h-4" /> Back
             </button>
             <button
+                type="button"
                 onClick={onNext}
                 disabled={!canNext || busy}
-                className="bg-volt text-volt-ink font-semibold px-6 py-3 rounded-full flex items-center gap-2 hover:bg-volt/90 transition-all disabled:opacity-40"
+                aria-busy={busy}
+                className="flex min-h-12 items-center gap-2 rounded-full bg-volt px-6 py-3 font-semibold text-volt-ink transition-all hover:bg-volt/90 disabled:opacity-40"
             >
-                {nextLabel} <ChevronRight className="w-4 h-4" />
+                {nextLabel}
+                {busy ? (
+                    <LoaderCircle
+                        aria-hidden="true"
+                        className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                    />
+                ) : (
+                    <ChevronRight aria-hidden="true" className="h-4 w-4" />
+                )}
             </button>
         </div>
     );
@@ -151,10 +163,10 @@ export default function OnboardingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-bg-base flex items-center justify-center p-6">
+        <div className="safe-viewport flex items-center justify-center overflow-y-auto bg-bg-base px-5 sm:px-6">
             {/* ——— Welcome ——— */}
             {step === "welcome" && (
-                <div className="w-full max-w-xl text-center animate-rise">
+                <div className="my-auto w-full max-w-xl text-center animate-rise">
                     <p className="font-mono text-[11px] uppercase tracking-widest text-volt mb-6">
                         Third &amp; Manageable
                     </p>
@@ -227,6 +239,8 @@ export default function OnboardingPage() {
                 stepShell(
                     <IntakeFlow
                         onBackAtStart={() => setStep("status")}
+                        initialAnswers={intakeAnswers ?? undefined}
+                        startAtEnd={intakeAnswers !== null}
                         onComplete={(answers) => {
                             setIntakeAnswers(answers);
                             setStep(stepAfter("intake"));
@@ -308,15 +322,15 @@ export default function OnboardingPage() {
                             () => setStep(stepBefore("community")),
                             () => community && finalize(community),
                             community !== null,
-                            busy ? "…" : "Finish",
+                            busy ? "Saving…" : "Finish",
                         )}
                     </>,
                 )}
 
             {/* ——— Complete (original CompleteWelcomeScreen) ——— */}
             {step === "complete" && (
-                <div className="w-full max-w-xl animate-rise">
-                    <div className="bg-bg-surface rounded-[20px] border border-border-subtle p-8 md:p-10 grain text-center">
+                <div className="my-auto w-full max-w-xl animate-rise">
+                    <div className="grain rounded-[28px] border border-border-subtle bg-bg-surface p-8 text-center md:p-10">
                         <p className="font-mono text-[11px] uppercase tracking-widest text-volt mb-4">
                             Day 1 / 90 · Foundation
                         </p>

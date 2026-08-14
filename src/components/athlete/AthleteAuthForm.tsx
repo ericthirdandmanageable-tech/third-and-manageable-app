@@ -7,6 +7,7 @@ import clsx from "clsx";
 
 import { api } from "@/lib/athlete/api";
 import { useAuth } from "@/lib/athlete/auth";
+import UniversityFinder from "./UniversityFinder";
 
 export default function AthleteAuthForm({
     initialMode = "login",
@@ -65,14 +66,14 @@ export default function AthleteAuthForm({
     };
 
     const fieldClass =
-        "w-full rounded-2xl border border-white/12 bg-white/7 px-4 py-3.5 text-[15px] text-white placeholder:text-white/38 outline-none transition focus:border-volt/70 focus:bg-white/10 focus:ring-2 focus:ring-volt/15";
+        "w-full rounded-2xl border border-white/12 bg-white/7 px-4 py-3.5 text-[15px] text-white placeholder:text-white/48 outline-none transition focus:border-volt/70 focus:bg-white/10 focus:ring-2 focus:ring-volt/15";
 
     return (
         <div className={clsx("w-full", compact ? "max-w-md" : "max-w-lg")}>
             <div
                 role="tablist"
                 aria-label="Account access"
-                className="mb-7 flex rounded-full border border-white/10 bg-white/5 p-1"
+                className="liquid-glass mb-7 flex rounded-full border border-white/10 bg-white/5 p-1"
             >
                 {(["login", "register"] as const).map((option) => (
                     <button
@@ -87,7 +88,7 @@ export default function AthleteAuthForm({
                             setError("");
                         }}
                         className={clsx(
-                            "flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition",
+                            "min-h-11 flex-1 whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-semibold transition sm:px-4",
                             mode === option
                                 ? "bg-volt text-volt-ink shadow-[0_8px_24px_rgba(200,240,75,0.16)]"
                                 : "text-white/55 hover:text-white",
@@ -131,16 +132,16 @@ export default function AthleteAuthForm({
                                 className={fieldClass}
                             />
                         </label>
-                        <label>
-                            <span className="sr-only">School</span>
-                            <input
-                                autoComplete="organization"
-                                placeholder="University or school"
+                        <div>
+                            <UniversityFinder
                                 value={school}
-                                onChange={(event) => setSchool(event.target.value)}
-                                className={fieldClass}
+                                onChange={setSchool}
+                                inputClassName={fieldClass}
                             />
-                        </label>
+                            <p className="mt-1.5 px-1 text-[11px] text-white/50">
+                                Start typing to search. No verification required yet.
+                            </p>
+                        </div>
                     </div>
                 )}
 
@@ -173,7 +174,7 @@ export default function AthleteAuthForm({
                         type="button"
                         aria-label={showPassword ? "Hide password" : "Show password"}
                         onClick={() => setShowPassword((visible) => !visible)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/38 transition hover:text-white"
+                        className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white/50 transition hover:bg-white/7 hover:text-white"
                     >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -188,6 +189,7 @@ export default function AthleteAuthForm({
                 <button
                     type="submit"
                     disabled={busy}
+                    aria-busy={busy}
                     className="group flex w-full items-center justify-center gap-2 rounded-full bg-volt px-6 py-4 font-semibold text-volt-ink transition hover:bg-[#d8fa6d] disabled:cursor-wait disabled:opacity-55"
                 >
                     {busy ? "Getting things ready…" : mode === "login" ? "Sign in" : "Create my account"}
@@ -196,7 +198,7 @@ export default function AthleteAuthForm({
                 </form>
             </div>
 
-            <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-white/38">
+            <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-white/50">
                 <ShieldCheck className="h-3.5 w-3.5 text-volt/70" />
                 Private by default. Community posting requires verification.
             </p>

@@ -21,19 +21,28 @@ vi.mock("../src/lib/athlete/auth", () => ({
 vi.mock("@/components/athlete/IntakeFlow", () => ({
     default: ({
         onComplete,
+        initialAnswers,
+        startAtEnd,
     }: {
         onComplete: (answers: Record<string, string>) => void;
+        initialAnswers?: Record<string, string>;
+        startAtEnd?: boolean;
     }) => (
-        <button
-            onClick={() =>
-                onComplete({
-                    sport: "Football",
-                    role: "Captain / Leader",
-                })
-            }
-        >
-            Complete intake
-        </button>
+        <>
+            <output data-testid="intake-resume-state">
+                {startAtEnd ? JSON.stringify(initialAnswers) : "fresh"}
+            </output>
+            <button
+                onClick={() =>
+                    onComplete({
+                        sport: "Football",
+                        role: "Captain / Leader",
+                    })
+                }
+            >
+                Complete intake
+            </button>
+        </>
     ),
 }));
 
@@ -130,6 +139,20 @@ describe("authenticated athlete onboarding", () => {
                 (screen.getByRole("button", { name: "Finish" }) as HTMLButtonElement)
                     .disabled,
             ).toBe(false),
+        );
+    });
+
+    it("restores intake answers when backing up from the community choice", () => {
+        render(<OnboardingPage />);
+        reachFinalStep();
+
+        fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+        expect(screen.getByTestId("intake-resume-state").textContent).toBe(
+            JSON.stringify({
+                sport: "Football",
+                role: "Captain / Leader",
+            }),
         );
     });
 });

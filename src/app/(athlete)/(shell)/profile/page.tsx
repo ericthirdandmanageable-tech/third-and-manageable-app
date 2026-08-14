@@ -6,24 +6,30 @@ import {
     Check,
     ChevronRight,
     Flame,
+    GraduationCap,
     LifeBuoy,
     LogOut,
     Pencil,
     RefreshCw,
     Route,
     Sparkles,
+    Sunset,
     Target,
     TrendingUp,
     Watch,
     X,
+    Zap,
+    type LucideIcon,
 } from "lucide-react";
 import clsx from "clsx";
 
 import AccountVerification from "@/components/athlete/AccountVerification";
 import { api } from "@/lib/athlete/api";
+import { useAppTheme } from "@/lib/athlete/app-theme";
 import { useAuth } from "@/lib/athlete/auth";
 import { useCheckIns } from "@/lib/athlete/use-checkins";
 import { useGamePlan } from "@/lib/athlete/use-game-plan";
+import type { AppTheme } from "@/lib/core/app-theme";
 import { getPath } from "@/lib/core/paths";
 
 /*
@@ -39,6 +45,32 @@ const STATUS_LABELS: Record<string, string> = {
     transitioned: "Transitioned",
 };
 
+const APPEARANCE_OPTIONS: {
+    value: AppTheme;
+    label: string;
+    description: string;
+    icon: LucideIcon;
+}[] = [
+    {
+        value: "dusk",
+        label: "Sideline Dusk",
+        description: "Calm, blue-forward liquid glass.",
+        icon: Sunset,
+    },
+    {
+        value: "school",
+        label: "Campus Colors",
+        description: "Your verified school's palette, everywhere.",
+        icon: GraduationCap,
+    },
+    {
+        value: "legacy",
+        label: "Legacy Neon",
+        description: "The original dark, volt-accent shell.",
+        icon: Zap,
+    },
+];
+
 const ACCOUNT_ROWS = [
     { icon: TrendingUp, label: "Progress & artifacts", to: "/progress", danger: false },
     { icon: RefreshCw, label: "Retake the skill intake", to: "/game-plan?retake=1", danger: false },
@@ -48,6 +80,7 @@ const ACCOUNT_ROWS = [
 export default function ProfilePage() {
     const router = useRouter();
     const { user, signOut, refreshUser } = useAuth();
+    const { theme: appTheme, setTheme: setAppTheme } = useAppTheme();
     const { data } = useGamePlan();
     const { streak, dayNumber, history } = useCheckIns();
 
@@ -370,6 +403,48 @@ export default function ProfilePage() {
                             Not connected
                         </span>
                     </div>
+                </div>
+            </section>
+
+            {/* ——— Appearance ——— */}
+            <section className="bg-bg-surface rounded-[20px] border border-border-subtle p-6 mb-6">
+                <h2 className="text-[15px] font-semibold text-text-primary mb-1">Appearance</h2>
+                <p className="text-[13px] leading-relaxed text-text-tertiary mb-4">
+                    Campus Colors uses your verified school&apos;s palette everywhere, checked
+                    for readable contrast automatically.
+                </p>
+                <div role="radiogroup" aria-label="Appearance" className="grid gap-2 sm:grid-cols-3">
+                    {APPEARANCE_OPTIONS.map((option) => {
+                        const selected = appTheme === option.value;
+                        return (
+                            <button
+                                key={option.value}
+                                type="button"
+                                role="radio"
+                                aria-checked={selected}
+                                onClick={() => setAppTheme(option.value)}
+                                className={clsx(
+                                    "flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-colors",
+                                    selected
+                                        ? "border-volt bg-volt/10"
+                                        : "border-border-subtle hover:border-text-tertiary",
+                                )}
+                            >
+                                <option.icon
+                                    className={clsx(
+                                        "w-5 h-5",
+                                        selected ? "text-volt" : "text-text-tertiary",
+                                    )}
+                                />
+                                <span className="text-[13px] font-semibold text-text-primary">
+                                    {option.label}
+                                </span>
+                                <span className="text-[11px] leading-snug text-text-tertiary">
+                                    {option.description}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
             </section>
 

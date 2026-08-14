@@ -63,3 +63,54 @@ export const INTAKE_STEPS: IntakeStep[] = [
         options: ["The preparation", "The competition itself", "The team", "The pursuit of mastery"],
     },
 ];
+
+export type IntakeAnswers = Record<string, string>;
+
+/** Deterministic v1 of the transferable-skill engine. */
+export function deriveSkillMap(intake: IntakeAnswers): SkillMapEntry[] {
+    const role = (intake.role ?? "").toLowerCase();
+    const favorite = (intake.favorite ?? "").toLowerCase();
+    const reliedOn = (intake.relied_on ?? "").toLowerCase();
+    const entries: SkillMapEntry[] = [];
+
+    if (role.includes("captain") || role.includes("leader")) {
+        entries.push({ skill: "Captain", translation: "Leading peers without authority", origin: "Team leadership role" });
+    }
+    if (role.includes("engine")) {
+        entries.push({ skill: "Two-a-days", translation: "Sustained output under fatigue", origin: "Set the pace every session" });
+    }
+    if (role.includes("strategist")) {
+        entries.push({ skill: "Film study", translation: "Pattern recognition & rapid preparation", origin: "Game planning weekly" });
+    }
+    if (role.includes("spark")) {
+        entries.push({ skill: "Bench spark", translation: "High-impact bursts on demand", origin: "Energy off the bench" });
+    }
+    if (role.includes("steady")) {
+        entries.push({ skill: "Consistency", translation: "Reliable performance under load", origin: "Being the steady one" });
+    }
+
+    if (favorite.includes("preparation")) {
+        entries.push({ skill: "Preparation", translation: "Process-oriented delivery", origin: "Loved the prep" });
+    } else if (favorite.includes("competition itself")) {
+        entries.push({ skill: "Competitiveness", translation: "Ownership of outcomes", origin: "Lived for the game" });
+    } else if (favorite.includes("team")) {
+        entries.push({ skill: "Teammate", translation: "Cross-functional collaboration", origin: "Loved the team" });
+    } else if (favorite.includes("mastery")) {
+        entries.push({ skill: "Mastery pursuit", translation: "Deliberate practice & iteration", origin: "Loved the pursuit" });
+    }
+
+    if (reliedOn.trim().split(/\s+/).filter(Boolean).length >= 8) {
+        entries.push({ skill: "Recruiting visits", translation: "Stakeholder management & pitching", origin: "Story shared in intake" });
+    }
+
+    if (!entries.length) {
+        entries.push(
+            { skill: "Film study", translation: "Pattern recognition & rapid preparation", origin: "Default mapping" },
+            { skill: "Two-a-days", translation: "Sustained output under fatigue", origin: "Default mapping" },
+        );
+    }
+
+    return entries.filter(
+        (entry, index) => entries.findIndex((candidate) => candidate.skill === entry.skill) === index,
+    );
+}

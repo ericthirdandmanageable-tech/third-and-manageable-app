@@ -29,6 +29,7 @@ import {
     type ApiForum,
     type ApiPostSummary,
 } from "@/lib/athlete/api";
+import { useAppTheme } from "@/lib/athlete/app-theme";
 import { useAuth } from "@/lib/athlete/auth";
 import { getCommunityTheme } from "@/lib/core/community-theme";
 
@@ -78,6 +79,7 @@ const isPostVisible = (
 export default function CommunityPage() {
     const router = useRouter();
     const { user } = useAuth();
+    const { theme: appTheme } = useAppTheme();
     const theme = getCommunityTheme(user?.school);
     const chatVariant = theme.key !== "tm";
     const [forums, setForums] = useState<ApiForum[]>([]);
@@ -248,18 +250,29 @@ export default function CommunityPage() {
         setFeedRevision((revision) => revision + 1);
     };
 
+    // Community's own surfaces are hand-authored (not the app's `--color-*`
+    // tokens — see community-theme.ts), so the shell-wide glass reskin can't
+    // reach them automatically. This gives its background the same
+    // dusk/campus atmosphere; the cards on top stay solid white for now.
     const style = {
         "--community-primary": theme.primary,
         "--community-primary-dark": theme.primaryDark,
         "--community-accent": theme.accent,
         "--community-soft": theme.soft,
         "--community-text": theme.text,
+        backgroundImage:
+            appTheme === "legacy"
+                ? undefined
+                : "radial-gradient(ellipse 55% 40% at 88% -8%, rgba(255,214,168,0.35) 0%, transparent 55%), linear-gradient(165deg, #fbf9f5 0%, #f3ede1 55%, #fbf9f5 100%)",
     } as CSSProperties;
 
     return (
         <div
             style={style}
-            className="relative min-h-full overflow-hidden bg-[#f6f7f9] text-[#111827] selection:bg-[var(--community-soft)]"
+            className={clsx(
+                "relative min-h-full overflow-hidden text-[#111827] selection:bg-[var(--community-soft)]",
+                appTheme === "legacy" ? "bg-[#f6f7f9]" : "bg-[#fbf9f5]",
+            )}
         >
             {chatVariant && (
                 <div
@@ -289,7 +302,7 @@ export default function CommunityPage() {
                             onClick={() => router.push("/support")}
                             className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(15,23,42,0.16)] transition hover:-translate-y-0.5"
                             style={{
-                                background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`,
+                                background: `linear-gradient(135deg, ${theme.text}, ${theme.primaryDark})`,
                             }}
                         >
                             <ShieldCheck className="h-4 w-4" /> Need Support
@@ -322,7 +335,7 @@ export default function CommunityPage() {
                         aria-label="Community stats"
                         className="mt-7 grid grid-cols-3 overflow-hidden rounded-[24px] px-2 py-5 text-white shadow-[0_14px_34px_rgba(15,23,42,0.14)] sm:px-5 sm:py-6"
                         style={{
-                            background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`,
+                            background: `linear-gradient(135deg, ${theme.text}, ${theme.primaryDark})`,
                         }}
                     >
                         {[
@@ -363,8 +376,8 @@ export default function CommunityPage() {
                                 style={
                                     topic === id
                                         ? {
-                                              borderColor: theme.primary,
-                                              backgroundColor: theme.primary,
+                                              borderColor: theme.text,
+                                              backgroundColor: theme.text,
                                               color: "white",
                                           }
                                         : {
@@ -444,13 +457,13 @@ export default function CommunityPage() {
                 <section
                     className="relative mt-6 overflow-hidden rounded-[24px] px-6 py-7 text-white shadow-[0_14px_30px_rgba(15,23,42,0.15)] sm:px-8"
                     style={{
-                        background: `radial-gradient(circle at 92% 25%, ${theme.accent}55, transparent 35%), linear-gradient(135deg, ${theme.primaryDark}, ${theme.primary})`,
+                        background: `radial-gradient(circle at 92% 25%, ${theme.accent}55, transparent 35%), linear-gradient(135deg, ${theme.primaryDark}, ${theme.text})`,
                     }}
                 >
                     <div className="relative z-10 max-w-2xl">
                         <p
                             className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em]"
-                            style={{ color: theme.accent }}
+                            style={{ color: theme.accentOnDark }}
                         >
                             <MessageCircle className="h-4 w-4" /> Today&apos;s chat prompt
                         </p>
@@ -476,7 +489,7 @@ export default function CommunityPage() {
                     >
                         <span
                             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                            style={{ backgroundColor: theme.primary }}
+                            style={{ backgroundColor: theme.text }}
                         >
                             {initials(user?.display_name ?? "TM")}
                         </span>
@@ -574,7 +587,7 @@ export default function CommunityPage() {
                                     type="submit"
                                     disabled={posting || !forums.length}
                                     className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-45"
-                                    style={{ backgroundColor: theme.primary }}
+                                    style={{ backgroundColor: theme.text }}
                                 >
                                     {posting ? "Posting…" : "Post"} <Send className="h-3.5 w-3.5" />
                                 </button>
@@ -611,7 +624,7 @@ export default function CommunityPage() {
                                     className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40"
                                     style={
                                         feedScope === id
-                                            ? { backgroundColor: theme.primary, color: "white" }
+                                            ? { backgroundColor: theme.text, color: "white" }
                                             : { color: "#6b7280" }
                                     }
                                 >
@@ -656,7 +669,7 @@ export default function CommunityPage() {
                             </h3>
                             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6b7280]">
                                 {loadFailed
-                                    ? "No sample posts were substituted. Reconnect the Services bridge and this feed will load real conversations."
+                                    ? "No sample posts were substituted. Reconnect and this feed will load real conversations."
                                     : feedScope === "joined"
                                       ? "Try Discover, join another community, or start a conversation where you already belong."
                                       : "There are no posts in this topic yet. Share a question, a win, or the thing you’re working through."}
@@ -665,7 +678,7 @@ export default function CommunityPage() {
                                 <button
                                     onClick={() => setComposerOpen(true)}
                                     className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-                                    style={{ backgroundColor: theme.primary }}
+                                    style={{ backgroundColor: theme.text }}
                                 >
                                     Write the first post <ChevronRight className="h-4 w-4" />
                                 </button>
@@ -691,7 +704,7 @@ export default function CommunityPage() {
                                         <div className="flex items-start gap-3">
                                             <span
                                                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                style={{ backgroundColor: theme.primary }}
+                                                style={{ backgroundColor: theme.text }}
                                             >
                                                 {initials(post.author_name)}
                                             </span>
@@ -794,7 +807,7 @@ export default function CommunityPage() {
                 >
                     <span
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white"
-                        style={{ backgroundColor: theme.primary }}
+                        style={{ backgroundColor: theme.text }}
                     >
                         <ShieldCheck className="h-5 w-5" />
                     </span>

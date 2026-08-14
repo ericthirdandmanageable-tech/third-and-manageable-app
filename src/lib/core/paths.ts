@@ -4,8 +4,6 @@
  * appears in: Path Fit ranking (Game Plan), Path Detail pages, and the
  * Community forum directory (Path forums are derived from this registry).
  *
- * Mirrors `backend/app/services/registry.py::WORK_PATHS`.
- *
  * `icon` is a lucide icon *name*, not a component. `lib/core` is imported by
  * Route Handlers as well as pages (VERCEL_MIGRATION_PLAN.md §2), and a React
  * component here would drag `lucide-react` into every server bundle that only
@@ -122,3 +120,58 @@ export const WORK_PATHS: WorkPath[] = [
 
 export const getPath = (id: string | undefined) =>
     WORK_PATHS.find((p) => p.id === id);
+
+export interface ScoredPath {
+    id: string;
+    name: string;
+    fit: PathFit;
+    rationale: string;
+    meta: string;
+    score: number;
+}
+
+/** Transparent path ranking ported from the temporary Python bridge. */
+export function scorePathFit(
+    intake: Record<string, string>,
+    skillMap: { skill: string }[],
+): ScoredPath[] {
+    const favorite = (intake.favorite ?? "").toLowerCase();
+    const role = (intake.role ?? "").toLowerCase();
+    const years = (intake.years ?? "").toLowerCase();
+    const skills = new Set(skillMap.map((entry) => entry.skill));
+    const scores = new Map<string, number>();
+    const add = (id: string, value: number) => scores.set(id, (scores.get(id) ?? 0) + value);
+
+    if (favorite.includes("competition itself")) add("entrepreneurship", 2);
+    if (favorite.includes("preparation")) add("consulting", 2);
+    if (favorite.includes("team")) add("nine_to_five", 2);
+    if (favorite.includes("mastery")) {
+        add("consulting", 1);
+        add("gig", 1);
+    }
+    if (role.includes("strategist")) add("consulting", 2);
+    if (role.includes("captain") || role.includes("leader")) {
+        add("nine_to_five", 1);
+        add("consulting", 1);
+    }
+    if (years.includes("15+")) add("nine_to_five", 1);
+    if (skills.has("Captain")) add("nine_to_five", 1);
+    if (skills.has("Film study")) add("consulting", 1);
+
+    return [...WORK_PATHS]
+        .sort((left, right) => (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0))
+        .map((path, index) => {
+            const score = scores.get(path.id) ?? 0;
+            const fit: PathFit = (index === 0 && score >= 2) || score >= 1
+                ? "STRONG FIT"
+                : path.fit;
+            return {
+                id: path.id,
+                name: path.name,
+                fit,
+                rationale: path.rationale,
+                meta: path.meta,
+                score,
+            };
+        });
+}

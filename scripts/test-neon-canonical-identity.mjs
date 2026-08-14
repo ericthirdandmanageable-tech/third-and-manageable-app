@@ -10,10 +10,11 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 
-const adminConnection = process.env.DATABASE_URL_UNPOOLED;
+const adminConnection = [process.env.DATABASE_URL_UNPOOLED, process.env.POSTGRES_URL_NON_POOLING]
+    .find((value) => Boolean(value));
 if (!adminConnection) {
     throw new Error(
-        "DATABASE_URL_UNPOOLED is required; run through `vercel env run` or provide a disposable Neon branch URL.",
+        "A direct Neon URL is required; pull the linked Vercel environment or provide a disposable Neon branch URL.",
     );
 }
 
