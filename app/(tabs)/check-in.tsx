@@ -1,5 +1,5 @@
 import { SkeletonCard } from "@/components/SkeletonLoader";
-import { GlassSurface } from "@/components/ui/liquid-glass";
+import { GlassListSurface, GlassSurface } from "@/components/ui/liquid-glass";
 import { useAppTheme } from "@/context/app-theme";
 import { SPORTS } from "@/constants/sports";
 import { useAuth } from "@/context/auth";
@@ -95,7 +95,7 @@ function formatSessionDate(dateStr: string): string {
 
 export default function CheckInScreen() {
   const { user, profile, refreshProfile } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, reduceMotion } = useAppTheme();
   const sport = profile ? SPORTS[profile.sport as SportKey] : null;
 
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
@@ -319,13 +319,13 @@ export default function CheckInScreen() {
       <View className={`mb-3 px-4 ${isUser ? "items-end" : "items-start"}`}>
         {!isUser && (
           <View className="flex-row items-center mb-1">
-            <Ionicons name="sparkles" size={12} color="#0618A8" />
+            <Ionicons name="sparkles" size={12} color={colors.signal} />
             <Text className="text-[10px] font-raleway-bold text-dp-500 ml-1">
               The Clipboard
             </Text>
           </View>
         )}
-        <GlassSurface
+        <GlassListSurface
           tone={isUser ? "signal" : "regular"}
           radius={18}
           className={`rounded-2xl px-4 py-3 max-w-[85%] ${isUser ? "bg-dp-600" : "bg-app-surface"
@@ -334,7 +334,7 @@ export default function CheckInScreen() {
             isUser
               ? undefined
               : {
-                shadowColor: "#000",
+                shadowColor: colors.shadow,
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.04,
                 shadowRadius: 4,
@@ -348,7 +348,7 @@ export default function CheckInScreen() {
           >
             {item.content}
           </Text>
-        </GlassSurface>
+        </GlassListSurface>
       </View>
     );
   };
@@ -385,13 +385,13 @@ export default function CheckInScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="chevron-back" size={22} color="#424242" />
+              <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
               <Text className="text-sm font-raleway-bold text-silver-700 ml-1">
                 Back
               </Text>
             </TouchableOpacity>
             <View className="flex-row items-center">
-              <Ionicons name="sparkles" size={16} color="#040485" />
+              <Ionicons name="sparkles" size={16} color={colors.signal} />
               <Text className="text-base font-raleway-extrabold text-silver-900 ml-1.5">
                 {formatSessionDate(viewingSession.date)}
               </Text>
@@ -422,7 +422,7 @@ export default function CheckInScreen() {
                 <Ionicons
                   name="chatbubble-ellipses-outline"
                   size={40}
-                  color="#BDBDBD"
+                  color={colors.textTertiary}
                 />
                 <Text className="text-sm text-silver-400 text-center mt-3">
                   No messages in this session.
@@ -448,13 +448,13 @@ export default function CheckInScreen() {
             onPress={() => setHistoryMode(false)}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back" size={22} color="#424242" />
+            <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
             <Text className="text-sm font-raleway-bold text-silver-700 ml-1">
               Back
             </Text>
           </TouchableOpacity>
           <View className="flex-row items-center">
-            <Ionicons name="time-outline" size={18} color="#040485" />
+            <Ionicons name="time-outline" size={18} color={colors.signal} />
             <Text className="text-base font-raleway-extrabold text-silver-900 ml-1.5">
               Chat History
             </Text>
@@ -464,11 +464,11 @@ export default function CheckInScreen() {
 
         {loadingHistory ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#040485" />
+            <ActivityIndicator size="large" color={colors.signal} />
           </View>
         ) : pastSessions.length === 0 ? (
           <View className="flex-1 items-center justify-center px-10">
-            <Ionicons name="chatbubbles-outline" size={48} color="#BDBDBD" />
+            <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
             <Text className="text-base font-raleway-bold text-silver-400 mt-3 text-center">
               No past conversations
             </Text>
@@ -491,7 +491,7 @@ export default function CheckInScreen() {
               <TouchableOpacity
                 className="bg-app-surface rounded-2xl p-4 mb-3"
                 style={{
-                  shadowColor: "#000",
+                  shadowColor: colors.shadow,
                   shadowOffset: { width: 0, height: 1 },
                   shadowOpacity: 0.04,
                   shadowRadius: 4,
@@ -502,12 +502,12 @@ export default function CheckInScreen() {
               >
                 <View className="flex-row items-center justify-between mb-2">
                   <View className="flex-row items-center">
-                    <Ionicons name="sparkles" size={14} color="#040485" />
+                    <Ionicons name="sparkles" size={14} color={colors.signal} />
                     <Text className="text-sm font-raleway-bold text-silver-900 ml-1.5">
                       {formatSessionDate(item.date)}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color="#BDBDBD" />
+                  <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
                 </View>
                 <View className="flex-row items-center">
                   {item.mood && (
@@ -544,13 +544,13 @@ export default function CheckInScreen() {
               onPress={() => setChatMode(false)}
               activeOpacity={0.7}
             >
-              <Ionicons name="chevron-back" size={22} color="#424242" />
+              <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
               <Text className="text-sm font-raleway-bold text-silver-700 ml-1">
                 Back
               </Text>
             </TouchableOpacity>
             <View className="flex-row items-center">
-              <Ionicons name="sparkles" size={16} color="#040485" />
+              <Ionicons name="sparkles" size={16} color={colors.signal} />
               <Text className="text-base font-raleway-extrabold text-silver-900 ml-1.5">
                 The Clipboard
               </Text>
@@ -567,14 +567,14 @@ export default function CheckInScreen() {
             contentContainerStyle={{ paddingVertical: 12 }}
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() =>
-              chatListRef.current?.scrollToEnd({ animated: true })
+              chatListRef.current?.scrollToEnd({ animated: !reduceMotion })
             }
             ListEmptyComponent={
               <View className="items-center justify-center py-10 px-8">
                 <Ionicons
                   name="chatbubble-ellipses-outline"
                   size={40}
-                  color="#BDBDBD"
+                  color={colors.textTertiary}
                 />
                 <Text className="text-sm text-silver-400 text-center mt-3">
                   Tell The Clipboard what&apos;s on your mind. It&apos;s here to
@@ -587,7 +587,7 @@ export default function CheckInScreen() {
           {/* Typing indicator */}
           {chatSending && (
             <View className="px-4 pb-2 flex-row items-center">
-              <Ionicons name="sparkles" size={12} color="#0618A8" />
+              <Ionicons name="sparkles" size={12} color={colors.signal} />
               <Text className="text-xs text-dp-500 font-raleway-semibold ml-1">
                 Coach is typing...
               </Text>
@@ -606,7 +606,7 @@ export default function CheckInScreen() {
                 className="flex-1 bg-silver-50 rounded-2xl px-4 py-3 text-sm text-silver-900 mr-2"
                 style={{ maxHeight: 100, fontFamily: "Raleway-Regular" }}
                 placeholder="Talk to your coach..."
-                placeholderTextColor="#BDBDBD"
+                placeholderTextColor={colors.textTertiary}
                 multiline
                 value={chatInput}
                 onChangeText={setChatInput}
@@ -620,12 +620,12 @@ export default function CheckInScreen() {
                 activeOpacity={0.8}
               >
                 {chatSending ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={colors.inverseText} />
                 ) : (
                   <Ionicons
                     name="send"
                     size={18}
-                    color={chatInput.trim() ? "#fff" : "#9E9E9E"}
+                    color={chatInput.trim() ? colors.inverseText : colors.textSecondary}
                   />
                 )}
               </TouchableOpacity>
@@ -665,7 +665,7 @@ export default function CheckInScreen() {
               resizeMode="cover"
             >
               <LinearGradient
-                colors={["transparent", "rgba(3, 3, 102, 0.85)"]}
+                colors={["transparent", `${colors.signalDark}D9`]}
                 locations={[0.3, 1]}
                 style={{
                   flex: 1,
@@ -675,7 +675,7 @@ export default function CheckInScreen() {
               >
                 <Text
                   style={{
-                    color: "rgba(255,255,255,0.6)",
+                    color: `${colors.inverseText}99`,
                     fontSize: 12,
                     fontFamily: "Raleway-SemiBold",
                     marginBottom: 4,
@@ -685,7 +685,7 @@ export default function CheckInScreen() {
                 </Text>
                 <Text
                   style={{
-                    color: "#fff",
+                    color: colors.inverseText,
                     fontSize: 24,
                     fontFamily: "Raleway-ExtraBold",
                   }}
@@ -700,7 +700,7 @@ export default function CheckInScreen() {
           <GlassSurface
             className="bg-app-surface rounded-3xl p-6 mb-4 items-center"
             style={{
-              shadowColor: "#000",
+              shadowColor: colors.shadow,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.05,
               shadowRadius: 8,
@@ -729,7 +729,7 @@ export default function CheckInScreen() {
             <View
               className="bg-dp-700 rounded-3xl p-5 mb-4"
               style={{
-                shadowColor: "#030366",
+                shadowColor: colors.signalDark,
                 shadowOffset: { width: 0, height: 6 },
                 shadowOpacity: 0.25,
                 shadowRadius: 12,
@@ -738,7 +738,7 @@ export default function CheckInScreen() {
             >
               <View className="flex-row items-center mb-3">
                 <View className="w-7 h-7 rounded-full bg-white/15 items-center justify-center mr-2">
-                  <Ionicons name="sparkles" size={16} color="#A1A8EB" />
+                  <Ionicons name="sparkles" size={16} color={colors.signalSoft} />
                 </View>
                 <Text className="text-xs font-raleway-bold text-white/60 uppercase tracking-wider">
                   The Clipboard
@@ -754,7 +754,7 @@ export default function CheckInScreen() {
           <TouchableOpacity
             className="bg-dp-600 rounded-2xl py-4 mb-4 flex-row items-center justify-center"
             style={{
-              shadowColor: "#040485",
+              shadowColor: colors.signal,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 8,
@@ -763,7 +763,7 @@ export default function CheckInScreen() {
             onPress={startChat}
             activeOpacity={0.8}
           >
-            <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+            <Ionicons name="chatbubble-ellipses" size={20} color={colors.inverseText} />
             <Text className="text-white text-base font-raleway-bold ml-2">
               Talk to The Clipboard
             </Text>
@@ -773,7 +773,7 @@ export default function CheckInScreen() {
           <TouchableOpacity
             className="bg-app-surface rounded-2xl py-4 mb-4 flex-row items-center justify-center border border-silver-200"
             style={{
-              shadowColor: "#000",
+              shadowColor: colors.shadow,
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.04,
               shadowRadius: 4,
@@ -785,7 +785,7 @@ export default function CheckInScreen() {
             }}
             activeOpacity={0.8}
           >
-            <Ionicons name="time-outline" size={20} color="#040485" />
+            <Ionicons name="time-outline" size={20} color={colors.signal} />
             <Text className="text-dp-600 text-base font-raleway-bold ml-2">
               Chat History
             </Text>
@@ -796,7 +796,7 @@ export default function CheckInScreen() {
             tone="signal"
             className="bg-app-surface rounded-3xl p-4"
             style={{
-              shadowColor: "#000",
+              shadowColor: colors.shadow,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.05,
               shadowRadius: 8,
@@ -839,7 +839,7 @@ export default function CheckInScreen() {
             resizeMode="cover"
           >
             <LinearGradient
-              colors={["transparent", "rgba(3, 3, 102, 0.85)"]}
+              colors={["transparent", `${colors.signalDark}D9`]}
               locations={[0.3, 1]}
               style={{
                 flex: 1,
@@ -849,7 +849,7 @@ export default function CheckInScreen() {
             >
               <Text
                 style={{
-                  color: "rgba(255,255,255,0.6)",
+                  color: `${colors.inverseText}99`,
                   fontSize: 12,
                   fontFamily: "Raleway-SemiBold",
                   marginBottom: 4,
@@ -859,7 +859,7 @@ export default function CheckInScreen() {
               </Text>
               <Text
                 style={{
-                  color: "#fff",
+                  color: colors.inverseText,
                   fontSize: 24,
                   fontFamily: "Raleway-ExtraBold",
                 }}
@@ -868,7 +868,7 @@ export default function CheckInScreen() {
               </Text>
               <Text
                 style={{
-                  color: "rgba(255,255,255,0.5)",
+                  color: `${colors.inverseText}80`,
                   fontSize: 13,
                   fontFamily: "Raleway-Medium",
                   marginTop: 4,
@@ -884,7 +884,7 @@ export default function CheckInScreen() {
         <GlassSurface
           className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#000",
+            shadowColor: colors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -902,7 +902,11 @@ export default function CheckInScreen() {
                   }`}
                 style={
                   selectedMood === mood.value
-                    ? { borderWidth: 2, borderColor: colors.signal }
+                    ? {
+                        borderWidth: 2,
+                        borderColor: colors.semantic.mood[mood.value - 1],
+                        backgroundColor: `${colors.semantic.mood[mood.value - 1]}14`,
+                      }
                     : { borderWidth: 2, borderColor: "transparent" }
                 }
                 onPress={() => setSelectedMood(mood.value)}
@@ -931,7 +935,7 @@ export default function CheckInScreen() {
           tone="strong"
           className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#000",
+            shadowColor: colors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -945,7 +949,7 @@ export default function CheckInScreen() {
             className="bg-silver-50 rounded-2xl px-4 py-3 text-base text-silver-900"
             style={{ minHeight: 100, textAlignVertical: "top" }}
             placeholder="What's on your mind today..."
-            placeholderTextColor="#BDBDBD"
+            placeholderTextColor={colors.textTertiary}
             multiline
             value={note}
             onChangeText={setNote}
@@ -961,7 +965,7 @@ export default function CheckInScreen() {
           className={`bg-dp-600 py-4 rounded-2xl items-center ${!selectedMood || loading ? "opacity-50" : ""
             }`}
           style={{
-            shadowColor: "#040485",
+            shadowColor: colors.signal,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
             shadowRadius: 8,
@@ -973,7 +977,7 @@ export default function CheckInScreen() {
         >
           {loading ? (
             <View className="flex-row items-center gap-2">
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={colors.inverseText} size="small" />
               <Text className="text-white text-base font-raleway-bold">
                 Getting AI response...
               </Text>

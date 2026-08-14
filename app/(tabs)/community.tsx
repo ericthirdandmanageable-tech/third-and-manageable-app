@@ -1,4 +1,4 @@
-import { GlassSurface } from "@/components/ui/liquid-glass";
+import { GlassListSurface, GlassSurface } from "@/components/ui/liquid-glass";
 import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
 import {
@@ -75,7 +75,12 @@ function getTimeAgo(dateStr: string): string {
 /**
  * Render message text with @mentions highlighted in purple.
  */
-function renderMentionText(content: string, isMe: boolean) {
+function renderMentionText(
+  content: string,
+  isMe: boolean,
+  signal: string,
+  signalSoft: string,
+) {
   const mentionRegex = /@([A-Za-z][A-Za-z0-9 ]{1,30}?)(?=[,.\s!?;:]|$)/g;
   const parts: { text: string; isMention: boolean }[] = [];
   let lastIndex = 0;
@@ -117,7 +122,7 @@ function renderMentionText(content: string, isMe: boolean) {
             key={i}
             style={{
               fontFamily: "Raleway-Bold",
-              color: isMe ? "#A1A8EB" : "#0618A8",
+              color: isMe ? signalSoft : signal,
             }}
           >
             {part.text}
@@ -132,7 +137,7 @@ function renderMentionText(content: string, isMe: boolean) {
 
 export default function CommunityScreen() {
   const { user, profile } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, reduceMotion } = useAppTheme();
   const [bottomInset, setBottomInset] = useState(
     Platform.OS === "ios" ? 90 : 85,
   );
@@ -391,7 +396,7 @@ export default function CommunityScreen() {
               <Ionicons
                 name="checkmark-circle"
                 size={12}
-                color="#0618A8"
+                color={colors.signal}
                 style={{ marginLeft: 3 }}
               />
             )}
@@ -404,7 +409,7 @@ export default function CommunityScreen() {
           onLongPress={() => openMessageActions(item)}
           delayLongPress={250}
         >
-          <GlassSurface
+          <GlassListSurface
             tone={isMe ? "signal" : "regular"}
             radius={18}
             className={`rounded-2xl px-4 py-3 max-w-[85%] ${isMe ? "bg-dp-600" : "bg-white"
@@ -413,7 +418,7 @@ export default function CommunityScreen() {
               isMe
                 ? undefined
                 : {
-                  shadowColor: "#000",
+                  shadowColor: colors.shadow,
                   shadowOffset: { width: 0, height: 1 },
                   shadowOpacity: 0.04,
                   shadowRadius: 4,
@@ -421,8 +426,8 @@ export default function CommunityScreen() {
                 }
             }
           >
-            {renderMentionText(item.content, isMe)}
-          </GlassSurface>
+            {renderMentionText(item.content, isMe, colors.signal, colors.signalSoft)}
+          </GlassListSurface>
         </Pressable>
         <Text className="text-[10px] text-silver-400 mt-1 mx-1">
           {getTimeAgo(item.created_at)}
@@ -447,9 +452,9 @@ export default function CommunityScreen() {
                     width: 22,
                     height: 22,
                     borderRadius: 11,
-                    backgroundColor: "rgba(4, 4, 133, 0.06)",
+                    backgroundColor: `${colors.signal}0F`,
                     borderWidth: 1,
-                    borderColor: "rgba(4, 4, 133, 0.1)",
+                    borderColor: `${colors.signal}1A`,
                     alignItems: "center",
                     justifyContent: "center",
                     marginRight: 6,
@@ -457,7 +462,7 @@ export default function CommunityScreen() {
                 >
                   <Image
                     source={require("../../assets/images/logo.png")}
-                    style={{ width: 14, height: 14, tintColor: "#040485" }}
+                    style={{ width: 14, height: 14, tintColor: colors.signal }}
                     resizeMode="contain"
                   />
                 </View>
@@ -475,7 +480,7 @@ export default function CommunityScreen() {
               className="bg-dp-600 rounded-xl px-3 py-2 flex-row items-center"
               style={{
                 minWidth: 120,
-                shadowColor: "#040485",
+                shadowColor: colors.signal,
                 shadowOffset: { width: 0, height: 3 },
                 shadowOpacity: 0.25,
                 shadowRadius: 6,
@@ -484,7 +489,7 @@ export default function CommunityScreen() {
               onPress={() => setSupportModalVisible(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="shield-checkmark" size={16} color="#fff" />
+              <Ionicons name="shield-checkmark" size={16} color={colors.inverseText} />
               <Text className="text-white text-xs font-raleway-bold ml-1.5">
                 Need Support
               </Text>
@@ -530,7 +535,7 @@ export default function CommunityScreen() {
 
           {/* Verified badge */}
           <View className="flex-row items-center mb-1">
-            <Ionicons name="checkmark-circle" size={14} color="#0618A8" />
+            <Ionicons name="checkmark-circle" size={14} color={colors.signal} />
             <Text className="text-[11px] text-dp-500 font-raleway-semibold ml-1">
               Verified Athletes Only - Use @Name to mention someone
             </Text>
@@ -579,7 +584,7 @@ export default function CommunityScreen() {
           </View>
         ) : visibleMessages.length === 0 ? (
           <View className="flex-1 items-center justify-center px-10">
-            <Ionicons name="chatbubbles-outline" size={48} color="#BDBDBD" />
+            <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
             <Text className="text-base font-raleway-bold text-silver-400 mt-3 text-center">
               No visible messages yet
             </Text>
@@ -615,7 +620,7 @@ export default function CommunityScreen() {
                 className="flex-1 bg-silver-50 rounded-2xl px-4 py-3 text-sm text-silver-900 mr-2"
                 style={{ maxHeight: 100, fontFamily: "Raleway-Regular" }}
                 placeholder="Share here... Use @Name to mention"
-                placeholderTextColor="#BDBDBD"
+                placeholderTextColor={colors.textTertiary}
                 multiline
                 value={messageText}
                 onChangeText={setMessageText}
@@ -629,12 +634,12 @@ export default function CommunityScreen() {
                 activeOpacity={0.8}
               >
                 {sending ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={colors.inverseText} />
                 ) : (
                   <Ionicons
                     name="send"
                     size={18}
-                    color={messageText.trim() ? "#fff" : "#9E9E9E"}
+                    color={messageText.trim() ? colors.inverseText : colors.textSecondary}
                   />
                 )}
               </TouchableOpacity>
@@ -645,7 +650,7 @@ export default function CommunityScreen() {
                 <Ionicons
                   name="lock-closed-outline"
                   size={14}
-                  color="#9E9E9E"
+                  color={colors.textSecondary}
                 />
                 <Text className="text-xs text-silver-400 font-raleway-semibold ml-1.5">
                   Verify your account to participate in chat
@@ -668,14 +673,15 @@ export default function CommunityScreen() {
         <Modal
           visible={profileModalVisible}
           transparent
-          animationType="slide"
+          animationType={reduceMotion ? "none" : "slide"}
           onRequestClose={() => {
             setProfileModalVisible(false);
             setSelectedProfile(null);
           }}
         >
           <TouchableOpacity
-            className="flex-1 justify-end bg-black/40"
+            className="flex-1 justify-end"
+            style={{ backgroundColor: colors.overlay }}
             activeOpacity={1}
             onPress={() => {
               setProfileModalVisible(false);
@@ -686,7 +692,7 @@ export default function CommunityScreen() {
               <View
                 className="bg-app-surface rounded-t-3xl px-6 pt-5 pb-10"
                 style={{
-                  shadowColor: "#000",
+                  shadowColor: colors.shadow,
                   shadowOffset: { width: 0, height: -4 },
                   shadowOpacity: 0.1,
                   shadowRadius: 12,
@@ -708,7 +714,7 @@ export default function CommunityScreen() {
                     <View
                       className="w-20 h-20 rounded-full bg-dp-600 items-center justify-center overflow-hidden mb-3"
                       style={{
-                        shadowColor: "#040485",
+                        shadowColor: colors.signal,
                         shadowOffset: { width: 0, height: 4 },
                         shadowOpacity: 0.25,
                         shadowRadius: 8,
@@ -737,7 +743,7 @@ export default function CommunityScreen() {
                         <Ionicons
                           name="checkmark-circle"
                           size={18}
-                          color="#0618A8"
+                          color={colors.signal}
                           style={{ marginLeft: 6 }}
                         />
                       )}
@@ -748,7 +754,7 @@ export default function CommunityScreen() {
                       <View
                         className="bg-dp-50 rounded-full px-3 py-1 flex-row items-center mr-2"
                       >
-                        <Ionicons name="shield-checkmark" size={11} color="#040485" />
+                        <Ionicons name="shield-checkmark" size={11} color={colors.signal} />
                         <Text className="text-[11px] font-raleway-bold text-dp-600 ml-1">
                           {selectedProfile.athlete_status === "current"
                             ? "Current Athlete"
@@ -767,7 +773,7 @@ export default function CommunityScreen() {
                       selectedProfile.school !== "N/A" &&
                       selectedProfile.school !== "Other" && (
                         <View className="flex-row items-center mb-4">
-                          <Ionicons name="school-outline" size={14} color="#757575" />
+                          <Ionicons name="school-outline" size={14} color={colors.textSecondary} />
                           <Text className="text-sm text-silver-500 font-raleway-semibold ml-1.5">
                             {selectedProfile.school}
                           </Text>
@@ -802,14 +808,14 @@ export default function CommunityScreen() {
         <Modal
           visible={supportModalVisible}
           transparent
-          animationType="slide"
+          animationType={reduceMotion ? "none" : "slide"}
           onRequestClose={() => setSupportModalVisible(false)}
         >
-          <View className="flex-1 justify-end bg-black/40">
+          <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
             <View
               className="bg-app-surface rounded-t-3xl px-6 pt-6 pb-10"
               style={{
-                shadowColor: "#000",
+                shadowColor: colors.shadow,
                 shadowOffset: { width: 0, height: -4 },
                 shadowOpacity: 0.1,
                 shadowRadius: 12,
@@ -818,7 +824,7 @@ export default function CommunityScreen() {
             >
               <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center">
-                  <Ionicons name="shield-checkmark" size={22} color="#040485" />
+                  <Ionicons name="shield-checkmark" size={22} color={colors.signal} />
                   <Text className="text-lg font-raleway-extrabold text-silver-900 ml-2">
                     Need Support Now?
                   </Text>
@@ -827,7 +833,7 @@ export default function CommunityScreen() {
                   onPress={() => setSupportModalVisible(false)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close" size={24} color="#757575" />
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -839,13 +845,13 @@ export default function CommunityScreen() {
               {/* Peer Support */}
               <TouchableOpacity
                 className="bg-dp-50 rounded-2xl p-4 mb-3 flex-row items-center"
-                style={{ borderWidth: 1.5, borderColor: "#E8E0F0" }}
+                style={{ borderWidth: 1.5, borderColor: colors.borderStrong }}
                 onPress={() => handleSupportRequest("peer")}
                 disabled={supportSending}
                 activeOpacity={0.7}
               >
                 <View className="w-11 h-11 rounded-full bg-dp-600 items-center justify-center mr-3">
-                  <Ionicons name="people" size={22} color="#fff" />
+                  <Ionicons name="people" size={22} color={colors.inverseText} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-base font-raleway-bold text-silver-900">
@@ -856,20 +862,20 @@ export default function CommunityScreen() {
                   </Text>
                 </View>
                 {supportSending && (
-                  <ActivityIndicator size="small" color="#040485" />
+                  <ActivityIndicator size="small" color={colors.signal} />
                 )}
               </TouchableOpacity>
 
               {/* Technical Support */}
               <TouchableOpacity
                 className="bg-silver-50 rounded-2xl p-4 flex-row items-center"
-                style={{ borderWidth: 1.5, borderColor: "#E0E0E0" }}
+                style={{ borderWidth: 1.5, borderColor: colors.borderStrong }}
                 onPress={() => handleSupportRequest("moderator")}
                 disabled={supportSending}
                 activeOpacity={0.7}
               >
                 <View className="w-11 h-11 rounded-full bg-silver-700 items-center justify-center mr-3">
-                  <Ionicons name="headset-outline" size={22} color="#fff" />
+                  <Ionicons name="headset-outline" size={22} color={colors.inverseText} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-base font-raleway-bold text-silver-900">
@@ -880,7 +886,7 @@ export default function CommunityScreen() {
                   </Text>
                 </View>
                 {supportSending && (
-                  <ActivityIndicator size="small" color="#757575" />
+                  <ActivityIndicator size="small" color={colors.textSecondary} />
                 )}
               </TouchableOpacity>
             </View>

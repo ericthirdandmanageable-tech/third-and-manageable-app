@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import {
   getDefaultAppTheme,
   getSchoolTheme,
+  getSchoolAppThemeSignal,
+  isSupportedInstitutionId,
   isAppTheme,
 } from "../constants/app-theme";
 
@@ -13,22 +15,27 @@ describe("native app themes", () => {
     assert.equal(getDefaultAppTheme(false), "dusk");
   });
 
-  for (const [school, expectedKey] of [
-    ["Cleveland State University", "cleveland-state"],
-    ["CSU", "cleveland-state"],
-    ["Case Western Reserve University", "cwru"],
-    ["CWRU", "cwru"],
-    ["Bowling Green State University", "bgsu"],
-    ["BGSU", "bgsu"],
+  for (const [institutionId, expectedKey] of [
+    ["tm:cleveland-state", "cleveland-state"],
+    ["tm:case-western-reserve", "cwru"],
+    ["tm:bowling-green-state", "bgsu"],
   ]) {
-    it(`recognizes ${school}`, () => {
-      assert.equal(getSchoolTheme(school).key, expectedKey);
+    it(`recognizes ${institutionId}`, () => {
+      assert.equal(getSchoolTheme(institutionId).key, expectedKey);
     });
   }
 
-  it("does not guess a palette for unknown schools", () => {
-    assert.equal(getSchoolTheme("Other University").key, "tm");
+  it("never guesses a palette from a display name", () => {
+    assert.equal(getSchoolTheme("Bowling Green State University").key, "tm");
     assert.equal(getSchoolTheme(null).key, "tm");
+    assert.equal(isSupportedInstitutionId("tm:cleveland-state"), true);
+    assert.equal(isSupportedInstitutionId("Cleveland State University"), false);
+    assert.equal(isSupportedInstitutionId("toString"), false);
+  });
+
+  it("ports the web AA signal contrast solver", () => {
+    const signal = getSchoolAppThemeSignal("#F04B0B");
+    assert.equal(signal, "#c73e09");
   });
 
   it("rejects malformed persisted values", () => {

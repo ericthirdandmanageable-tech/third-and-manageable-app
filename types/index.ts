@@ -15,6 +15,8 @@ export interface Profile {
   profile_pic?: string;
   athlete_status: "current" | "former";
   school: string;
+  /** Stable supported-institution identifier; display names are never identity keys. */
+  school_id?: string;
   group_interest: boolean;
   current_quarter: number;
   streak: number;

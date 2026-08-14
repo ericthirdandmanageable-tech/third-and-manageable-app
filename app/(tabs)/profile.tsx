@@ -74,6 +74,7 @@ export default function ProfileScreen() {
     setTheme: setAppTheme,
     colors: appThemeColors,
     hasVerifiedSchoolMatch,
+    reduceMotion,
   } = useAppTheme();
   const sport = profile ? SPORTS[profile.sport as SportKey] : null;
   const userId = user?.$id;
@@ -348,7 +349,7 @@ export default function ProfileScreen() {
       >
         <ScreenHeader
           eyebrow="Identity, privacy, and preferences"
-          title="Your Profile"
+          title="Profile & Settings"
           subtitle="The athlete you were and the person you're becoming can live in the same place."
           icon="person-outline"
         />
@@ -358,7 +359,7 @@ export default function ProfileScreen() {
           tone="strong"
           className="bg-app-surface rounded-3xl p-6 mb-4 items-center"
           style={{
-            shadowColor: "#000",
+            shadowColor: appThemeColors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -374,7 +375,7 @@ export default function ProfileScreen() {
             <View
               className="w-20 h-20 rounded-full bg-dp-600 items-center justify-center overflow-hidden"
               style={{
-                shadowColor: "#040485",
+                shadowColor: appThemeColors.signal,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
@@ -382,7 +383,7 @@ export default function ProfileScreen() {
               }}
             >
               {uploadingPic ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={appThemeColors.inverseText} />
               ) : profile?.profile_pic ? (
                 <Image
                   source={{ uri: profile.profile_pic }}
@@ -398,14 +399,14 @@ export default function ProfileScreen() {
             <View
               className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-app-surface items-center justify-center"
               style={{
-                shadowColor: "#000",
+                shadowColor: appThemeColors.shadow,
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: 0.15,
                 shadowRadius: 4,
                 elevation: 4,
               }}
             >
-              <Ionicons name="camera" size={14} color="#040485" />
+              <Ionicons name="camera" size={14} color={appThemeColors.signal} />
             </View>
           </TouchableOpacity>
           <View className="flex-row items-center">
@@ -416,7 +417,7 @@ export default function ProfileScreen() {
               <Ionicons
                 name="checkmark-circle"
                 size={18}
-                color="#0618A8"
+                color={appThemeColors.signal}
                 style={{ marginLeft: 6 }}
               />
             )}
@@ -437,7 +438,7 @@ export default function ProfileScreen() {
           <View className="flex-row items-center mt-3 flex-wrap justify-center">
             {profile?.athlete_status && (
               <View className="bg-dp-50 rounded-full px-3 py-1 flex-row items-center mr-2 mb-1">
-                <Ionicons name="shield-checkmark" size={12} color="#040485" />
+                <Ionicons name="shield-checkmark" size={12} color={appThemeColors.signal} />
                 <Text className="text-[11px] font-raleway-bold text-dp-600 ml-1">
                   {profile.athlete_status === "current"
                     ? "Current Athlete"
@@ -449,7 +450,7 @@ export default function ProfileScreen() {
               profile.school !== "N/A" &&
               profile.school !== "Other" && (
                 <View className="bg-silver-50 rounded-full px-3 py-1 flex-row items-center mb-1">
-                  <Ionicons name="school-outline" size={12} color="#757575" />
+                  <Ionicons name="school-outline" size={12} color={appThemeColors.textSecondary} />
                   <Text className="text-[11px] font-raleway-semibold text-silver-600 ml-1">
                     {profile.school}
                   </Text>
@@ -466,7 +467,7 @@ export default function ProfileScreen() {
             onPress={openEditModal}
             activeOpacity={0.7}
           >
-            <Ionicons name="create-outline" size={16} color="#040485" />
+            <Ionicons name="create-outline" size={16} color={appThemeColors.signal} />
             <Text className="text-sm font-raleway-bold text-dp-600 ml-1.5">
               Edit Profile
             </Text>
@@ -477,7 +478,7 @@ export default function ProfileScreen() {
         <GlassSurface
           className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#000",
+            shadowColor: appThemeColors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -489,7 +490,7 @@ export default function ProfileScreen() {
               <Ionicons
                 name="information-circle-outline"
                 size={16}
-                color="#040485"
+                color={appThemeColors.signal}
               />
             </View>
             <Text className="text-base font-raleway-bold text-silver-900">
@@ -575,15 +576,15 @@ export default function ProfileScreen() {
             <Text className="text-sm text-silver-500">Verification</Text>
             {profile?.verified ? (
               <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                <Text className="text-sm font-raleway-semibold text-green-600 ml-1">
+                <Ionicons name="checkmark-circle" size={16} color={appThemeColors.semantic.success} />
+                <Text className="text-sm font-raleway-semibold ml-1" style={{ color: appThemeColors.semantic.success }}>
                   Verified
                 </Text>
               </View>
             ) : profile?.verification_requested ? (
               <View className="flex-row items-center">
-                <Ionicons name="time-outline" size={16} color="#F59E0B" />
-                <Text className="text-sm font-raleway-semibold text-amber-600 ml-1">
+                <Ionicons name="time-outline" size={16} color={appThemeColors.semantic.warning} />
+                <Text className="text-sm font-raleway-semibold ml-1" style={{ color: appThemeColors.semantic.warning }}>
                   Pending Review
                 </Text>
               </View>
@@ -596,7 +597,7 @@ export default function ProfileScreen() {
                 <Ionicons
                   name="shield-checkmark-outline"
                   size={14}
-                  color="#040485"
+                  color={appThemeColors.signal}
                 />
                 <Text className="text-xs font-raleway-bold text-dp-600 ml-1">
                   Request Verification
@@ -611,7 +612,7 @@ export default function ProfileScreen() {
           tone="signal"
           className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#000",
+            shadowColor: appThemeColors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -639,19 +640,26 @@ export default function ProfileScreen() {
           <View accessibilityRole="radiogroup" className="gap-2">
             {APPEARANCE_OPTIONS.map((option) => {
               const selected = appTheme === option.value;
+              const disabled = option.value === "school" && !hasVerifiedSchoolMatch;
               return (
                 <TouchableOpacity
                   key={option.value}
                   accessibilityRole="radio"
-                  accessibilityState={{ checked: selected }}
+                  accessibilityState={{ checked: selected, disabled }}
                   accessibilityLabel={option.label}
-                  accessibilityHint={option.description}
+                  accessibilityHint={
+                    disabled
+                      ? "Requires a verified supported institution."
+                      : option.description
+                  }
                   activeOpacity={0.75}
+                  disabled={disabled}
                   className={`rounded-2xl border-2 p-4 flex-row items-center ${
                     selected
                       ? "border-dp-600 bg-dp-50"
                       : "border-silver-100 bg-silver-50"
                   }`}
+                  style={{ opacity: disabled ? 0.52 : 1 }}
                   onPress={() => setAppTheme(option.value)}
                 >
                   <View className="w-9 h-9 rounded-full items-center justify-center bg-app-surface mr-3">
@@ -666,7 +674,7 @@ export default function ProfileScreen() {
                       {option.label}
                     </Text>
                     <Text className="text-[11px] text-silver-500 mt-0.5">
-                      {option.description}
+                      {disabled ? "Requires a verified supported institution." : option.description}
                     </Text>
                   </View>
                   <Ionicons
@@ -684,7 +692,7 @@ export default function ProfileScreen() {
         <GlassSurface
           className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#000",
+            shadowColor: appThemeColors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -696,7 +704,7 @@ export default function ProfileScreen() {
               <Ionicons
                 name="notifications-outline"
                 size={16}
-                color="#040485"
+                color={appThemeColors.signal}
               />
             </View>
             <Text className="text-base font-raleway-bold text-silver-900">
@@ -716,8 +724,8 @@ export default function ProfileScreen() {
             <Switch
               value={remindersEnabled}
               onValueChange={toggleReminders}
-              trackColor={{ false: "#E0E0E0", true: "#A1A8EB" }}
-              thumbColor={remindersEnabled ? "#040485" : "#BDBDBD"}
+              trackColor={{ false: appThemeColors.borderStrong, true: appThemeColors.signalSoft }}
+              thumbColor={remindersEnabled ? appThemeColors.signal : appThemeColors.disabled}
             />
           </View>
         </GlassSurface>
@@ -726,7 +734,7 @@ export default function ProfileScreen() {
         <GlassSurface
           className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#000",
+            shadowColor: appThemeColors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -735,7 +743,7 @@ export default function ProfileScreen() {
         >
           <View className="flex-row items-center mb-1">
             <View className="w-7 h-7 rounded-full bg-dp-50 items-center justify-center mr-2">
-              <Ionicons name="sparkles" size={16} color="#040485" />
+              <Ionicons name="sparkles" size={16} color={appThemeColors.signal} />
             </View>
             <Text className="text-base font-raleway-bold text-silver-900">
               The Clipboard
@@ -799,7 +807,7 @@ export default function ProfileScreen() {
                     <Ionicons
                       name={item.icon}
                       size={16}
-                      color={isActive ? "#040485" : "#9E9E9E"}
+                      color={isActive ? appThemeColors.signal : appThemeColors.textSecondary}
                     />
                     <Text
                       className={`text-sm font-raleway-bold ml-1.5 ${isActive ? "text-dp-600" : "text-silver-600"
@@ -825,7 +833,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             className="flex-1 bg-app-surface rounded-3xl p-4 items-center"
             style={{
-              shadowColor: "#000",
+              shadowColor: appThemeColors.shadow,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.05,
               shadowRadius: 8,
@@ -834,7 +842,7 @@ export default function ProfileScreen() {
             onPress={() => router.push("/(tabs)/support")}
             activeOpacity={0.7}
           >
-            <Ionicons name="heart-outline" size={22} color="#040485" />
+            <Ionicons name="heart-outline" size={22} color={appThemeColors.signal} />
             <Text className="text-xs font-raleway-bold text-silver-900 mt-1.5">
               Support
             </Text>
@@ -842,7 +850,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             className="flex-1 bg-app-surface rounded-3xl p-4 items-center"
             style={{
-              shadowColor: "#000",
+              shadowColor: appThemeColors.shadow,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.05,
               shadowRadius: 8,
@@ -851,7 +859,7 @@ export default function ProfileScreen() {
             onPress={() => router.push("/(tabs)/perks")}
             activeOpacity={0.7}
           >
-            <Ionicons name="trophy-outline" size={22} color="#040485" />
+            <Ionicons name="trophy-outline" size={22} color={appThemeColors.signal} />
             <Text className="text-xs font-raleway-bold text-silver-900 mt-1.5">
               Perks
             </Text>
@@ -862,7 +870,7 @@ export default function ProfileScreen() {
         <GlassSurface
           className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#000",
+            shadowColor: appThemeColors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -871,7 +879,7 @@ export default function ProfileScreen() {
         >
           <View className="flex-row items-center mb-4">
             <View className="w-7 h-7 rounded-full bg-dp-50 items-center justify-center mr-2">
-              <Ionicons name="document-text-outline" size={16} color="#040485" />
+              <Ionicons name="document-text-outline" size={16} color={appThemeColors.signal} />
             </View>
             <Text className="text-base font-raleway-bold text-silver-900">
               Legal
@@ -886,7 +894,7 @@ export default function ProfileScreen() {
             <Text className="text-sm text-silver-700 font-raleway-semibold">
               Privacy Policy
             </Text>
-            <Ionicons name="chevron-forward" size={16} color="#9E9E9E" />
+            <Ionicons name="chevron-forward" size={16} color={appThemeColors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -897,7 +905,7 @@ export default function ProfileScreen() {
             <Text className="text-sm text-silver-700 font-raleway-semibold">
               Terms & Conditions
             </Text>
-            <Ionicons name="chevron-forward" size={16} color="#9E9E9E" />
+            <Ionicons name="chevron-forward" size={16} color={appThemeColors.textSecondary} />
           </TouchableOpacity>
         </GlassSurface>
 
@@ -905,7 +913,7 @@ export default function ProfileScreen() {
         <View
           className="bg-dp-50 rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#000",
+            shadowColor: appThemeColors.shadow,
             shadowOffset: { width: 0, height: 1 },
             shadowOpacity: 0.03,
             shadowRadius: 4,
@@ -935,7 +943,7 @@ export default function ProfileScreen() {
         <TouchableOpacity
           className="bg-app-surface rounded-3xl py-4 items-center mb-3"
           style={{
-            shadowColor: "#000",
+            shadowColor: appThemeColors.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 8,
@@ -945,8 +953,8 @@ export default function ProfileScreen() {
           activeOpacity={0.7}
         >
           <View className="flex-row items-center">
-            <Ionicons name="log-out-outline" size={18} color="#EF4444" />
-            <Text className="text-red-500 text-base font-raleway-bold ml-2">
+            <Ionicons name="log-out-outline" size={18} color={appThemeColors.semantic.danger} />
+            <Text className="text-base font-raleway-bold ml-2" style={{ color: appThemeColors.semantic.danger }}>
               Sign Out
             </Text>
           </View>
@@ -967,12 +975,12 @@ export default function ProfileScreen() {
       {/* Edit Profile Modal */}
       <Modal
         visible={editModalVisible}
-        animationType="slide"
+        animationType={reduceMotion ? "none" : "slide"}
         transparent
         onRequestClose={() => setEditModalVisible(false)}
         onShow={() => setTimeout(() => editInputRef.current?.focus(), 350)}
       >
-        <View className="flex-1 justify-end bg-black/40">
+        <View className="flex-1 justify-end" style={{ backgroundColor: appThemeColors.overlay }}>
           <View className="bg-app-surface rounded-t-3xl px-6 pt-6 pb-10">
             <View className="flex-row items-center justify-between mb-6">
               <Text className="text-lg font-raleway-extrabold text-silver-900">
@@ -982,7 +990,7 @@ export default function ProfileScreen() {
                 onPress={() => setEditModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={24} color="#757575" />
+                <Ionicons name="close" size={24} color={appThemeColors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -996,7 +1004,7 @@ export default function ProfileScreen() {
               value={editDisplayName}
               onChangeText={setEditDisplayName}
               placeholder="Your display name"
-              placeholderTextColor="#BDBDBD"
+              placeholderTextColor={appThemeColors.textTertiary}
               maxLength={30}
             />
 
@@ -1011,7 +1019,7 @@ export default function ProfileScreen() {
               className={`bg-dp-600 py-4 rounded-2xl items-center ${!editDisplayName.trim() || editSaving ? "opacity-50" : ""
                 }`}
               style={{
-                shadowColor: "#040485",
+                shadowColor: appThemeColors.signal,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,

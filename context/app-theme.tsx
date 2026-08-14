@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSegments } from "expo-router";
 import { vars } from "nativewind";
 import React, {
   createContext,
@@ -10,15 +11,22 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { AccessibilityInfo, StyleSheet, View } from "react-native";
+import {
+  AccessibilityInfo,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 import {
   APP_THEME_STORAGE_KEY,
   getDefaultAppTheme,
+  getSchoolAppThemeSignal,
   getSchoolTheme,
   isAppTheme,
   type AppTheme,
 } from "@/constants/app-theme";
+import { BRAND_TOKEN_SPEC } from "@/constants/brand-token-spec";
 import { useAuth } from "@/context/auth";
 
 interface Rgb {
@@ -89,18 +97,7 @@ const LEGACY_NEUTRAL = {
   900: "#212121",
 };
 
-const GLASS_NEUTRAL = {
-  50: "#F7F9FC",
-  100: "#E2E8F1",
-  200: "#CED6E2",
-  300: "#B6C0CF",
-  400: "#8B97AA",
-  500: "#6C7690",
-  600: "#5A657C",
-  700: "#46536D",
-  800: "#2B3955",
-  900: "#16233E",
-};
+const GLASS_NEUTRAL = BRAND_TOKEN_SPEC.structure.glassNeutral;
 
 export interface ThemeColors {
   signal: string;
@@ -115,11 +112,19 @@ export interface ThemeColors {
   surfaceMuted: string;
   border: string;
   borderStrong: string;
-  success: string;
-  warning: string;
-  danger: string;
   backgroundGradient: readonly [string, string, string];
   ambient: string;
+  shadow: string;
+  overlay: string;
+  inverseText: string;
+  disabled: string;
+  semantic: {
+    success: string;
+    warning: string;
+    danger: string;
+    info: string;
+    mood: readonly [string, string, string, string, string];
+  };
 }
 
 interface AppThemeContextValue {
@@ -128,7 +133,12 @@ interface AppThemeContextValue {
   colors: ThemeColors;
   hasVerifiedSchoolMatch: boolean;
   reduceTransparency: boolean;
+  reduceMotion: boolean;
+  fontScale: number;
+  maxFontSizeMultiplier: number;
   isGlass: boolean;
+  isThemeActive: boolean;
+  supportsDarkGlass: false;
   schoolTheme: ReturnType<typeof getSchoolTheme>;
 }
 
@@ -142,7 +152,10 @@ export const useAppTheme = (): AppThemeContextValue => {
 
 export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
   const { profile } = useAuth();
-  const matchedSchoolTheme = getSchoolTheme(profile?.school);
+  const segments = useSegments();
+  const { fontScale } = useWindowDimensions();
+  const isThemeActive = segments[0] === "(tabs)";
+  const matchedSchoolTheme = getSchoolTheme(profile?.school_id);
   const hasVerifiedSchoolMatch =
     Boolean(profile?.verified) && matchedSchoolTheme.key !== "tm";
   const schoolTheme = hasVerifiedSchoolMatch
@@ -150,6 +163,7 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     : getSchoolTheme(null);
   const [storedTheme, setStoredTheme] = useState<AppTheme | null>(null);
   const [reduceTransparency, setReduceTransparency] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -184,8 +198,31 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const theme = storedTheme ?? getDefaultAppTheme(hasVerifiedSchoolMatch);
-  const signal = theme === "school" ? schoolTheme.signal : "#2F6FED";
+  useEffect(() => {
+    let active = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (active) setReduceMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReduceMotion,
+    );
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
+  const selectedTheme = storedTheme ?? getDefaultAppTheme(hasVerifiedSchoolMatch);
+  const eligibleTheme =
+    selectedTheme === "school" && !hasVerifiedSchoolMatch
+      ? "dusk"
+      : selectedTheme;
+  // Auth, recovery, legal, and onboarding intentionally use the fixed T&M
+  // presentation. Account themes begin at the authenticated tab shell.
+  const theme = isThemeActive ? eligibleTheme : "dusk";
+  const rawSignal = theme === "school" ? schoolTheme.signal : "#2F6FED";
+  const signal = getSchoolAppThemeSignal(rawSignal);
   const accent = useMemo(
     () => (theme === "legacy" ? LEGACY_ACCENT : accentScale(signal)),
     [signal, theme],
@@ -209,13 +246,17 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
       surfaceMuted: isGlass ? "rgba(238,244,252,0.58)" : "#F5F5F5",
       border: isGlass ? "rgba(255,255,255,0.7)" : "#EEEEEE",
       borderStrong: isGlass ? "rgba(22,35,62,0.14)" : "#E0E0E0",
-      success: "#15805F",
-      warning: "#B56A12",
-      danger: "#C33D4D",
       backgroundGradient: isGlass
         ? [mix(signal, "white", 0.92), mix(signal, "white", 0.84), "#F8FAFD"]
         : ["#FAF8F5", "#FAF8F5", "#FAF8F5"],
       ambient: isGlass ? `${signal}2E` : "transparent",
+      shadow: BRAND_TOKEN_SPEC.structure.shadow,
+      overlay: BRAND_TOKEN_SPEC.structure.overlay,
+      inverseText: BRAND_TOKEN_SPEC.structure.inverseText,
+      disabled: neutral[300],
+      semantic: {
+        ...BRAND_TOKEN_SPEC.semantic,
+      },
     }),
     [isGlass, neutral, schoolTheme.signalDark, schoolTheme.soft, signal, theme],
   );
@@ -243,11 +284,13 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const setTheme = useCallback((nextTheme: AppTheme) => {
-    setStoredTheme(nextTheme);
-    void AsyncStorage.setItem(APP_THEME_STORAGE_KEY, nextTheme).catch(() => {
+    const allowedTheme =
+      nextTheme === "school" && !hasVerifiedSchoolMatch ? "dusk" : nextTheme;
+    setStoredTheme(allowedTheme);
+    void AsyncStorage.setItem(APP_THEME_STORAGE_KEY, allowedTheme).catch(() => {
       // Persistence is best-effort; the in-memory selection remains active.
     });
-  }, []);
+  }, [hasVerifiedSchoolMatch, setStoredTheme]);
 
   const value = useMemo(
     () => ({
@@ -256,13 +299,21 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
       colors,
       hasVerifiedSchoolMatch,
       reduceTransparency,
+      reduceMotion,
+      fontScale,
+      maxFontSizeMultiplier: BRAND_TOKEN_SPEC.accessibility.maxFontSizeMultiplier,
       isGlass,
+      isThemeActive,
+      supportsDarkGlass: BRAND_TOKEN_SPEC.glass.supportsDark,
       schoolTheme,
     }),
     [
       colors,
       hasVerifiedSchoolMatch,
       isGlass,
+      isThemeActive,
+      fontScale,
+      reduceMotion,
       reduceTransparency,
       schoolTheme,
       setTheme,

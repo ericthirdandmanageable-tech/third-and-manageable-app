@@ -16,6 +16,7 @@ import "react-native-reanimated";
 import "../global.css";
 
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { BRAND_TOKEN_SPEC } from "@/constants/brand-token-spec";
 import { AuthProvider, useAuth } from "@/context/auth";
 import {
   registerForPushNotifications,
@@ -28,8 +29,14 @@ SplashScreen.preventAutoHideAsync();
 
 // Apply Raleway as default font for all Text and TextInput
 (Text as any).defaultProps = (Text as any).defaultProps || {};
+(Text as any).defaultProps.allowFontScaling = true;
+(Text as any).defaultProps.maxFontSizeMultiplier =
+  BRAND_TOKEN_SPEC.accessibility.maxFontSizeMultiplier;
 (Text as any).defaultProps.style = { fontFamily: "Raleway-Regular" };
 (TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
+(TextInput as any).defaultProps.allowFontScaling = true;
+(TextInput as any).defaultProps.maxFontSizeMultiplier =
+  BRAND_TOKEN_SPEC.accessibility.maxFontSizeMultiplier;
 (TextInput as any).defaultProps.style = { fontFamily: "Raleway-Regular" };
 
 function RootNavigator() {
@@ -150,7 +157,7 @@ function ThemedApplication() {
         card: "transparent",
         text: colors.textPrimary,
         border: colors.borderStrong,
-        notification: colors.danger,
+        notification: colors.semantic.danger,
       },
     }),
     [colors],

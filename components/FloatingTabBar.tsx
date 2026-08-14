@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassSurface } from "@/components/ui/liquid-glass";
 import { TAB_BAR_MAX_WIDTH } from "@/constants/adaptive-layout";
+import { isAuthenticatedTabRoute } from "@/constants/navigation";
 import { useAppTheme } from "@/context/app-theme";
 
 const TAB_ICONS: Record<
@@ -33,6 +34,11 @@ const TAB_ICONS: Record<
     outline: "sparkles-outline",
     filled: "sparkles",
     label: "Coach",
+  },
+  profile: {
+    outline: "settings-outline",
+    filled: "settings",
+    label: "Settings",
   },
 };
 
@@ -62,7 +68,7 @@ export default function FloatingTabBar({
         bottom: Math.max(bottom + 8, 16),
         left: (width - barWidth) / 2,
         width: barWidth,
-        backgroundColor: isLegacy ? "#040485" : undefined,
+        backgroundColor: isLegacy ? colors.signalDark : undefined,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-evenly",
@@ -71,11 +77,10 @@ export default function FloatingTabBar({
       }}
     >
       {state.routes.map((route, index) => {
+        if (!isAuthenticatedTabRoute(route.name)) return null;
         const isFocused = state.index === index;
         const isCenter = route.name === CENTER_TAB;
         const iconSet = TAB_ICONS[route.name];
-
-        if (!iconSet) return null;
 
         const onPress = () => {
           void Haptics.selectionAsync();
@@ -143,8 +148,8 @@ export default function FloatingTabBar({
               color={
                 isLegacy
                   ? isFocused
-                    ? "#FFFFFF"
-                    : "#6B6B80"
+                    ? colors.inverseText
+                    : colors.textTertiary
                   : isFocused
                     ? colors.signal
                     : colors.textSecondary
@@ -154,7 +159,7 @@ export default function FloatingTabBar({
               <View style={{ alignItems: "center", marginTop: 3 }}>
                 <Text
                   style={{
-                    color: isLegacy ? "#FFFFFF" : colors.signal,
+                    color: isLegacy ? colors.inverseText : colors.signal,
                     fontFamily: "DMMono-Medium",
                     fontSize: 8,
                     letterSpacing: 0.4,

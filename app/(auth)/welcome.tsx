@@ -72,7 +72,7 @@ export default function WelcomeScreen() {
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const { colors } = useAppTheme();
+  const { colors, reduceMotion } = useAppTheme();
   const activeSlide = SLIDES[activeIndex];
   const compact = width < 420 || height < 880;
   const expansive = height >= 930;
@@ -84,6 +84,10 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     dotAnimations.forEach((animation, index) => {
+      if (reduceMotion) {
+        animation.setValue(index === activeIndex ? 1 : 0);
+        return;
+      }
       Animated.spring(animation, {
         toValue: index === activeIndex ? 1 : 0,
         useNativeDriver: false,
@@ -91,9 +95,10 @@ export default function WelcomeScreen() {
         tension: 80,
       }).start();
     });
-  }, [activeIndex, dotAnimations]);
+  }, [activeIndex, dotAnimations, reduceMotion]);
 
   useEffect(() => {
+    if (reduceMotion) return;
     autoPlayRef.current = setInterval(() => {
       setActiveIndex((previous) => {
         const next = (previous + 1) % SLIDES.length;
@@ -104,7 +109,7 @@ export default function WelcomeScreen() {
     return () => {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };
-  }, []);
+  }, [reduceMotion]);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<CarouselSlide>[] }) => {

@@ -1,4 +1,4 @@
-import { GlassSurface } from "@/components/ui/liquid-glass";
+import { GlassListSurface, GlassSurface } from "@/components/ui/liquid-glass";
 import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
 import {
@@ -27,15 +27,6 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   sparkles: "sparkles",
   shield: "shield-checkmark",
   at: "at",
-};
-
-const ICON_COLOR_MAP: Record<string, string> = {
-  checkin: "#0618A8",
-  gameplan: "#040485",
-  streak: "#F59E0B",
-  milestone: "#10B981",
-  welcome: "#040485",
-  mention: "#E65100",
 };
 
 function formatTimestamp(dateStr: string): string {
@@ -124,7 +115,14 @@ export default function NotificationsScreen() {
 
   const renderNotification = ({ item }: { item: StoredNotification }) => {
     const iconName = ICON_MAP[item.icon] ?? "notifications";
-    const iconColor = ICON_COLOR_MAP[item.type] ?? "#040485";
+    const iconColor =
+      item.type === "streak"
+        ? colors.semantic.warning
+        : item.type === "milestone"
+          ? colors.semantic.success
+          : item.type === "mention"
+            ? colors.semantic.danger
+            : colors.signal;
     const isUnread = !item.read;
 
     return (
@@ -133,7 +131,7 @@ export default function NotificationsScreen() {
         onPress={() => handleTapNotification(item)}
         activeOpacity={0.7}
       >
-        <GlassSurface
+        <GlassListSurface
           tone={isUnread ? "signal" : "regular"}
           style={{ padding: 16 }}
         >
@@ -145,7 +143,7 @@ export default function NotificationsScreen() {
               <Ionicons
                 name={iconName}
                 size={18}
-                color={isUnread ? "#fff" : iconColor}
+                color={isUnread ? colors.inverseText : iconColor}
               />
             </View>
             <View className="flex-1">
@@ -169,7 +167,7 @@ export default function NotificationsScreen() {
               </Text>
             </View>
           </View>
-        </GlassSurface>
+        </GlassListSurface>
       </TouchableOpacity>
     );
   };

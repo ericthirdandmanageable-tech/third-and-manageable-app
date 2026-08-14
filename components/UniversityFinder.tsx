@@ -8,9 +8,11 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 export default function UniversityFinder({
   value,
   onChange,
+  onSelect,
 }: {
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (selection: { name: string; institutionId: string | null }) => void;
 }) {
   const { colors } = useAppTheme();
   const [focused, setFocused] = useState(false);
@@ -35,11 +37,12 @@ export default function UniversityFinder({
       {focused && value.trim() ? (
         <GlassSurface tone="strong" style={styles.results}>
           {results.length > 0 ? (
-            results.map(([name, city, state]) => (
+            results.map(([name, city, state, institutionId]) => (
               <Pressable
                 key={`${name}-${city}`}
                 onPress={() => {
                   onChange(name);
+                  onSelect?.({ name, institutionId: institutionId ?? null });
                   setFocused(false);
                 }}
                 style={({ pressed }) => [styles.result, { opacity: pressed ? 0.65 : 1, borderBottomColor: colors.borderStrong }]}

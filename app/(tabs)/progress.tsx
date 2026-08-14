@@ -33,7 +33,7 @@ import { captureRef } from "react-native-view-shot";
 
 export default function ProgressScreen() {
   const { user, profile, refreshProfile } = useAuth();
-  const { colors } = useAppTheme();
+  const { colors, reduceMotion } = useAppTheme();
   const sport = profile ? SPORTS[profile.sport as SportKey] : null;
   const [milestoneDismissed, setMilestoneDismissed] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -156,7 +156,7 @@ export default function ProgressScreen() {
         </GlassSurface>
       </ScrollView>
 
-      <Modal visible={milestoneVisible} transparent animationType="fade" onRequestClose={() => setMilestoneDismissed(true)}>
+      <Modal visible={milestoneVisible} transparent animationType={reduceMotion ? "none" : "fade"} onRequestClose={() => setMilestoneDismissed(true)}>
         <View style={styles.overlay}>
           <GlassSurface tone="strong" style={styles.modalCard}>
             <View style={[styles.trophy, { backgroundColor: colors.signalSoft }]}><Ionicons name="trophy" size={31} color={colors.signal} /></View>

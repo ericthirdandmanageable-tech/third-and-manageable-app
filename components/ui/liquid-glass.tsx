@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/context/app-theme";
+import { GLASS_COLOR_SCHEME } from "@/constants/app-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import {
@@ -24,9 +25,12 @@ export type GlassTone = "regular" | "strong" | "subtle" | "signal";
 
 interface GlassSurfaceProps extends ViewProps {
   children?: ReactNode;
+  className?: string;
   tone?: GlassTone;
   radius?: number;
   interactive?: boolean;
+  /** Use for repeated list cells to avoid stacking GPU-heavy blur surfaces. */
+  renderMode?: "auto" | "static";
 }
 
 const isNativeGlassReady = (): boolean => {
@@ -53,13 +57,18 @@ function GlassSurfaceBase({
   tone = "regular",
   radius = 24,
   interactive = false,
+  renderMode = "auto",
   style,
   ...props
 }: GlassSurfaceProps) {
   const { colors, isGlass, reduceTransparency } = useAppTheme();
   const nativeGlass = useMemo(
-    () => isGlass && !reduceTransparency && isNativeGlassReady(),
-    [isGlass, reduceTransparency],
+    () =>
+      renderMode === "auto" &&
+      isGlass &&
+      !reduceTransparency &&
+      isNativeGlassReady(),
+    [isGlass, reduceTransparency, renderMode],
   );
 
   const surfaceStyle = useMemo<ViewStyle>(
@@ -77,7 +86,7 @@ function GlassSurfaceBase({
             : tone === "subtle"
               ? colors.surfaceMuted
               : colors.surface,
-      shadowColor: tone === "signal" ? colors.signal : "#16233E",
+      shadowColor: tone === "signal" ? colors.signal : colors.shadow,
       shadowOffset: { width: 0, height: tone === "strong" ? 8 : 4 },
       shadowOpacity: isGlass ? (tone === "strong" ? 0.13 : 0.08) : 0.05,
       shadowRadius: tone === "strong" ? 22 : 14,
@@ -86,7 +95,7 @@ function GlassSurfaceBase({
     [colors, isGlass, radius, tone],
   );
 
-  if (!isGlass || reduceTransparency) {
+  if (!isGlass || reduceTransparency || renderMode === "static") {
     return (
       <View {...props} style={[surfaceStyle, style]}>
         {children}
@@ -98,7 +107,7 @@ function GlassSurfaceBase({
     return (
       <GlassView
         {...props}
-        colorScheme="light"
+        colorScheme={GLASS_COLOR_SCHEME}
         glassEffectStyle={tone === "subtle" ? "clear" : "regular"}
         isInteractive={interactive}
         tintColor={tone === "signal" ? `${colors.signal}20` : undefined}
@@ -133,6 +142,11 @@ export const GlassSurface = cssInterop(GlassSurfaceBase, {
   className: "style",
 });
 
+/** A glass-token surface without a per-cell native blur pass. */
+export function GlassListSurface(props: GlassSurfaceProps) {
+  return <GlassSurface {...props} renderMode="static" />;
+}
+
 interface GlassButtonProps {
   label: string;
   onPress: () => void;
@@ -161,7 +175,7 @@ export function GlassButton({
   const foreground = isPrimary
     ? colors.signalInk
     : variant === "danger"
-      ? colors.danger
+      ? colors.semantic.danger
       : colors.textPrimary;
 
   return (

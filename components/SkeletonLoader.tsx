@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Animated, View, ViewStyle } from "react-native";
+import { useAppTheme } from "@/context/app-theme";
 
 interface SkeletonProps {
   width?: number | string;
@@ -14,9 +15,14 @@ function SkeletonBox({
   borderRadius = 8,
   style,
 }: SkeletonProps) {
+  const { colors, reduceMotion } = useAppTheme();
   const [opacity] = useState(() => new Animated.Value(0.3));
 
   useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(0.55);
+      return;
+    }
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
@@ -33,7 +39,7 @@ function SkeletonBox({
     );
     animation.start();
     return () => animation.stop();
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
 
   return (
     <Animated.View
@@ -42,7 +48,7 @@ function SkeletonBox({
           width: width as any,
           height,
           borderRadius,
-          backgroundColor: "#E8E0F0",
+          backgroundColor: colors.surfaceMuted,
           opacity,
         },
         style,

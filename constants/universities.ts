@@ -1,11 +1,16 @@
-export type University = readonly [name: string, city: string, state: string];
+export type University = readonly [
+  name: string,
+  city: string,
+  state: string,
+  institutionId?: string,
+];
 
 // A compact on-device directory of major NCAA and pilot-partner institutions.
 // The field remains free-form so an athlete is never blocked by this cache.
 export const UNIVERSITIES: readonly University[] = [
-  ["Bowling Green State University", "Bowling Green", "OH"],
-  ["Case Western Reserve University", "Cleveland", "OH"],
-  ["Cleveland State University", "Cleveland", "OH"],
+  ["Bowling Green State University", "Bowling Green", "OH", "tm:bowling-green-state"],
+  ["Case Western Reserve University", "Cleveland", "OH", "tm:case-western-reserve"],
+  ["Cleveland State University", "Cleveland", "OH", "tm:cleveland-state"],
   ["Ohio State University", "Columbus", "OH"],
   ["University of Cincinnati", "Cincinnati", "OH"],
   ["University of Toledo", "Toledo", "OH"],

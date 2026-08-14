@@ -273,7 +273,7 @@ function CareerIntakeModal({
   onClose: () => void;
   onComplete: (answers: CareerIntakeAnswers) => Promise<void>;
 }) {
-  const { colors } = useAppTheme();
+  const { colors, reduceMotion } = useAppTheme();
   const [step, setStep] = useState(0);
   const [role, setRole] = useState(initial?.role ?? "");
   const [favorite, setFavorite] = useState(initial?.favorite ?? "");
@@ -289,7 +289,7 @@ function CareerIntakeModal({
   const setSelection = step === 0 ? setRole : setFavorite;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={resetAndClose}>
+    <Modal visible={visible} animationType={reduceMotion ? "none" : "slide"} presentationStyle="pageSheet" onRequestClose={resetAndClose}>
       <SafeAreaView style={[styles.modal, { backgroundColor: colors.backgroundGradient[0] }]}>
         <View style={styles.modalTopbar}>
           <GlassButton label="Close" variant="glass" compact onPress={resetAndClose} />

@@ -1,4 +1,4 @@
-import { GlassSurface, ScreenHeader } from "@/components/ui/liquid-glass";
+import { GlassListSurface, ScreenHeader } from "@/components/ui/liquid-glass";
 import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
 import { useAdaptiveLayout } from "@/hooks/use-adaptive-layout";
@@ -111,9 +111,10 @@ export default function PerksScreen() {
 
         {/* Summary card */}
         <View
-          className="bg-dp-700 rounded-3xl p-5 mb-4"
+          className="rounded-3xl p-5 mb-4"
           style={{
-            shadowColor: "#030366",
+            backgroundColor: colors.signalDark,
+            shadowColor: colors.shadow,
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.25,
             shadowRadius: 12,
@@ -122,27 +123,28 @@ export default function PerksScreen() {
         >
           <View className="flex-row items-center justify-between">
             <View>
-              <Text className="text-white/60 text-xs font-raleway-bold uppercase tracking-wider mb-1">
+              <Text className="text-xs font-raleway-bold uppercase tracking-wider mb-1" style={{ color: `${colors.inverseText}99` }}>
                 Perks Unlocked
               </Text>
-              <Text className="text-white text-3xl font-raleway-extrabold">
+              <Text className="text-3xl font-raleway-extrabold" style={{ color: colors.inverseText }}>
                 {unlockedCount}
-                <Text className="text-white/40 text-lg">
+                <Text className="text-lg" style={{ color: `${colors.inverseText}66` }}>
                   {" "}
                   / {PERKS.length}
                 </Text>
               </Text>
             </View>
-            <View className="w-14 h-14 rounded-full bg-white/15 items-center justify-center">
-              <Ionicons name="trophy" size={28} color="#A1A8EB" />
+            <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: `${colors.inverseText}26` }}>
+              <Ionicons name="trophy" size={28} color={colors.signalSoft} />
             </View>
           </View>
           {/* Overall progress bar */}
-          <View className="h-2 bg-white/10 rounded-full overflow-hidden mt-3">
+          <View className="h-2 rounded-full overflow-hidden mt-3" style={{ backgroundColor: `${colors.inverseText}1A` }}>
             <View
-              className="h-full bg-dp-400 rounded-full"
+              className="h-full rounded-full"
               style={{
                 width: `${(unlockedCount / PERKS.length) * 100}%`,
+                backgroundColor: colors.signalSoft,
               }}
             />
           </View>
@@ -177,7 +179,7 @@ export default function PerksScreen() {
               {/* Perk cards */}
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {tierPerks.map(({ perk, unlocked, progress, currentValue }) => (
-                  <GlassSurface
+                  <GlassListSurface
                     key={perk.id}
                     className={`bg-app-surface rounded-2xl p-4 ${
                       unlocked ? "" : "opacity-80"
@@ -186,7 +188,7 @@ export default function PerksScreen() {
                       {
                         width: medium ? "48%" : "100%",
                         flexGrow: medium ? 1 : 0,
-                        shadowColor: "#000",
+                        shadowColor: colors.shadow,
                         shadowOffset: { width: 0, height: 1 },
                         shadowOpacity: 0.04,
                         shadowRadius: 4,
@@ -198,9 +200,9 @@ export default function PerksScreen() {
                     <View
                       className="w-10 h-10 rounded-full items-center justify-center mr-3"
                       style={{
-                        backgroundColor: unlocked ? tierColor.bg : "#F5F5F5",
+                        backgroundColor: unlocked ? tierColor.bg : colors.surfaceMuted,
                         borderWidth: 1.5,
-                        borderColor: unlocked ? tierColor.border : "#E0E0E0",
+                        borderColor: unlocked ? tierColor.border : colors.borderStrong,
                       }}
                     >
                       {unlocked ? (
@@ -210,7 +212,7 @@ export default function PerksScreen() {
                           color={tierColor.text}
                         />
                       ) : (
-                        <Ionicons name="lock-closed" size={16} color="#BDBDBD" />
+                        <Ionicons name="lock-closed" size={16} color={colors.disabled} />
                       )}
                     </View>
                     <View className="flex-1">
@@ -254,7 +256,7 @@ export default function PerksScreen() {
                       </Text>
                     </View>
                   )}
-                  </GlassSurface>
+                  </GlassListSurface>
                 ))}
               </View>
             </View>

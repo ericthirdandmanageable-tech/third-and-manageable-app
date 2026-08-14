@@ -126,7 +126,7 @@ export default function HomeScreen() {
                 <Ionicons name="notifications-outline" size={19} color={colors.textPrimary} />
               </GlassSurface>
               {unreadCount > 0 ? (
-                <View style={[styles.badge, { backgroundColor: colors.danger }]}>
+                <View style={[styles.badge, { backgroundColor: colors.semantic.danger }]}>
                   <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
                 </View>
               ) : null}
@@ -173,8 +173,8 @@ export default function HomeScreen() {
 
         <Pressable onPress={() => router.push("/(tabs)/check-in")}>
           <GlassSurface tone={todayCheckIn ? "regular" : "signal"} style={styles.checkInCard}>
-            <View style={[styles.checkInIcon, { backgroundColor: todayCheckIn ? `${colors.success}18` : colors.signalSoft }]}>
-              <Ionicons name={todayCheckIn ? "checkmark" : "heart-outline"} size={22} color={todayCheckIn ? colors.success : colors.signal} />
+            <View style={[styles.checkInIcon, { backgroundColor: todayCheckIn ? `${colors.semantic.success}18` : colors.signalSoft }]}>
+              <Ionicons name={todayCheckIn ? "checkmark" : "heart-outline"} size={22} color={todayCheckIn ? colors.semantic.success : colors.signal} />
             </View>
             <View style={styles.checkInCopy}>
               <SectionLabel>Daily check-in</SectionLabel>

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { deriveCareerSkillMap, rankCareerPaths } from "../constants/career-intake";
 import { findUniversities } from "../constants/universities";
+import { AUTHENTICATED_TAB_ROUTES } from "../constants/navigation";
 
 describe("unified product logic", () => {
   it("ranks preparation and strategy toward consulting", () => {
@@ -38,5 +39,14 @@ describe("unified product logic", () => {
   it("respects university result limits and empty queries", () => {
     assert.deepEqual(findUniversities(""), []);
     assert.equal(findUniversities("university", 3).length, 3);
+  });
+
+  it("keeps settings reachable from authenticated navigation", () => {
+    assert.ok(AUTHENTICATED_TAB_ROUTES.includes("profile"));
+    assert.equal(new Set(AUTHENTICATED_TAB_ROUTES).size, AUTHENTICATED_TAB_ROUTES.length);
+  });
+
+  it("returns stable IDs for supported universities", () => {
+    assert.equal(findUniversities("Cleveland State University")[0][3], "tm:cleveland-state");
   });
 });

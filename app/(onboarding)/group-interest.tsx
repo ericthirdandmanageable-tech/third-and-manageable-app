@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 
 export default function GroupInterestScreen() {
-  const params = useLocalSearchParams<{ sport: string; displayName: string; athleteStatus: string; school: string }>();
+  const params = useLocalSearchParams<{ sport: string; displayName: string; athleteStatus: string; school: string; schoolId?: string }>();
   const { user, refreshProfile } = useAuth();
   const [interest, setInterest] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,6 +21,7 @@ export default function GroupInterestScreen() {
         display_name: params.displayName,
         athlete_status: params.athleteStatus as "current" | "former",
         school: params.school,
+        school_id: params.schoolId || undefined,
         group_interest: interest,
       });
       await refreshProfile();

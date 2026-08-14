@@ -11,6 +11,7 @@ export default function ProfileSetupScreen() {
   const { colors } = useAppTheme();
   const [displayName, setDisplayName] = useState("");
   const [school, setSchool] = useState("");
+  const [schoolId, setSchoolId] = useState<string | null>(null);
   const ready = Boolean(displayName.trim() && school.trim());
 
   return (
@@ -21,7 +22,7 @@ export default function ProfileSetupScreen() {
       primaryLabel="Next"
       primaryDisabled={!ready}
       onBack={() => router.back()}
-      onPrimary={() => ready && router.push({ pathname: "/(onboarding)/group-interest", params: { sport, athleteStatus, displayName: displayName.trim(), school: school.trim() } })}
+      onPrimary={() => ready && router.push({ pathname: "/(onboarding)/group-interest", params: { sport, athleteStatus, displayName: displayName.trim(), school: school.trim(), schoolId: schoolId ?? "" } })}
     >
       <GlassSurface style={styles.card}>
         <SectionLabel>Display name</SectionLabel>
@@ -40,7 +41,14 @@ export default function ProfileSetupScreen() {
       <GlassSurface style={[styles.card, styles.universityCard]}>
         <SectionLabel>School / university</SectionLabel>
         <Text style={[styles.hint, { color: colors.textSecondary }]}>Search the on-device directory or type the full name. Supported partners unlock verified campus colors.</Text>
-        <UniversityFinder value={school} onChange={setSchool} />
+        <UniversityFinder
+          value={school}
+          onChange={(value) => {
+            setSchool(value);
+            setSchoolId(null);
+          }}
+          onSelect={({ institutionId }) => setSchoolId(institutionId)}
+        />
         <View style={styles.freeformNote}>
           <Text style={[styles.note, { color: colors.textTertiary }]}>Can’t find it? The field is free-form—your school never blocks onboarding.</Text>
         </View>

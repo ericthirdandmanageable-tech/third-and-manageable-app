@@ -26,9 +26,9 @@ export default function SupportScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ScreenHeader eyebrow="Always within reach" title="Support" subtitle="Asking for help is a strength rep. Crisis, peer, and practical resources stay one tap away." icon="heart-circle-outline" />
 
-        <GlassSurface tone="strong" style={[styles.crisis, { borderColor: `${colors.danger}50` }]}>
-          <View style={[styles.crisisIcon, { backgroundColor: `${colors.danger}18` }]}>
-            <Ionicons name="warning-outline" size={23} color={colors.danger} />
+        <GlassSurface tone="strong" style={[styles.crisis, { borderColor: `${colors.semantic.danger}50` }]}>
+          <View style={[styles.crisisIcon, { backgroundColor: `${colors.semantic.danger}18` }]}>
+            <Ionicons name="warning-outline" size={23} color={colors.semantic.danger} />
           </View>
           <View style={styles.crisisCopy}>
             <Text style={[styles.crisisTitle, { color: colors.textPrimary }]}>If you’re in immediate danger</Text>
