@@ -15,6 +15,11 @@ interface Profile {
   streak: number;
   verified: boolean;
   verification_requested: boolean;
+  verification_method: "university_email" | "manual" | null;
+  verification_email: string | null;
+  verification_reason_category: string | null;
+  verification_reason: string | null;
+  verification_requested_at: string;
   joined_at: string;
   suspended: boolean;
   banned: boolean;
@@ -350,7 +355,18 @@ export default async function UsersPage({
                       {user.verified ? (
                         <StatusBadge status="Verified" variant="success" />
                       ) : user.verification_requested ? (
-                        <StatusBadge status="Requested" variant="info" />
+                        <div
+                          title={user.verification_reason || undefined}
+                          className="space-y-1"
+                        >
+                          <StatusBadge status="Requested" variant="info" />
+                          <p className="max-w-40 text-[10px] leading-snug text-gray-500">
+                            {user.verification_method === "university_email"
+                              ? `.edu · ${user.verification_email || "email link"}`
+                              : user.verification_reason_category
+                                ?.replaceAll("_", " ") || "Manual review"}
+                          </p>
+                        </div>
                       ) : (
                         <StatusBadge status="Unverified" variant="warning" />
                       )}

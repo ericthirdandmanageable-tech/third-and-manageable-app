@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 
+import AccountVerification from "@/components/athlete/AccountVerification";
 import { api } from "@/lib/athlete/api";
 import { useAuth } from "@/lib/athlete/auth";
 import { useCheckIns } from "@/lib/athlete/use-checkins";
@@ -253,6 +254,8 @@ export default function ProfilePage() {
                     </div>
                 )}
             </section>
+
+            <AccountVerification />
 
             {/* ——— Direction: committed path + skill map ——— */}
             <section className="bg-bg-surface rounded-[20px] border border-border-subtle p-6 md:p-8 mb-6">

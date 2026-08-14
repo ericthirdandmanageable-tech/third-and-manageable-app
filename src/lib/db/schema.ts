@@ -51,6 +51,18 @@ export const auditOutcome = pgEnum("audit_outcome", [
     "failed",
 ]);
 
+export const verificationMethod = pgEnum("verification_method", [
+    "university_email",
+    "manual",
+]);
+
+export const verificationStatus = pgEnum("verification_status", [
+    "pending",
+    "approved",
+    "cancelled",
+    "expired",
+]);
+
 export const users = pgTable(
     "users",
     {
@@ -124,6 +136,55 @@ export const userEmails = pgTable(
         check(
             "user_emails_verified_timestamp",
             sql`${t.verified} = false or ${t.verifiedAt} is not null`,
+        ),
+    ],
+);
+
+/**
+ * Single-use athlete-verification requests. University-email links store only
+ * a SHA-256 token hash; manual requests carry the minimum context an admin
+ * needs to review the exception. A partial unique index keeps one live request
+ * per account, so the first completed route wins cleanly.
+ */
+export const verificationRequests = pgTable(
+    "verification_requests",
+    {
+        id: uuid("id").defaultRandom().primaryKey(),
+        userId: uuid("user_id")
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        method: verificationMethod("method").notNull(),
+        status: verificationStatus("status").notNull().default("pending"),
+        email: text("email"),
+        normalizedEmail: text("normalized_email"),
+        reasonCategory: varchar("reason_category", { length: 80 }),
+        reason: text("reason"),
+        tokenHash: text("token_hash"),
+        requestedAt: utcTimestamp("requested_at").notNull().defaultNow(),
+        expiresAt: utcTimestamp("expires_at"),
+        resolvedAt: utcTimestamp("resolved_at"),
+    },
+    (t) => [
+        uniqueIndex("ux_verification_requests_user_pending")
+            .on(t.userId)
+            .where(sql`${t.status} = 'pending'`),
+        uniqueIndex("ux_verification_requests_token_hash")
+            .on(t.tokenHash)
+            .where(sql`${t.tokenHash} is not null`),
+        index("ix_verification_requests_pending_time")
+            .on(t.requestedAt)
+            .where(sql`${t.status} = 'pending'`),
+        check(
+            "verification_requests_email_shape",
+            sql`(${t.method} = 'university_email' and ${t.email} is not null and ${t.normalizedEmail} is not null and ${t.tokenHash} is not null and ${t.expiresAt} is not null) or (${t.method} = 'manual' and ${t.reasonCategory} is not null and ${t.tokenHash} is null)`,
+        ),
+        check(
+            "verification_requests_resolved_timestamp",
+            sql`(${t.status} = 'pending' and ${t.resolvedAt} is null) or (${t.status} <> 'pending' and ${t.resolvedAt} is not null)`,
+        ),
+        check(
+            "verification_requests_expiry_after_request",
+            sql`${t.expiresAt} is null or ${t.expiresAt} > ${t.requestedAt}`,
         ),
     ],
 );

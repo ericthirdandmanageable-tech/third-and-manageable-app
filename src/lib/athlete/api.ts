@@ -81,6 +81,44 @@ export interface ApiUser {
     status?: string | null;
     headline?: string | null;
     verified: boolean;
+    verification_requested?: boolean;
+    verification_requested_at?: string | null;
+}
+
+export interface ApiMutationResult {
+    ok: boolean;
+    message: string;
+}
+
+async function authenticatedMutation(
+    path: string,
+    body: Record<string, unknown>,
+): Promise<ApiMutationResult> {
+    const token = authStorage.getToken();
+    if (!token) return { ok: false, message: "Sign in to continue." };
+    try {
+        const response = await fetch(`${BASE}${path}`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+        });
+        const payload = (await response.json().catch(() => ({}))) as {
+            message?: string;
+            detail?: string;
+        };
+        return {
+            ok: response.ok,
+            message:
+                payload.message ||
+                payload.detail ||
+                (response.ok ? "Request sent." : "We could not send that request."),
+        };
+    } catch {
+        return { ok: false, message: "Network unavailable. Please try again." };
+    }
 }
 
 async function request<T>(
@@ -204,6 +242,13 @@ export const api = {
      * just cleared from this browser's localStorage. */
     logout: () => request<{ status: string }>("/auth/logout", { method: "POST" }),
     me: () => request<ApiUser>("/auth/me"),
+    requestUniversityVerification: (email: string) =>
+        authenticatedMutation("/verification/university-email", { email }),
+    requestManualVerification: (reasonCategory: string, reason?: string) =>
+        authenticatedMutation("/verification/manual", {
+            reason_category: reasonCategory,
+            reason,
+        }),
 
     /* ---------- Check-in ---------- */
     todaysCheckIn: () => request<ApiCheckIn | null>("/check-ins/today"),

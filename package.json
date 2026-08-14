@@ -32,8 +32,10 @@
     "lucide-react": "^0.574.0",
     "next": "^16.2.12",
     "node-appwrite": "^27.1.0",
+    "nodemailer": "^9.0.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "resend": "^6.20.0",
     "ws": "^8.21.1"
   },
   "comment:overrides": "Advisory remediation for transitive deps whose parents ship no patched release. Upstream-first: re-check on every `next`/`firebase-admin`/`vercel` bump and drop entries the parent has caught up to. The firebase-admin block disappears wholesale at the §2.3 retirement gate. Dev-tool entries are scoped to their root package — a global `ajv` bump breaks ESLint's own (unaffected) ajv 6.",
@@ -60,6 +62,7 @@
     "@tailwindcss/postcss": "^4",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
