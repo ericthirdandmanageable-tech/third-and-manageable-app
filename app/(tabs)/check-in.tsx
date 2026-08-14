@@ -22,7 +22,7 @@ import {
 } from "@/services/notification-store";
 import { AIPersonality, CheckIn, SportKey } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageSourcePropType } from "react-native";
@@ -155,7 +155,7 @@ export default function CheckInScreen() {
       }
       setCheckingToday(false);
     });
-  }, [user?.$id]);
+  }, [user]);
 
   useEffect(() => {
     checkToday();
@@ -236,7 +236,7 @@ export default function CheckInScreen() {
       setChatHistory(initial);
       setChatMode(true);
     }
-  }, [user?.$id, aiResponse, todayCheckIn?.mood]);
+  }, [user, aiResponse, todayCheckIn]);
 
   // Send a chat message
   const handleChatSend = useCallback(async () => {
@@ -279,10 +279,10 @@ export default function CheckInScreen() {
     chatInput,
     chatSending,
     chatHistory,
-    todayCheckIn?.mood,
-    sport?.label,
+    todayCheckIn,
+    sport,
     chatSessionId,
-    profile?.ai_personality,
+    profile,
   ]);
 
   // Load chat history
@@ -297,7 +297,7 @@ export default function CheckInScreen() {
     } finally {
       setLoadingHistory(false);
     }
-  }, [user?.$id]);
+  }, [user]);
 
   // View a specific past session
   const viewSession = useCallback(async (session: AIChatSession) => {
@@ -356,7 +356,7 @@ export default function CheckInScreen() {
   if (checkingToday) {
     return (
       <SafeAreaView className="flex-1 bg-transparent">
-        <View style={{ padding: 20 }}>
+        <View style={{ width: "100%", maxWidth: 900, alignSelf: "center", padding: 20 }}>
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -370,7 +370,11 @@ export default function CheckInScreen() {
     if (viewingSession) {
       // Viewing a specific past session
       return (
-        <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
+        <SafeAreaView
+          className="flex-1 bg-transparent"
+          edges={["top"]}
+          style={{ width: "100%", maxWidth: 900, alignSelf: "center" }}
+        >
           {/* Header */}
           <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
             <TouchableOpacity
@@ -432,7 +436,11 @@ export default function CheckInScreen() {
 
     // History list
     return (
-      <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
+      <SafeAreaView
+        className="flex-1 bg-transparent"
+        edges={["top"]}
+        style={{ width: "100%", maxWidth: 900, alignSelf: "center" }}
+      >
         {/* Header */}
         <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
           <TouchableOpacity
@@ -525,7 +533,10 @@ export default function CheckInScreen() {
   if (todayCheckIn && chatMode) {
     return (
       <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
-        <View className="flex-1">
+        <View
+          className="flex-1"
+          style={{ width: "100%", maxWidth: 900, alignSelf: "center" }}
+        >
           {/* Chat Header */}
           <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
             <TouchableOpacity
@@ -632,7 +643,13 @@ export default function CheckInScreen() {
       <SafeAreaView className="flex-1 bg-transparent">
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          contentContainerStyle={{
+            width: "100%",
+            maxWidth: 900,
+            alignSelf: "center",
+            padding: 20,
+            paddingBottom: 120,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {/* Hero Banner */}
@@ -799,7 +816,13 @@ export default function CheckInScreen() {
     <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={{
+          width: "100%",
+          maxWidth: 900,
+          alignSelf: "center",
+          padding: 20,
+          paddingBottom: 120,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

@@ -9,9 +9,11 @@ const nativeResolverRules = Object.fromEntries(
 );
 
 module.exports = defineConfig([
+  {
+    ignores: ['.expo/**', 'dist/**'],
+  },
   expoConfig,
   {
-    ignores: ['.expo/**', 'dist/*'],
     // The Expo preset's TypeScript resolver uses a native optional binding.
     // Node's resolver understands this app's relative imports; the @ alias is
     // validated by TypeScript, so keeping lint resolution native-free makes

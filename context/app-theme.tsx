@@ -166,8 +166,12 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    const getReduceTransparency =
+      AccessibilityInfo.isReduceTransparencyEnabled;
+    if (typeof getReduceTransparency !== "function") return;
+
     let active = true;
-    void AccessibilityInfo.isReduceTransparencyEnabled().then((enabled) => {
+    void getReduceTransparency.call(AccessibilityInfo).then((enabled) => {
       if (active) setReduceTransparency(enabled);
     });
     const subscription = AccessibilityInfo.addEventListener(
@@ -268,7 +272,7 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AppThemeContext.Provider value={value}>
-      <View className="flex-1" style={themeVariables}>
+      <View className="flex-1" style={[styles.appRoot, themeVariables]}>
         <LinearGradient
           colors={[...colors.backgroundGradient]}
           locations={[0, 0.55, 1]}
@@ -304,6 +308,9 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
 };
 
 const styles = StyleSheet.create({
+  appRoot: {
+    overflow: "hidden",
+  },
   ambientOrb: {
     position: "absolute",
     width: 280,

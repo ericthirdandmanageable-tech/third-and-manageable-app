@@ -7,6 +7,7 @@ import {
 import { LEGAL_LINKS } from "@/constants/legal";
 import { RESOURCES, type Resource } from "@/constants/resources";
 import { useAppTheme } from "@/context/app-theme";
+import { useAdaptiveLayout } from "@/hooks/use-adaptive-layout";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -14,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SupportScreen() {
   const { colors } = useAppTheme();
+  const { medium } = useAdaptiveLayout();
   const openResource = (resource: Resource) => {
     if (resource.url) void Linking.openURL(resource.url);
     else if (resource.phone) void Linking.openURL(`tel:${resource.phone}`);
@@ -40,23 +42,29 @@ export default function SupportScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Choose the kind of help you need</Text>
         </View>
 
-        {RESOURCES.map((resource) => (
-          <Pressable key={resource.id} onPress={() => openResource(resource)}>
-            <GlassSurface interactive style={styles.resource}>
-              <View style={[styles.resourceIcon, { backgroundColor: colors.signalSoft }]}>
-                <Ionicons name={resource.icon as keyof typeof Ionicons.glyphMap} size={21} color={colors.signal} />
-              </View>
-              <View style={styles.resourceCopy}>
-                <Text style={[styles.resourceTitle, { color: colors.textPrimary }]}>{resource.title}</Text>
-                <Text style={[styles.resourceBody, { color: colors.textSecondary }]}>{resource.description}</Text>
-                {resource.url || resource.phone ? (
-                  <Text style={[styles.resourceAction, { color: colors.signal }]}>{resource.phone && !resource.url?.startsWith("http") ? `Call ${resource.phone}` : "Open resource"}</Text>
-                ) : null}
-              </View>
-              <Ionicons name="chevron-forward" size={17} color={colors.textTertiary} />
-            </GlassSurface>
-          </Pressable>
-        ))}
+        <View style={styles.resourceGrid}>
+          {RESOURCES.map((resource) => (
+            <Pressable
+              key={resource.id}
+              onPress={() => openResource(resource)}
+              style={[styles.resourceCell, medium && styles.resourceCellMedium]}
+            >
+              <GlassSurface interactive style={styles.resource}>
+                <View style={[styles.resourceIcon, { backgroundColor: colors.signalSoft }]}>
+                  <Ionicons name={resource.icon as keyof typeof Ionicons.glyphMap} size={21} color={colors.signal} />
+                </View>
+                <View style={styles.resourceCopy}>
+                  <Text style={[styles.resourceTitle, { color: colors.textPrimary }]}>{resource.title}</Text>
+                  <Text style={[styles.resourceBody, { color: colors.textSecondary }]}>{resource.description}</Text>
+                  {resource.url || resource.phone ? (
+                    <Text style={[styles.resourceAction, { color: colors.signal }]}>{resource.phone && !resource.url?.startsWith("http") ? `Call ${resource.phone}` : "Open resource"}</Text>
+                  ) : null}
+                </View>
+                <Ionicons name="chevron-forward" size={17} color={colors.textTertiary} />
+              </GlassSurface>
+            </Pressable>
+          ))}
+        </View>
 
         <GlassSurface style={styles.safety}>
           <View style={styles.safetyTitleRow}>
@@ -81,7 +89,7 @@ export default function SupportScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  content: { paddingBottom: 120 },
+  content: { width: "100%", maxWidth: 1040, alignSelf: "center", paddingBottom: 120 },
   crisis: { marginHorizontal: 20, padding: 17, flexDirection: "row", alignItems: "center", gap: 12 },
   crisisIcon: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   crisisCopy: { flex: 1 },
@@ -89,7 +97,10 @@ const styles = StyleSheet.create({
   crisisBody: { fontFamily: "Raleway-Medium", fontSize: 10, lineHeight: 15, marginTop: 4 },
   sectionHeading: { marginHorizontal: 20, marginTop: 28, marginBottom: 12 },
   sectionTitle: { fontFamily: "InstrumentSerif-Regular", fontSize: 27, lineHeight: 31 },
-  resource: { marginHorizontal: 20, marginBottom: 10, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+  resourceGrid: { paddingHorizontal: 20, flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  resourceCell: { flexBasis: "100%" },
+  resourceCellMedium: { flexBasis: "48%", flexGrow: 1 },
+  resource: { minHeight: 112, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
   resourceIcon: { width: 44, height: 44, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   resourceCopy: { flex: 1 },
   resourceTitle: { fontFamily: "Raleway-Bold", fontSize: 14 },

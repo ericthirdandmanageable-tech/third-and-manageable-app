@@ -6,6 +6,7 @@ import {
   isGlassEffectAPIAvailable,
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
+import { cssInterop } from "nativewind";
 import React, { type ReactNode, useMemo } from "react";
 import {
   Platform,
@@ -47,7 +48,7 @@ const isNativeGlassReady = (): boolean => {
  * blur performance cost, and Reduce Transparency always receives an opaque
  * high-contrast surface.
  */
-export function GlassSurface({
+function GlassSurfaceBase({
   children,
   tone = "regular",
   radius = 24,
@@ -127,6 +128,10 @@ export function GlassSurface({
     </View>
   );
 }
+
+export const GlassSurface = cssInterop(GlassSurfaceBase, {
+  className: "style",
+});
 
 interface GlassButtonProps {
   label: string;
@@ -304,7 +309,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   buttonBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 25,
     borderWidth: 1,
   },

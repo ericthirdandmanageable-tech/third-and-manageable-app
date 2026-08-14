@@ -74,10 +74,11 @@ export default function NotificationsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.$id]);
+  }, [user]);
 
   useEffect(() => {
-    loadNotifications();
+    const task = setTimeout(() => void loadNotifications(), 0);
+    return () => clearTimeout(task);
   }, [loadNotifications]);
 
   const onRefresh = () => {
@@ -175,6 +176,9 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-transparent">
+      <View
+        style={{ flex: 1, width: "100%", maxWidth: 900, alignSelf: "center" }}
+      >
       {/* Header */}
       <GlassSurface
         tone="strong"
@@ -188,11 +192,21 @@ export default function NotificationsScreen() {
         }}
       >
         <TouchableOpacity
-          className="flex-row items-center mr-4"
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          style={{
+            width: 44,
+            height: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 8,
+            marginLeft: -8,
+          }}
           onPress={() => router.back()}
           activeOpacity={0.7}
+          hitSlop={8}
         >
-          <Ionicons name="chevron-back" size={22} color="#424242" />
+          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <View className="flex-1">
           <Text className="text-sm text-silver-500 mb-0.5">Activity</Text>
@@ -222,7 +236,7 @@ export default function NotificationsScreen() {
           <Ionicons
             name="notifications-off-outline"
             size={48}
-            color="#BDBDBD"
+            color={colors.textTertiary}
           />
           <Text className="text-base font-raleway-bold text-silver-500 mt-4">
             No notifications yet
@@ -248,6 +262,7 @@ export default function NotificationsScreen() {
           }
         />
       )}
+      </View>
     </SafeAreaView>
   );
 }

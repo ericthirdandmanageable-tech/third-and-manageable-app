@@ -6,6 +6,7 @@ import {
 import { SPORTS } from "@/constants/sports";
 import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
+import { useAdaptiveLayout } from "@/hooks/use-adaptive-layout";
 import { computeProgress, getProgressMessage } from "@/lib/progress";
 import { getTodayCheckIn, getWeeklyCheckInCount } from "@/services/checkin";
 import { getMessages } from "@/services/community";
@@ -13,10 +14,10 @@ import { getCompletionCount, getRecentCompletions } from "@/services/gameplan";
 import { getUnreadCount } from "@/services/notification-store";
 import type { CheckIn, Message, SportKey } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -24,7 +25,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -45,8 +45,7 @@ const getDailyTip = () => {
 export default function HomeScreen() {
   const { user, profile, isLoading } = useAuth();
   const { colors, schoolTheme, theme } = useAppTheme();
-  const { width } = useWindowDimensions();
-  const compact = width < 420;
+  const { compact, expanded } = useAdaptiveLayout();
   const sport = profile ? SPORTS[profile.sport as SportKey] : null;
   const [unreadCount, setUnreadCount] = useState(0);
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
@@ -55,13 +54,10 @@ export default function HomeScreen() {
   const [weeklyCompletions, setWeeklyCompletions] = useState(0);
   const [recentMessages, setRecentMessages] = useState<Message[]>([]);
 
-  const progress = useMemo(
-    () =>
-      profile?.joined_at && sport
-        ? computeProgress(profile.joined_at, sport)
-        : null,
-    [profile?.joined_at, sport],
-  );
+  const progress =
+    profile?.joined_at && sport
+      ? computeProgress(profile.joined_at, sport)
+      : null;
 
   const load = useCallback(async () => {
     if (!user?.$id) return;
@@ -84,7 +80,7 @@ export default function HomeScreen() {
     } catch {
       // Individual destination screens remain the source of truth.
     }
-  }, [user?.$id]);
+  }, [user]);
 
   useFocusEffect(useCallback(() => void load(), [load]));
 
@@ -116,15 +112,25 @@ export default function HomeScreen() {
               <Text style={[styles.campus, { color: colors.textTertiary }]} numberOfLines={1}>{campusLabel}</Text>
             </View>
           </View>
-          <Pressable onPress={() => router.push("/(tabs)/notifications")}>
-            <GlassSurface radius={22} interactive style={styles.notification}>
-              <Ionicons name="notifications-outline" size={19} color={colors.textPrimary} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              unreadCount > 0
+                ? `Notifications, ${unreadCount} unread`
+                : "Notifications"
+            }
+            onPress={() => router.push("/(tabs)/notifications")}
+          >
+            <View style={styles.notificationWrapper}>
+              <GlassSurface radius={22} interactive style={styles.notification}>
+                <Ionicons name="notifications-outline" size={19} color={colors.textPrimary} />
+              </GlassSurface>
               {unreadCount > 0 ? (
                 <View style={[styles.badge, { backgroundColor: colors.danger }]}>
                   <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
                 </View>
               ) : null}
-            </GlassSurface>
+            </View>
           </Pressable>
         </View>
 
@@ -212,10 +218,10 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Pick your next rep</Text>
         </View>
         <View style={styles.quickGrid}>
-          <QuickAction title="Game Plan" subtitle={`${totalCompletions} reps banked`} icon="map-outline" onPress={() => router.push("/(tabs)/game-plan")} />
-          <QuickAction title="Clipboard" subtitle="Private AI coach" icon="sparkles-outline" onPress={() => router.push("/(tabs)/clipboard")} />
-          <QuickAction title="Support" subtitle="Help right now" icon="heart-circle-outline" onPress={() => router.push("/(tabs)/support")} />
-          <QuickAction title="Perks" subtitle="Earned rewards" icon="trophy-outline" onPress={() => router.push("/(tabs)/perks")} />
+          <QuickAction expanded={expanded} title="Game Plan" subtitle={`${totalCompletions} reps banked`} icon="map-outline" onPress={() => router.push("/(tabs)/game-plan")} />
+          <QuickAction expanded={expanded} title="Clipboard" subtitle="Private AI coach" icon="sparkles-outline" onPress={() => router.push("/(tabs)/clipboard")} />
+          <QuickAction expanded={expanded} title="Support" subtitle="Help right now" icon="heart-circle-outline" onPress={() => router.push("/(tabs)/support")} />
+          <QuickAction expanded={expanded} title="Perks" subtitle="Earned rewards" icon="trophy-outline" onPress={() => router.push("/(tabs)/perks")} />
         </View>
 
         <Pressable onPress={() => router.push("/(tabs)/community")}>
@@ -262,10 +268,10 @@ function Stat({ value, label, icon }: { value: string; label: string; icon: keyo
   );
 }
 
-function QuickAction({ title, subtitle, icon, onPress }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) {
+function QuickAction({ expanded, title, subtitle, icon, onPress }: { expanded: boolean; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) {
   const { colors } = useAppTheme();
   return (
-    <Pressable style={styles.quickCell} onPress={onPress}>
+    <Pressable style={[styles.quickCell, expanded && styles.quickCellExpanded]} onPress={onPress}>
       <GlassSurface interactive style={styles.quickAction}>
         <View style={[styles.quickIcon, { backgroundColor: colors.signalSoft }]}><Ionicons name={icon} size={20} color={colors.signal} /></View>
         <Text style={[styles.quickTitle, { color: colors.textPrimary }]}>{title}</Text>
@@ -278,13 +284,14 @@ function QuickAction({ title, subtitle, icon, onPress }: { title: string; subtit
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { paddingBottom: 120 },
+  content: { width: "100%", maxWidth: 1040, alignSelf: "center", paddingBottom: 120 },
   topbar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10 },
   brand: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
   mark: { width: 40, height: 40, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   logo: { width: 24, height: 24, tintColor: "#FFFFFF" },
   brandName: { fontFamily: "Raleway-Bold", fontSize: 13 },
   campus: { fontFamily: "DMMono-Regular", fontSize: 7, marginTop: 3, maxWidth: 220, textTransform: "uppercase", letterSpacing: 0.5 },
+  notificationWrapper: { width: 44, height: 44, position: "relative" },
   notification: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   badge: { position: "absolute", right: -3, top: -3, minWidth: 17, height: 17, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   badgeText: { color: "white", fontFamily: "DMMono-Medium", fontSize: 7 },
@@ -318,6 +325,7 @@ const styles = StyleSheet.create({
   progressCopy: { fontFamily: "Raleway-Medium", fontSize: 10, lineHeight: 15, marginTop: 10 },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 20 },
   quickCell: { width: "48.5%" },
+  quickCellExpanded: { width: "23.9%" },
   quickAction: { minHeight: 130, padding: 16 },
   quickIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", marginBottom: 15 },
   quickTitle: { fontFamily: "Raleway-Bold", fontSize: 14 },

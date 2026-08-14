@@ -111,7 +111,7 @@ export default function PathDetailScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  content: { paddingBottom: 120 },
+  content: { width: "100%", maxWidth: 1040, alignSelf: "center", paddingBottom: 120 },
   back: { alignSelf: "flex-start", marginLeft: 20, marginTop: 6, marginBottom: 8 },
   sideMargin: { marginHorizontal: 20, marginBottom: 18 },
   grid: { flexDirection: "row", gap: 12, paddingHorizontal: 20, marginBottom: 12 },

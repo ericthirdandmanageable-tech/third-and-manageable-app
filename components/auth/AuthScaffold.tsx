@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   dividerLabel: { fontFamily: "DMMono-Regular", fontSize: 10 },
   providerPressable: { alignSelf: "stretch" },
   providerFrame: { height: 50, borderRadius: 18, overflow: "hidden" },
-  providerBackdrop: { ...StyleSheet.absoluteFillObject, borderRadius: 18, borderWidth: 1 },
+  providerBackdrop: { ...StyleSheet.absoluteFill, borderRadius: 18, borderWidth: 1 },
   providerContent: { height: 50, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, paddingHorizontal: 16 },
   providerLabel: { fontFamily: "Raleway-SemiBold", fontSize: 14 },
   googleMark: { fontFamily: "Raleway-ExtraBold", fontSize: 18 },

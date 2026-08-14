@@ -1,12 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  getAuth,
-  initializeAuth,
-  type Auth,
-} from "@firebase/auth";
+import { initializeAuth } from "@firebase/auth";
 import { getApp, getApps, initializeApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { Platform } from "react-native";
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY!,
@@ -58,16 +56,23 @@ function getReactNativePersistence(storage: typeof AsyncStorage) {
 }
 
 let auth: Auth;
-try {
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-} catch (error: any) {
-  // Expo Fast Refresh can re-evaluate this module after Auth already exists.
-  // Reuse only that known Firebase initialization condition; configuration and
-  // persistence errors must still stop the replacement client from starting.
-  if (error?.code !== "auth/already-initialized") throw error;
+if (Platform.OS === "web") {
+  // Expo Router evaluates routes in Node while creating a static web export.
+  // The public entrypoint registers the Auth component in both browser and
+  // server environments; React Native's AsyncStorage persistence is native-only.
   auth = getAuth(app);
+} else {
+  try {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error: any) {
+    // Expo Fast Refresh can re-evaluate this module after Auth already exists.
+    // Reuse only that known Firebase initialization condition; configuration and
+    // persistence errors must still stop the replacement client from starting.
+    if (error?.code !== "auth/already-initialized") throw error;
+    auth = getAuth(app);
+  }
 }
 
 export { auth };

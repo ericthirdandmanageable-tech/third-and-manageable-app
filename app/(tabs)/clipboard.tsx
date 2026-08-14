@@ -109,7 +109,7 @@ export default function ClipboardScreen() {
       await upsertProfile({ id: user.$id, ai_personality: next });
       await refreshProfile();
     },
-    [personality, refreshProfile, user?.$id],
+    [personality, refreshProfile, user],
   );
 
   const send = useCallback(
@@ -185,7 +185,7 @@ export default function ClipboardScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <KeyboardAvoidingView
-        style={styles.safeArea}
+        style={[styles.safeArea, styles.contentFrame]}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={8}
       >
@@ -200,35 +200,43 @@ export default function ClipboardScreen() {
           {PERSONAS.map((item) => {
             const selected = item.id === personality;
             return (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
-                accessibilityState={{ selected }}
-                onPress={() => void setPersonality(item.id)}
-                style={({ pressed }) => [
-                  styles.persona,
-                  {
-                    backgroundColor: selected ? colors.signal : colors.surfaceStrong,
-                    borderColor: selected ? colors.signal : colors.borderStrong,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={item.icon}
-                  size={15}
-                  color={selected ? colors.signalInk : colors.textSecondary}
-                />
-                <Text
+              <View key={item.id} style={styles.personaSlot}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={item.label}
+                  accessibilityState={{ selected }}
+                  onPress={() => void setPersonality(item.id)}
                   style={[
-                    styles.personaText,
-                    { color: selected ? colors.signalInk : colors.textSecondary },
+                    styles.persona,
+                    {
+                      backgroundColor: selected
+                        ? colors.signal
+                        : colors.surfaceStrong,
+                      borderColor: selected
+                        ? colors.signal
+                        : colors.borderStrong,
+                    },
                   ]}
                 >
-                  {item.shortLabel}
-                </Text>
-              </Pressable>
+                  <Ionicons
+                    name={item.icon}
+                    size={18}
+                    color={selected ? colors.signalInk : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.personaText,
+                      {
+                        color: selected
+                          ? colors.signalInk
+                          : colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    {item.shortLabel}
+                  </Text>
+                </Pressable>
+              </View>
             );
           })}
         </View>
@@ -311,16 +319,19 @@ export default function ClipboardScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  contentFrame: { width: "100%", maxWidth: 900, alignSelf: "center" },
   personaRail: {
     flexDirection: "row",
+    alignSelf: "stretch",
     gap: 7,
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 12,
   },
+  personaSlot: { flex: 1, minWidth: 0 },
   persona: {
-    flex: 1,
-    minHeight: 38,
-    paddingHorizontal: 7,
+    width: "100%",
+    minHeight: 48,
+    paddingHorizontal: 6,
     borderRadius: 20,
     borderWidth: 1,
     alignItems: "center",
@@ -330,7 +341,7 @@ const styles = StyleSheet.create({
   },
   personaText: {
     fontFamily: "DMMono-Medium",
-    fontSize: 8,
+    fontSize: 10,
   },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   list: { flex: 1 },
@@ -354,7 +365,7 @@ const styles = StyleSheet.create({
   typingText: { fontFamily: "DMMono-Regular", fontSize: 10 },
   composer: {
     marginHorizontal: 14,
-    marginBottom: Platform.OS === "ios" ? 92 : 82,
+    marginBottom: Platform.OS === "ios" ? 104 : 88,
     minHeight: 58,
     paddingLeft: 18,
     paddingRight: 7,

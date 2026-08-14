@@ -1,7 +1,12 @@
-import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useAppTheme, AppThemeProvider } from "@/context/app-theme";
 import { useFonts } from "expo-font";
-import { Slot, useRouter, useSegments } from "expo-router";
+import {
+  DefaultTheme,
+  Slot,
+  ThemeProvider,
+  useRouter,
+  useSegments,
+} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo } from "react";

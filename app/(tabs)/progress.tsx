@@ -18,7 +18,7 @@ import { upsertProfile } from "@/services/auth";
 import type { SportKey } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sharing from "expo-sharing";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,18 +35,14 @@ export default function ProgressScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const { colors } = useAppTheme();
   const sport = profile ? SPORTS[profile.sport as SportKey] : null;
-  const [milestoneVisible, setMilestoneVisible] = useState(false);
-  const [milestoneMessage, setMilestoneMessage] = useState("");
+  const [milestoneDismissed, setMilestoneDismissed] = useState(false);
   const [sharing, setSharing] = useState(false);
   const artifactRef = useRef<View>(null);
 
-  const progress: ProgressInfo | null = useMemo(
-    () =>
-      profile?.joined_at && sport
-        ? computeProgress(profile.joined_at, sport)
-        : null,
-    [profile?.joined_at, sport],
-  );
+  const progress: ProgressInfo | null =
+    profile?.joined_at && sport
+      ? computeProgress(profile.joined_at, sport)
+      : null;
 
   useEffect(() => {
     if (!progress || !profile || !user?.$id || !sport) return;
@@ -57,15 +53,6 @@ export default function ProgressScreen() {
     }
   }, [profile, progress, refreshProfile, sport, user?.$id]);
 
-  useEffect(() => {
-    if (progress?.justAdvanced && sport) {
-      setMilestoneMessage(
-        getMilestoneMessage(progress.currentPeriod, progress.totalPeriods, sport.periodName),
-      );
-      setMilestoneVisible(true);
-    }
-  }, [progress, sport]);
-
   if (!profile || !sport || !progress) {
     return (
       <SafeAreaView style={styles.loading}>
@@ -73,6 +60,15 @@ export default function ProgressScreen() {
       </SafeAreaView>
     );
   }
+
+  const milestoneMessage = progress.justAdvanced
+    ? getMilestoneMessage(
+        progress.currentPeriod,
+        progress.totalPeriods,
+        sport.periodName,
+      )
+    : "";
+  const milestoneVisible = Boolean(milestoneMessage) && !milestoneDismissed;
 
   const shareArtifact = async () => {
     if (!artifactRef.current) return;
@@ -160,13 +156,13 @@ export default function ProgressScreen() {
         </GlassSurface>
       </ScrollView>
 
-      <Modal visible={milestoneVisible} transparent animationType="fade" onRequestClose={() => setMilestoneVisible(false)}>
+      <Modal visible={milestoneVisible} transparent animationType="fade" onRequestClose={() => setMilestoneDismissed(true)}>
         <View style={styles.overlay}>
           <GlassSurface tone="strong" style={styles.modalCard}>
             <View style={[styles.trophy, { backgroundColor: colors.signalSoft }]}><Ionicons name="trophy" size={31} color={colors.signal} /></View>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Milestone reached</Text>
             <Text style={[styles.modalBody, { color: colors.textSecondary }]}>{milestoneMessage}</Text>
-            <GlassButton label="Keep going" onPress={() => setMilestoneVisible(false)} style={styles.modalButton} />
+            <GlassButton label="Keep going" onPress={() => setMilestoneDismissed(true)} style={styles.modalButton} />
           </GlassSurface>
         </View>
       </Modal>
@@ -188,7 +184,7 @@ function Stat({ value, label, icon }: { value: number; label: string; icon: keyo
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { paddingBottom: 120 },
+  content: { width: "100%", maxWidth: 1040, alignSelf: "center", paddingBottom: 120 },
   progressCard: { marginHorizontal: 20, padding: 20 },
   progressTopline: { flexDirection: "row", justifyContent: "space-between" },
   phaseTitle: { fontFamily: "Raleway-Bold", fontSize: 16 },
@@ -215,7 +211,7 @@ const styles = StyleSheet.create({
   mapTitle: { fontFamily: "Raleway-Bold", fontSize: 13 },
   mapMeta: { fontFamily: "DMMono-Regular", fontSize: 8, marginTop: 3 },
   overlay: { flex: 1, backgroundColor: "rgba(5,12,28,0.48)", padding: 22, alignItems: "center", justifyContent: "center" },
-  modalCard: { width: "100%", padding: 24, alignItems: "center" },
+  modalCard: { width: "100%", maxWidth: 560, padding: 24, alignItems: "center" },
   trophy: { width: 64, height: 64, borderRadius: 23, alignItems: "center", justifyContent: "center" },
   modalTitle: { fontFamily: "InstrumentSerif-Regular", fontSize: 31, marginTop: 14 },
   modalBody: { fontFamily: "Raleway-Medium", fontSize: 13, lineHeight: 20, textAlign: "center", marginTop: 7 },

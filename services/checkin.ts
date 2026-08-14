@@ -13,6 +13,7 @@ import {
     addDoc,
     collection,
     doc,
+    getCountFromServer,
     getDoc,
     getDocs,
     limit,
@@ -135,6 +136,20 @@ export async function getWeeklyCheckInCount(userId: string): Promise<number> {
       const createdAt = d.data().created_at ?? "";
       return createdAt >= weekAgoStr;
     }).length;
+  } catch {
+    return 0;
+  }
+}
+
+/** Get the exact number of check-ins recorded for an athlete. */
+export async function getCheckInCount(userId: string): Promise<number> {
+  try {
+    const checkIns = query(
+      collection(db, "checkins"),
+      where("user_id", "==", userId),
+    );
+    const snapshot = await getCountFromServer(checkIns);
+    return snapshot.data().count;
   } catch {
     return 0;
   }

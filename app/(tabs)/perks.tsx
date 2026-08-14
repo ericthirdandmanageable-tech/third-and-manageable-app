@@ -1,7 +1,9 @@
 import { GlassSurface, ScreenHeader } from "@/components/ui/liquid-glass";
 import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
+import { useAdaptiveLayout } from "@/hooks/use-adaptive-layout";
 import { PERKS, Perk, TIER_COLORS, TIER_LABELS } from "@/constants/perks";
+import { getCheckInCount } from "@/services/checkin";
 import { getCompletionCount } from "@/services/gameplan";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
@@ -18,6 +20,7 @@ interface PerkStatus {
 export default function PerksScreen() {
   const { user, profile } = useAuth();
   const { colors } = useAppTheme();
+  const { medium } = useAdaptiveLayout();
   const [perkStatuses, setPerkStatuses] = useState<PerkStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [unlockedCount, setUnlockedCount] = useState(0);
@@ -26,12 +29,11 @@ export default function PerksScreen() {
     if (!user?.$id || !profile) return;
     setLoading(true);
     try {
-      const completionCount = await getCompletionCount(user.$id);
+      const [completionCount, checkinCount] = await Promise.all([
+        getCompletionCount(user.$id),
+        getCheckInCount(user.$id),
+      ]);
       const streak = profile.streak ?? 0;
-
-      // We approximate checkins count from streak for now
-      // In a full implementation, we'd query the checkins collection
-      const checkinCount = streak;
 
       const statuses: PerkStatus[] = PERKS.map((perk) => {
         let currentValue = 0;
@@ -70,10 +72,11 @@ export default function PerksScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user?.$id, profile]);
+  }, [user, profile]);
 
   useEffect(() => {
-    loadPerks();
+    const task = setTimeout(() => void loadPerks(), 0);
+    return () => clearTimeout(task);
   }, [loadPerks]);
 
   if (loading) {
@@ -90,7 +93,13 @@ export default function PerksScreen() {
     <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={{
+          width: "100%",
+          maxWidth: 900,
+          alignSelf: "center",
+          padding: 20,
+          paddingBottom: 120,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
@@ -166,20 +175,25 @@ export default function PerksScreen() {
               </View>
 
               {/* Perk cards */}
-              {tierPerks.map(({ perk, unlocked, progress, currentValue }) => (
-                <GlassSurface
-                  key={perk.id}
-                  className={`bg-app-surface rounded-2xl p-4 mb-2 ${
-                    unlocked ? "" : "opacity-80"
-                  }`}
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.04,
-                    shadowRadius: 4,
-                    elevation: 2,
-                  }}
-                >
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {tierPerks.map(({ perk, unlocked, progress, currentValue }) => (
+                  <GlassSurface
+                    key={perk.id}
+                    className={`bg-app-surface rounded-2xl p-4 ${
+                      unlocked ? "" : "opacity-80"
+                    }`}
+                    style={[
+                      {
+                        width: medium ? "48%" : "100%",
+                        flexGrow: medium ? 1 : 0,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.04,
+                        shadowRadius: 4,
+                        elevation: 2,
+                      },
+                    ]}
+                  >
                   <View className="flex-row items-center">
                     <View
                       className="w-10 h-10 rounded-full items-center justify-center mr-3"
@@ -240,8 +254,9 @@ export default function PerksScreen() {
                       </Text>
                     </View>
                   )}
-                </GlassSurface>
-              ))}
+                  </GlassSurface>
+                ))}
+              </View>
             </View>
           );
         })}

@@ -12,6 +12,7 @@ import { uploadProfilePic } from "@/services/profile-pic";
 import { AIPersonality, SportKey } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -157,28 +158,23 @@ export default function ProfileScreen() {
   };
 
   // AI personality state
-  const [aiPersonality, setAiPersonality] = useState<AIPersonality>(
-    (profile?.ai_personality as AIPersonality) ?? "motivator",
-  );
+  const savedAiPersonality =
+    (profile?.ai_personality as AIPersonality) ?? "motivator";
+  const [pendingAiPersonality, setPendingAiPersonality] =
+    useState<AIPersonality | null>(null);
+  const aiPersonality = pendingAiPersonality ?? savedAiPersonality;
   const [personalitySaving, setPersonalitySaving] = useState(false);
-
-  useEffect(() => {
-    if (profile?.ai_personality) {
-      setAiPersonality(profile.ai_personality as AIPersonality);
-    }
-  }, [profile?.ai_personality]);
 
   const handlePersonalityChange = async (p: AIPersonality) => {
     if (!user?.$id || p === aiPersonality) return;
-    setAiPersonality(p);
+    setPendingAiPersonality(p);
     setPersonalitySaving(true);
     try {
       await upsertProfile({ id: user.$id, ai_personality: p });
       await refreshProfile();
+      setPendingAiPersonality(null);
     } catch {
-      setAiPersonality(
-        (profile?.ai_personality as AIPersonality) ?? "motivator",
-      );
+      setPendingAiPersonality(null);
     } finally {
       setPersonalitySaving(false);
     }
@@ -249,6 +245,17 @@ export default function ProfileScreen() {
   };
 
   const editInputRef = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const frame = requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+      });
+
+      return () => cancelAnimationFrame(frame);
+    }, []),
+  );
 
   const handleSaveProfile = useCallback(async () => {
     if (!user?.$id || !editDisplayName.trim() || editSaving) return;
@@ -265,7 +272,7 @@ export default function ProfileScreen() {
     } finally {
       setEditSaving(false);
     }
-  }, [user?.$id, editDisplayName, editSaving, refreshProfile]);
+  }, [user, editDisplayName, editSaving, refreshProfile]);
 
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -328,8 +335,15 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={{
+          width: "100%",
+          maxWidth: 960,
+          alignSelf: "center",
+          padding: 20,
+          paddingBottom: 120,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader

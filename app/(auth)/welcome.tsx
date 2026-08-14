@@ -76,10 +76,11 @@ export default function WelcomeScreen() {
   const activeSlide = SLIDES[activeIndex];
   const compact = width < 420 || height < 880;
   const expansive = height >= 930;
+  const storyWidth = Math.min(width - (compact ? 24 : 28), 680);
 
-  const dotAnimations = useRef(
+  const [dotAnimations] = useState(() =>
     SLIDES.map((_, index) => new Animated.Value(index === 0 ? 1 : 0)),
-  ).current;
+  );
 
   useEffect(() => {
     dotAnimations.forEach((animation, index) => {
@@ -172,7 +173,12 @@ export default function WelcomeScreen() {
           styles.storyCard,
           compact && styles.storyCardCompact,
           expansive && styles.storyCardExpansive,
-          { bottom: insets.bottom + (compact ? 8 : 14) },
+          {
+            bottom: insets.bottom + (compact ? 8 : 14),
+            left: (width - storyWidth) / 2,
+            right: undefined,
+            width: storyWidth,
+          },
         ]}
       >
         <View style={styles.storyTopline}>

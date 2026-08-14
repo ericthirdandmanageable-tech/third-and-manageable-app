@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
-import React from "react";
-import { Platform, Text, TouchableOpacity, View } from "react-native";
+import type { Tabs } from "expo-router";
+import React, { type ComponentProps } from "react";
+import { Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassSurface } from "@/components/ui/liquid-glass";
+import { TAB_BAR_MAX_WIDTH } from "@/constants/adaptive-layout";
 import { useAppTheme } from "@/context/app-theme";
 
 const TAB_ICONS: Record<
@@ -36,12 +38,20 @@ const TAB_ICONS: Record<
 
 const CENTER_TAB = "check-in";
 
+type FloatingTabBarProps = Parameters<
+  NonNullable<ComponentProps<typeof Tabs>["tabBar"]>
+>[0];
+
 export default function FloatingTabBar({
   state,
   navigation,
-}: BottomTabBarProps) {
+}: FloatingTabBarProps) {
   const { colors, theme } = useAppTheme();
+  const { width } = useWindowDimensions();
+  const { bottom } = useSafeAreaInsets();
   const isLegacy = theme === "legacy";
+  const sideInset = width < 390 ? 12 : 24;
+  const barWidth = Math.min(width - sideInset * 2, TAB_BAR_MAX_WIDTH);
 
   return (
     <GlassSurface
@@ -49,15 +59,15 @@ export default function FloatingTabBar({
       radius={36}
       style={{
         position: "absolute",
-        bottom: Platform.OS === "ios" ? 28 : 16,
-        left: 24,
-        right: 24,
+        bottom: Math.max(bottom + 8, 16),
+        left: (width - barWidth) / 2,
+        width: barWidth,
         backgroundColor: isLegacy ? "#040485" : undefined,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-evenly",
         height: 70,
-        paddingHorizontal: 10,
+        paddingHorizontal: width < 390 ? 4 : 10,
       }}
     >
       {state.routes.map((route, index) => {

@@ -15,6 +15,7 @@ import {
 import { CATEGORY_LABELS, getTodayAction, type DailyAction } from "@/constants/actions";
 import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
+import { useAdaptiveLayout } from "@/hooks/use-adaptive-layout";
 import {
   completeAction,
   getCompletionCount,
@@ -25,7 +26,7 @@ import { createGamePlanNotification } from "@/services/notification-store";
 import type { GamePlanCompletion } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -45,6 +46,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function GamePlanScreen() {
   const { user, profile } = useAuth();
   const { colors } = useAppTheme();
+  const { medium } = useAdaptiveLayout();
   const [action, setAction] = useState<DailyAction | null>(null);
   const [completed, setCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -75,7 +77,7 @@ export default function GamePlanScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user?.$id]);
+  }, [user]);
 
   useFocusEffect(useCallback(() => void loadData(), [loadData]));
 
@@ -100,7 +102,10 @@ export default function GamePlanScreen() {
     () => deriveCareerSkillMap(intake, profile?.sport),
     [intake, profile?.sport],
   );
-  const rankedPaths = useMemo(() => rankCareerPaths(intake).slice(0, 3), [intake]);
+  const rankedPaths = useMemo(
+    () => (intake ? rankCareerPaths(intake).slice(0, 3) : []),
+    [intake],
+  );
 
   if (loading) {
     return (
@@ -166,32 +171,54 @@ export default function GamePlanScreen() {
         <View style={styles.sectionHeader}>
           <View>
             <SectionLabel>Path fit</SectionLabel>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Structures worth testing</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              {intake ? "Structures worth testing" : "Built from your story"}
+            </Text>
           </View>
         </View>
-        {rankedPaths.map((path, index) => (
-          <Pressable
-            key={path.id}
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: "/(tabs)/path-detail", params: { id: path.id } })}
-            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-          >
-            <GlassSurface tone={index === 0 ? "signal" : "regular"} style={styles.pathCard}>
-              <View style={[styles.pathIcon, { backgroundColor: colors.signalSoft }]}>
-                <Ionicons name={path.icon as keyof typeof Ionicons.glyphMap} size={22} color={colors.signal} />
-              </View>
-              <View style={styles.pathCopy}>
-                <View style={styles.pathTitleRow}>
-                  <Text style={[styles.pathTitle, { color: colors.textPrimary }]}>{path.name}</Text>
-                  <Text style={[styles.fit, { color: colors.signal }]}>{index === 0 && intake ? "Strong fit" : path.fit}</Text>
+        {!intake ? (
+          <GlassSurface style={styles.pathEmptyCard}>
+            <View style={[styles.pathIcon, { backgroundColor: colors.signalSoft }]}>
+              <Ionicons name="compass-outline" size={22} color={colors.signal} />
+            </View>
+            <View style={styles.pathCopy}>
+              <Text style={[styles.pathTitle, { color: colors.textPrimary }]}>No generic recommendations</Text>
+              <Text style={[styles.pathRationale, { color: colors.textSecondary }]}>
+                Complete the two-minute intake before the app ranks career structures for you.
+              </Text>
+            </View>
+            <GlassButton label="Start" variant="glass" compact onPress={() => setIntakeOpen(true)} />
+          </GlassSurface>
+        ) : null}
+        <View style={styles.pathGrid}>
+          {rankedPaths.map((path, index) => (
+            <Pressable
+              key={path.id}
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: "/(tabs)/path-detail", params: { id: path.id } })}
+              style={({ pressed }) => [
+                styles.pathCell,
+                medium && styles.pathCellMedium,
+                { opacity: pressed ? 0.82 : 1 },
+              ]}
+            >
+              <GlassSurface tone={index === 0 ? "signal" : "regular"} style={styles.pathCard}>
+                <View style={[styles.pathIcon, { backgroundColor: colors.signalSoft }]}>
+                  <Ionicons name={path.icon as keyof typeof Ionicons.glyphMap} size={22} color={colors.signal} />
                 </View>
-                <Text style={[styles.pathRationale, { color: colors.textSecondary }]} numberOfLines={2}>{path.rationale}</Text>
-                <Text style={[styles.pathMeta, { color: colors.textTertiary }]}>{path.meta}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-            </GlassSurface>
-          </Pressable>
-        ))}
+                <View style={styles.pathCopy}>
+                  <View style={styles.pathTitleRow}>
+                    <Text style={[styles.pathTitle, { color: colors.textPrimary }]}>{path.name}</Text>
+                    <Text style={[styles.fit, { color: colors.signal }]}>{index === 0 ? "Strong fit" : path.fit}</Text>
+                  </View>
+                  <Text style={[styles.pathRationale, { color: colors.textSecondary }]} numberOfLines={2}>{path.rationale}</Text>
+                  <Text style={[styles.pathMeta, { color: colors.textTertiary }]}>{path.meta}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+              </GlassSurface>
+            </Pressable>
+          ))}
+        </View>
 
         {action ? (
           <>
@@ -335,7 +362,7 @@ function CareerIntakeModal({
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { paddingBottom: 120 },
+  content: { width: "100%", maxWidth: 1040, alignSelf: "center", paddingBottom: 120 },
   journey: { marginHorizontal: 20, padding: 20, marginBottom: 26 },
   journeyHeader: { flexDirection: "row", justifyContent: "space-between" },
   mono: { fontFamily: "DMMono-Medium", fontSize: 11 },
@@ -352,7 +379,11 @@ const styles = StyleSheet.create({
   skillCopy: { flex: 1 },
   skillTranslation: { fontFamily: "Raleway-SemiBold", fontSize: 12, lineHeight: 17 },
   skillOrigin: { fontFamily: "Raleway-Medium", fontSize: 9, lineHeight: 14, marginTop: 2 },
-  pathCard: { marginHorizontal: 20, marginBottom: 10, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+  pathGrid: { paddingHorizontal: 20, flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  pathCell: { flexBasis: "100%" },
+  pathCellMedium: { flexBasis: "48%", flexGrow: 1 },
+  pathCard: { flex: 1, minHeight: 128, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+  pathEmptyCard: { marginHorizontal: 20, marginBottom: 10, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 },
   pathIcon: { width: 46, height: 46, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   pathCopy: { flex: 1 },
   pathTitleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
@@ -369,7 +400,7 @@ const styles = StyleSheet.create({
   modal: { flex: 1 },
   modalTopbar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 8 },
   modalProgress: { fontFamily: "DMMono-Medium", fontSize: 10 },
-  modalContent: { padding: 24, paddingBottom: 120 },
+  modalContent: { width: "100%", maxWidth: 680, alignSelf: "center", padding: 24, paddingBottom: 120 },
   modalEyebrow: { fontFamily: "DMMono-Medium", fontSize: 10, textTransform: "uppercase", letterSpacing: 1.5, marginTop: 16 },
   modalTitle: { fontFamily: "InstrumentSerif-Regular", fontSize: 37, lineHeight: 42, marginTop: 10 },
   modalSubtitle: { fontFamily: "Raleway-Medium", fontSize: 13, lineHeight: 20, marginTop: 10 },

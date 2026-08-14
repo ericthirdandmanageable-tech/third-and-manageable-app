@@ -1,4 +1,3 @@
-import { getTodayPrompt, PROMPT_CATEGORY_LABELS } from "@/constants/prompts";
 import { GlassSurface } from "@/components/ui/liquid-glass";
 import { useAppTheme } from "@/context/app-theme";
 import { useAuth } from "@/context/auth";
@@ -166,7 +165,6 @@ export default function CommunityScreen() {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  const localPrompt = useMemo(() => getTodayPrompt(), []);
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
 
@@ -209,7 +207,8 @@ export default function CommunityScreen() {
   }, [currentRoomId]);
 
   useEffect(() => {
-    loadMessages();
+    const task = setTimeout(() => void loadMessages(), 0);
+    return () => clearTimeout(task);
   }, [loadMessages]);
 
   useEffect(() => {
@@ -434,7 +433,10 @@ export default function CommunityScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
-      <View className="flex-1">
+      <View
+        className="flex-1"
+        style={{ width: "100%", maxWidth: 1040, alignSelf: "center" }}
+      >
         {/* Header */}
         <GlassSurface tone="strong" style={{ marginHorizontal: 20, marginTop: 8, padding: 16 }}>
           <View className="flex-row items-center justify-between mb-2">
@@ -539,35 +541,36 @@ export default function CommunityScreen() {
         </GlassSurface>
 
         {/* Today's Prompt */}
-        <GlassSurface
-          tone="signal"
-          className="mx-5 mb-2 bg-dp-700 rounded-2xl p-4"
-          style={{
-            shadowColor: "#030366",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 8,
-            elevation: 5,
-          }}
-        >
-          <View className="flex-row items-center mb-2">
-            <Ionicons name="chatbubble-ellipses" size={14} color="#A1A8EB" />
-            <Text className="text-[10px] font-raleway-bold text-white/50 uppercase tracking-wider ml-1.5">
-              Today&apos;s Chat Prompt
-              {currentRoom?.daily_prompt
-                ? ""
-                : ` · ${PROMPT_CATEGORY_LABELS[localPrompt.category]}`}
+        {currentRoom?.daily_prompt ? (
+          <GlassSurface
+            tone="signal"
+            className="mx-5 mb-2 rounded-2xl p-4"
+          >
+            <View className="flex-row items-center mb-2">
+              <Ionicons name="chatbubble-ellipses" size={14} color={colors.signal} />
+              <Text
+                className="text-[10px] font-raleway-bold uppercase tracking-wider ml-1.5"
+                style={{ color: colors.textSecondary }}
+              >
+                Today&apos;s Chat Prompt
+              </Text>
+            </View>
+            <Text
+              className="text-sm font-raleway-semibold leading-5"
+              style={{ color: colors.textPrimary }}
+            >
+              {currentRoom.daily_prompt}
             </Text>
-          </View>
-          <Text className="text-white text-sm font-raleway-semibold leading-5">
-            {currentRoom?.daily_prompt || localPrompt.text}
-          </Text>
-          {currentRoom?.daily_prompt_author ? (
-            <Text className="text-white/40 text-[10px] font-raleway-medium mt-2">
-              — {currentRoom.daily_prompt_author}
-            </Text>
-          ) : null}
-        </GlassSurface>
+            {currentRoom.daily_prompt_author ? (
+              <Text
+                className="text-[10px] font-raleway-medium mt-2"
+                style={{ color: colors.textTertiary }}
+              >
+                — {currentRoom.daily_prompt_author}
+              </Text>
+            ) : null}
+          </GlassSurface>
+        ) : null}
 
         {/* Messages */}
         {loading ? (

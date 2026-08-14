@@ -63,10 +63,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error("Error fetching profile:", err);
     }
-  }, [user?.$id]);
+  }, [user]);
 
   useEffect(() => {
-    refreshUser().finally(() => setIsLoading(false));
+    let active = true;
+    void (async () => {
+      await refreshUser();
+      if (active) setIsLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
   }, [refreshUser]);
 
   return (
