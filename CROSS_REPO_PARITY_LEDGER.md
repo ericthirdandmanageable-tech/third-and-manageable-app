@@ -15,7 +15,7 @@ contract, API, admin surface, or validation status.
 | Replacement mobile client | `ericthirdandmanageable-tech/third-and-manageable-app`, `codex/unified-liquid-glass` | Canonical mobile Liquid Glass client | Active; QA pass pushed at `b498ed8` |
 | Old mobile-main prototype | Same repository, `archive/mobile-main-prototype-2026-08-14` | Historical comparison only | Frozen and pushed at `4e40c27`; do not develop here |
 | Public staging auth relay | Local `third-and-manageable-staging-relay` | Path-restricted proxy for the protected Preview auth bridge | Versioned locally at `fdb5dec`; three tests pass; remote creation is blocked by organization permissions |
-| Client admin export | Local `third-and-manageable-admin-main` | Historical Firestore visibility reference only | Read-only by code and documentation; never deploy or use for writes |
+| Client admin export | Local `third-and-manageable-admin-main`, `archive/read-only-client-admin-export` | Historical Firestore visibility reference only | Versioned locally at `0b6d21d`; read-only by code and documentation; never deploy or use for writes |
 
 ## Status vocabulary
 
