@@ -125,7 +125,7 @@ export default function NotificationsScreen() {
 
     return (
       <TouchableOpacity
-        className={`mx-5 mb-3 rounded-2xl p-4 ${isUnread ? "bg-dp-50" : "bg-white"
+        className={`mx-5 mb-3 rounded-2xl p-4 ${isUnread ? "bg-dp-50" : "bg-app-surface"
           }`}
         style={{
           shadowColor: "#000",
@@ -174,7 +174,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       {/* Header */}
       <View className="px-5 pt-3 pb-4 flex-row items-center">
         <TouchableOpacity

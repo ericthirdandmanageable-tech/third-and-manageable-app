@@ -21,7 +21,7 @@ export default function SupportScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
@@ -74,7 +74,7 @@ export default function SupportScreen() {
         {RESOURCES.map((resource) => (
           <TouchableOpacity
             key={resource.id}
-            className="bg-white rounded-3xl p-5 mb-3"
+            className="bg-app-surface rounded-3xl p-5 mb-3"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -120,7 +120,7 @@ export default function SupportScreen() {
         ))}
 
         <View
-          className="bg-white rounded-3xl p-5 mb-3"
+          className="bg-app-surface rounded-3xl p-5 mb-3"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -189,4 +189,3 @@ export default function SupportScreen() {
     </SafeAreaView>
   );
 }
-

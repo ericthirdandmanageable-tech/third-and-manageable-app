@@ -428,7 +428,7 @@ export default function CommunityScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-cream" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
       <View className="flex-1">
         {/* Header */}
         <View className="px-5 pt-3 pb-2">

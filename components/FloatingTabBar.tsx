@@ -3,6 +3,8 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Platform, TouchableOpacity, View } from "react-native";
 
+import { useAppTheme } from "@/context/app-theme";
+
 const TAB_ICONS: Record<
   string,
   {
@@ -21,9 +23,11 @@ const CENTER_TAB = "check-in";
 
 export default function FloatingTabBar({
   state,
-  descriptors,
   navigation,
 }: BottomTabBarProps) {
+  const { colors, theme } = useAppTheme();
+  const isLegacy = theme === "legacy";
+
   return (
     <View
       style={{
@@ -31,7 +35,11 @@ export default function FloatingTabBar({
         bottom: Platform.OS === "ios" ? 28 : 16,
         left: 24,
         right: 24,
-        backgroundColor: "#040485",
+        backgroundColor: isLegacy
+          ? "#040485"
+          : "rgba(255, 255, 255, 0.9)",
+        borderColor: isLegacy ? "transparent" : "rgba(22, 35, 62, 0.12)",
+        borderWidth: isLegacy ? 0 : 1,
         borderRadius: 32,
         flexDirection: "row",
         alignItems: "center",
@@ -46,7 +54,6 @@ export default function FloatingTabBar({
       }}
     >
       {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key];
         const isFocused = state.index === index;
         const isCenter = route.name === CENTER_TAB;
         const iconSet = TAB_ICONS[route.name];
@@ -74,11 +81,11 @@ export default function FloatingTabBar({
                 width: 50,
                 height: 50,
                 borderRadius: 25,
-                backgroundColor: "#040485",
+                backgroundColor: colors.signal,
                 alignItems: "center",
                 justifyContent: "center",
                 marginTop: -12,
-                shadowColor: "#040485",
+                shadowColor: colors.signal,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.4,
                 shadowRadius: 8,
@@ -88,7 +95,7 @@ export default function FloatingTabBar({
               <Ionicons
                 name={isFocused ? iconSet.filled : iconSet.outline}
                 size={26}
-                color="#FFFFFF"
+                color={colors.signalInk}
               />
             </TouchableOpacity>
           );
@@ -109,7 +116,15 @@ export default function FloatingTabBar({
             <Ionicons
               name={isFocused ? iconSet.filled : iconSet.outline}
               size={24}
-              color={isFocused ? "#FFFFFF" : "#6B6B80"}
+              color={
+                isLegacy
+                  ? isFocused
+                    ? "#FFFFFF"
+                    : "#6B6B80"
+                  : isFocused
+                    ? colors.signal
+                    : colors.textSecondary
+              }
             />
           </TouchableOpacity>
         );

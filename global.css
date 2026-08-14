@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --color-cream: 250 248 245;
+    --color-app-surface: 255 255 255;
+    --color-app-surface-alpha: 1;
+    --color-dp-50: 236 238 251;
+    --color-dp-100: 208 212 245;
+    --color-dp-200: 161 168 235;
+    --color-dp-300: 110 120 217;
+    --color-dp-400: 57 64 201;
+    --color-dp-500: 6 24 168;
+    --color-dp-600: 4 4 133;
+    --color-dp-700: 3 3 102;
+    --color-dp-800: 2 2 71;
+    --color-dp-900: 1 1 46;
+    --color-silver-50: 250 250 250;
+    --color-silver-100: 245 245 245;
+    --color-silver-200: 238 238 238;
+    --color-silver-300: 224 224 224;
+    --color-silver-400: 189 189 189;
+    --color-silver-500: 158 158 158;
+    --color-silver-600: 117 117 117;
+    --color-silver-700: 97 97 97;
+    --color-silver-800: 66 66 66;
+    --color-silver-900: 33 33 33;
+  }
+}

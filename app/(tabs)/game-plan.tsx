@@ -105,14 +105,14 @@ export default function GamePlanScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-cream">
+      <SafeAreaView className="flex-1 bg-transparent">
         <GamePlanScreenSkeleton />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
@@ -175,7 +175,7 @@ export default function GamePlanScreen() {
         {/* Today's Action Card */}
         {action && (
           <View
-            className={`rounded-3xl p-5 mb-4 ${completed ? "bg-dp-700" : "bg-white"}`}
+            className={`rounded-3xl p-5 mb-4 ${completed ? "bg-dp-700" : "bg-app-surface"}`}
             style={{
               shadowColor: completed ? "#030366" : "#000",
               shadowOffset: { width: 0, height: completed ? 6 : 2 },
@@ -274,7 +274,7 @@ export default function GamePlanScreen() {
 
         {/* Week Activity */}
         <View
-          className="bg-white rounded-3xl p-5 mb-4"
+          className="bg-app-surface rounded-3xl p-5 mb-4"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -329,7 +329,7 @@ export default function GamePlanScreen() {
         {/* Stats */}
         <View className="flex-row gap-3 mb-4">
           <View
-            className="flex-1 bg-white rounded-3xl p-5 items-center"
+            className="flex-1 bg-app-surface rounded-3xl p-5 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -349,7 +349,7 @@ export default function GamePlanScreen() {
             </Text>
           </View>
           <View
-            className="flex-1 bg-white rounded-3xl p-5 items-center"
+            className="flex-1 bg-app-surface rounded-3xl p-5 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },

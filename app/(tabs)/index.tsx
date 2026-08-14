@@ -186,7 +186,7 @@ export default function HomeScreen() {
 
   if (isLoading || !profile) {
     return (
-      <SafeAreaView className="flex-1 bg-cream">
+      <SafeAreaView className="flex-1 bg-transparent">
         <HomeScreenSkeleton />
       </SafeAreaView>
     );

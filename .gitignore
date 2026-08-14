@@ -39,6 +39,10 @@ yarn-error.*
 
 app-example
 
+# Locally unpacked Expo Go bundles are test tooling, never app source.
+Expo-Go-*.app/
+Expo-Go-*.tar.app/
+
 # generated native folders
 /ios
 /android

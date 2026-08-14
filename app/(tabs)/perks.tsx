@@ -75,7 +75,7 @@ export default function PerksScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-cream items-center justify-center">
+      <SafeAreaView className="flex-1 bg-transparent items-center justify-center">
         <ActivityIndicator size="large" color="#040485" />
       </SafeAreaView>
     );
@@ -84,7 +84,7 @@ export default function PerksScreen() {
   const tiers: Perk["tier"][] = ["bronze", "silver", "gold", "platinum"];
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
@@ -170,7 +170,7 @@ export default function PerksScreen() {
               {tierPerks.map(({ perk, unlocked, progress, currentValue }) => (
                 <View
                   key={perk.id}
-                  className={`bg-white rounded-2xl p-4 mb-2 ${
+                  className={`bg-app-surface rounded-2xl p-4 mb-2 ${
                     unlocked ? "" : "opacity-80"
                   }`}
                   style={{

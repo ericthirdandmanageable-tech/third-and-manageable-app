@@ -33,7 +33,7 @@ export default function ProgressScreen() {
         .then(() => refreshProfile())
         .catch(() => {});
     }
-  }, [progress?.currentPeriod]);
+  }, [profile, progress, refreshProfile, sport, user?.$id]);
 
   // Show milestone celebration if user just advanced
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function ProgressScreen() {
       );
       setMilestoneVisible(true);
     }
-  }, [progress?.justAdvanced]);
+  }, [progress, sport]);
 
   const currentPeriod =
     progress?.currentPeriod ?? profile?.current_quarter ?? 1;
@@ -56,14 +56,14 @@ export default function ProgressScreen() {
 
   if (!profile || !sport) {
     return (
-      <SafeAreaView className="flex-1 bg-cream">
+      <SafeAreaView className="flex-1 bg-transparent">
         <ProgressScreenSkeleton />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
@@ -83,7 +83,7 @@ export default function ProgressScreen() {
         {/* Segmented Progress */}
         {sport && progress && (
           <View
-            className="bg-white rounded-3xl p-5 mb-4"
+            className="bg-app-surface rounded-3xl p-5 mb-4"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -160,7 +160,7 @@ export default function ProgressScreen() {
         {/* Stats */}
         <View className="flex-row gap-3 mb-4">
           <View
-            className="flex-1 bg-white rounded-3xl p-5 items-center"
+            className="flex-1 bg-app-surface rounded-3xl p-5 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -177,7 +177,7 @@ export default function ProgressScreen() {
             </Text>
           </View>
           <View
-            className="flex-1 bg-white rounded-3xl p-5 items-center"
+            className="flex-1 bg-app-surface rounded-3xl p-5 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -197,7 +197,7 @@ export default function ProgressScreen() {
 
         <View className="flex-row gap-3 mb-4">
           <View
-            className="flex-1 bg-white rounded-3xl p-5 items-center"
+            className="flex-1 bg-app-surface rounded-3xl p-5 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -214,7 +214,7 @@ export default function ProgressScreen() {
             </Text>
           </View>
           <View
-            className="flex-1 bg-white rounded-3xl p-5 items-center"
+            className="flex-1 bg-app-surface rounded-3xl p-5 items-center"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -235,7 +235,7 @@ export default function ProgressScreen() {
         {/* Journey timeline */}
         {sport && progress && (
           <View
-            className="bg-white rounded-3xl p-5 mb-4"
+            className="bg-app-surface rounded-3xl p-5 mb-4"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -352,7 +352,7 @@ export default function ProgressScreen() {
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
         >
           <View
-            className="bg-white rounded-3xl p-6 w-full"
+            className="bg-app-surface rounded-3xl p-6 w-full"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 8 },

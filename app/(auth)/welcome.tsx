@@ -76,7 +76,7 @@ export default function WelcomeScreen() {
         tension: 80,
       }).start();
     });
-  }, [activeIndex]);
+  }, [activeIndex, dotAnimations]);
 
   // Auto-advance carousel
   useEffect(() => {
