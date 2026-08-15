@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-    athleteApiConfig,
-    createAccessToken,
-    normalizeEmail,
-    verifyAccessToken,
-} from "@/lib/athlete-api/auth";
+import { normalizeEmail } from "@/lib/athlete-api/identity";
 import {
     CLIPBOARD_MODEL,
     fallbackReply,
@@ -15,11 +10,13 @@ import {
 import { currentWeekMonday } from "@/lib/athlete-api/game-plan";
 import { deriveSkillMap } from "@/lib/core/skills";
 import { scorePathFit } from "@/lib/core/paths";
+import { assertIsolatedIntegrationBoundary } from "@/lib/integration-environment";
 
 const original = {
-    JWT_SECRET: process.env.JWT_SECRET,
-    AUTO_VERIFY: process.env.AUTO_VERIFY,
     VERCEL_ENV: process.env.VERCEL_ENV,
+    INTEGRATION_ENVIRONMENT: process.env.INTEGRATION_ENVIRONMENT,
+    APPWRITE_PROJECT_ID: process.env.APPWRITE_PROJECT_ID,
+    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
 };
 
 afterEach(() => {
@@ -30,29 +27,15 @@ afterEach(() => {
 });
 
 describe("athlete API authentication", () => {
-    it("normalizes email and signs canonical UUID/auth-version claims", () => {
-        process.env.JWT_SECRET = "s".repeat(32);
-        process.env.VERCEL_ENV = "development";
+    it("normalizes email and accepts only isolated staging projects in Preview", () => {
         expect(normalizeEmail("  Athlete@Example.COM ")).toBe("athlete@example.com");
-        const token = createAccessToken({
-            id: "0b7b3f0b-82fb-4d29-a8eb-6d4ed3a6fa50",
-            authVersion: 7,
-        });
-        expect(verifyAccessToken(token)).toEqual({
-            sub: "0b7b3f0b-82fb-4d29-a8eb-6d4ed3a6fa50",
-            av: 7,
-        });
-        const replacement = token.endsWith("x") ? "y" : "x";
-        expect(verifyAccessToken(`${token.slice(0, -1)}${replacement}`)).toBeNull();
-    });
-
-    it("fails closed for weak public configuration and production auto-verify", () => {
         process.env.VERCEL_ENV = "preview";
-        process.env.JWT_SECRET = "weak";
-        expect(() => athleteApiConfig()).toThrow("Unsafe");
-        process.env.JWT_SECRET = "s".repeat(32);
-        process.env.AUTO_VERIFY = "true";
-        expect(() => athleteApiConfig()).toThrow("Unsafe");
+        process.env.INTEGRATION_ENVIRONMENT = "staging";
+        process.env.APPWRITE_PROJECT_ID = "69906dfc003364b9847e";
+        process.env.FIREBASE_PROJECT_ID = "third-and-manageable-staging";
+        expect(() => assertIsolatedIntegrationBoundary()).not.toThrow();
+        process.env.APPWRITE_PROJECT_ID = "69906e3f0020c208d8e7";
+        expect(() => assertIsolatedIntegrationBoundary()).toThrow("isolated Appwrite");
     });
 });
 

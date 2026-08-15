@@ -1,7 +1,7 @@
 import { getAdminAuth } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@vercel/firewall";
-import { mapCanonicalBridgeIdentities } from "@/lib/canonical-identity-mapping";
-import { createNeonCanonicalIdentityPersistence } from "@/lib/db/canonical-identity-persistence";
+import { ensureProductProfile, isoNow } from "@/lib/firestore-product";
+import { getAdminFirestore } from "@/lib/firebase-admin";
 import {
     FIREBASE_BRIDGE_CLAIMS,
     InvalidAppwriteIdentityError,
@@ -12,8 +12,6 @@ import {
 } from "@/lib/mobile-auth-bridge";
 import { Account, AppwriteException, Client } from "node-appwrite";
 
-const canonicalIdentityPersistence =
-    createNeonCanonicalIdentityPersistence();
 const MOBILE_AUTH_USER_RATE_LIMIT_ID = "mobile-auth-verified-user";
 
 function getAppwriteConfiguration(): { endpoint: string; projectId: string } {
@@ -80,10 +78,28 @@ async function createFirebaseCustomToken(
 }
 
 async function mapCanonicalIdentities(appwriteUserId: string) {
-    return mapCanonicalBridgeIdentities(
-        canonicalIdentityPersistence,
-        appwriteUserId,
-    );
+    // Appwrite IDs are the universal owner ID across the staging stack. Keep a
+    // small reconciliation record so bridge activity remains inspectable
+    // without introducing a second canonical user identifier.
+    await Promise.all([
+        ensureProductProfile({ userId: appwriteUserId }),
+        getAdminFirestore()
+            .collection("auth_identity_mappings")
+            .doc(appwriteUserId)
+            .set(
+                {
+                    canonical_user_id: appwriteUserId,
+                    appwrite_user_id: appwriteUserId,
+                    firebase_uid: appwriteUserId,
+                    updated_at: isoNow(),
+                },
+                { merge: true },
+            ),
+    ]);
+    return {
+        canonicalUserId: appwriteUserId,
+        firebaseUid: appwriteUserId,
+    };
 }
 
 function recordOutcome(outcome: MobileAuthBridgeOutcome): void {

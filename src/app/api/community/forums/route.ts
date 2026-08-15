@@ -1,37 +1,36 @@
-import { asc, eq, sql } from "drizzle-orm";
-
 import { optionalUser } from "@/lib/athlete-api/auth";
 import { jsonError } from "@/lib/athlete-api/http";
-import { getDb } from "@/lib/db";
-import { forumMemberships, forums } from "@/lib/db/schema";
+import { FORUMS } from "@/lib/core/community";
+import { listAllDocuments, listUserDocuments } from "@/lib/firestore-product";
 
 export async function GET(request: Request) {
-    try {
-        const user = await optionalUser(request);
-        const [rows, joined] = await Promise.all([
-            getDb().select({
-                forum: forums,
-                memberCount: sql<number>`count(${forumMemberships.userId})::int`,
-            }).from(forums).leftJoin(forumMemberships, eq(forumMemberships.forumId, forums.id))
-                .groupBy(forums.id).orderBy(asc(forums.category), asc(forums.title)),
-            user
-                ? getDb().select({ id: forumMemberships.forumId }).from(forumMemberships)
-                    .where(eq(forumMemberships.userId, user.id))
-                : Promise.resolve([]),
-        ]);
-        const joinedIds = new Set(joined.map((row) => row.id));
-        return Response.json(rows.map(({ forum, memberCount }) => ({
-            id: forum.id,
-            title: forum.title,
-            category: forum.category,
-            description: forum.description,
-            member_count: memberCount,
-            active_now: forum.activeNow,
-            icon: forum.icon,
-            path_id: forum.pathId,
-            joined: joinedIds.has(forum.id),
-        })));
-    } catch (error) {
-        return jsonError(error);
+  try {
+    const user = await optionalUser(request);
+    const [memberships, joined] = await Promise.all([
+      listAllDocuments<{ forum_id: string }>("forum_memberships"),
+      user
+        ? listUserDocuments<{ forum_id: string }>("forum_memberships", user.id, 200)
+        : Promise.resolve([]),
+    ]);
+    const counts = new Map<string, number>();
+    for (const membership of memberships) {
+      counts.set(membership.forum_id, (counts.get(membership.forum_id) ?? 0) + 1);
     }
+    const joinedIds = new Set(joined.map((membership) => membership.forum_id));
+    return Response.json(
+      FORUMS.map((forum) => ({
+        id: forum.id,
+        title: forum.title,
+        category: forum.category,
+        description: forum.description,
+        member_count: counts.get(forum.id) ?? forum.memberCount,
+        active_now: forum.activeNow,
+        icon: forum.icon,
+        path_id: forum.pathId,
+        joined: joinedIds.has(forum.id),
+      })).sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title)),
+    );
+  } catch (error) {
+    return jsonError(error);
+  }
 }

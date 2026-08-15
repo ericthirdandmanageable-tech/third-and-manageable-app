@@ -48,8 +48,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setLoading(false);
                 return;
             }
-            // Show the cached user immediately, then confirm it against the
-            // server — a revoked or expired token must not stay usable.
+            // Show the cached user immediately, then confirm the HttpOnly
+            // Appwrite session with the server.
             setUser(authStorage.getUser());
             const me = await api.me();
             if (me) {
@@ -88,10 +88,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const signOut = useCallback(async () => {
-        // Bump `auth_version` server-side first: clearing localStorage only
-        // makes the token unreachable from this browser, it does not make it
-        // invalid. Local state is cleared either way — a failed call must not
-        // leave someone stuck looking signed in.
+        // Delete the Appwrite session server-side. Local cached display state
+        // is cleared either way so a network failure cannot trap the UI.
         await api.logout();
         authStorage.clear();
         setUser(null);

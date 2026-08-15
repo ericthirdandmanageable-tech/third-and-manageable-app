@@ -1,5 +1,11 @@
 # Third & Manageable — Vercel Consolidation Plan
 
+> **Superseded architecture notice (2026-08-14):** Neon/Postgres and the
+> proposed Auth.js cutover below are historical. The active decision is
+> Appwrite Auth + Firestore product data for the isolated Vercel Preview. See
+> `STACK_ARCHITECTURE.md`. The historical sequence remains below only as an
+> audit trail.
+
 **Goal:** collapse the original multi-vendor footprint (Render + Firebase + Appwrite + Google AI + un-hosted Vite SPA) onto Vercel, keeping Firebase temporarily only as a mobile identity/data compatibility dependency. Sequenced to serve the three-step objective:
 
 1. Situate `web-prototype` into the foundation of the pre-redesign app (`third-and-manageable-admin-main`).

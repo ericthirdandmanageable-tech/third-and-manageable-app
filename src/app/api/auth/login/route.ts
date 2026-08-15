@@ -1,30 +1,46 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { AppwriteException } from "node-appwrite";
 
-import { createAccessToken, normalizeEmail, userJson, verifyPassword } from "@/lib/athlete-api/auth";
+import {
+  createAppwriteEmailSession,
+  createAppwriteSessionAccount,
+  setAppwriteSessionCookie,
+} from "@/lib/appwrite-server";
+import { athleteUserFromIdentity, normalizeEmail, userJson } from "@/lib/athlete-api/auth";
 import { ApiError, jsonError, readObject, stringField } from "@/lib/athlete-api/http";
-import { getDb } from "@/lib/db";
-import { passwordCredentials, userEmails, users } from "@/lib/db/schema";
+import { ensureProductProfile } from "@/lib/firestore-product";
 
 export async function POST(request: Request) {
+  try {
+    const body = await readObject(request);
+    const email = normalizeEmail(stringField(body, "email", { min: 3, max: 320 }));
+    const password = stringField(body, "password", { min: 1, max: 256 });
+    let session;
     try {
-        const body = await readObject(request);
-        const email = stringField(body, "email", { min: 3, max: 320 }) as string;
-        const password = stringField(body, "password", { min: 1, max: 1024 }) as string;
-        const [row] = await getDb()
-            .select({ user: users, email: userEmails.email, passwordHash: passwordCredentials.passwordHash })
-            .from(userEmails)
-            .innerJoin(users, and(eq(users.id, userEmails.userId), isNull(users.deletedAt)))
-            .leftJoin(passwordCredentials, eq(passwordCredentials.userId, users.id))
-            .where(eq(userEmails.normalizedEmail, normalizeEmail(email)))
-            .limit(1);
-        if (!row?.passwordHash || !(await verifyPassword(password, row.passwordHash))) {
-            throw new ApiError(401, "Invalid email or password");
-        }
-        const user = { ...row.user, email: row.email };
-        if (user.banned) throw new ApiError(403, "Account banned");
-        if (user.suspended) throw new ApiError(403, "Account suspended");
-        return Response.json({ access_token: createAccessToken(user), token_type: "bearer", user: userJson(user) });
+      session = await createAppwriteEmailSession(email, password);
     } catch (error) {
-        return jsonError(error);
+      if (error instanceof AppwriteException && [400, 401].includes(error.code)) {
+        throw new ApiError(401, "Invalid email or password");
+      }
+      throw error;
     }
+
+    const identity = await createAppwriteSessionAccount(session.secret).get();
+    const profile = await ensureProductProfile({
+      userId: identity.$id,
+      email: identity.email,
+      displayName: identity.name,
+    });
+    const user = athleteUserFromIdentity(identity, profile);
+    if (user.banned) throw new ApiError(403, "Account banned");
+    if (user.suspended) throw new ApiError(403, "Account suspended");
+    await setAppwriteSessionCookie(session);
+
+    return Response.json({
+      access_token: "appwrite-session-cookie",
+      token_type: "cookie",
+      user: userJson(user),
+    });
+  } catch (error) {
+    return jsonError(error);
+  }
 }

@@ -4,7 +4,8 @@
  * `./paths` automatically creates its forum here. Other forums (Local /
  * Sport / Support) are standalone entries below.
  *
- * The same catalog is seeded into Postgres by `drizzle/0002_seed_forums.sql`.
+ * Firestore stores memberships, prompts, posts, and comments; this registry
+ * remains the canonical editorial catalog shared by pages and APIs.
  * Icons are lucide names — see the note in `./paths`.
  */
 

@@ -44,8 +44,6 @@ kickbacks-v2.vsix
 render.yaml
 
 # Migration/dev/test material is not needed by the running Next.js app
-drizzle/
-drizzle.config.ts
 scripts/
 tests/
 *.md

@@ -1,9 +1,14 @@
 import { getVercelOidcToken } from "@vercel/oidc";
 import type { Credential, GoogleOAuthAccessToken } from "firebase-admin/app";
-import { ExternalAccountClient } from "google-auth-library";
+import {
+    ExternalAccountClient,
+    GoogleAuth,
+    type ExternalAccountClientOptions,
+} from "google-auth-library";
 
 export interface VercelGoogleWorkloadIdentityConfig {
     projectNumber: string;
+    projectId?: string;
     serviceAccountEmail: string;
     workloadIdentityPoolId: string;
     workloadIdentityProviderId: string;
@@ -13,21 +18,15 @@ const GOOGLE_STS_TOKEN_URL = "https://sts.googleapis.com/v1/token";
 const GOOGLE_CLOUD_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const FIREBASE_TOKEN_CACHE_SECONDS = 50 * 60;
 
-/**
- * Adapts Vercel's request-scoped OIDC identity to the Credential interface used
- * by Firebase Admin. Google exchanges the short-lived Vercel assertion and then
- * impersonates the narrowly scoped staging service account; no private key is
- * downloaded or stored in Vercel.
- */
-export function createVercelGoogleCredential(
+export function createVercelGoogleExternalAccountConfig(
     config: VercelGoogleWorkloadIdentityConfig,
-): Credential {
+): ExternalAccountClientOptions {
     const providerAudience =
         `//iam.googleapis.com/projects/${config.projectNumber}` +
         `/locations/global/workloadIdentityPools/${config.workloadIdentityPoolId}` +
         `/providers/${config.workloadIdentityProviderId}`;
 
-    const client = ExternalAccountClient.fromJSON({
+    return {
         type: "external_account",
         audience: providerAudience,
         subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
@@ -56,11 +55,39 @@ export function createVercelGoogleCredential(
                 }
             },
         },
-    });
+    };
+}
+
+function createExternalAccountClient(
+    config: VercelGoogleWorkloadIdentityConfig,
+) {
+    const client = ExternalAccountClient.fromJSON(
+        createVercelGoogleExternalAccountConfig(config),
+    );
 
     if (!client) {
         throw new Error("Unable to initialize Google Workload Identity credentials.");
     }
+
+    return client;
+}
+
+export function createVercelGoogleAuthClient(
+    config: VercelGoogleWorkloadIdentityConfig,
+) {
+    return createExternalAccountClient(config);
+}
+
+/**
+ * Adapts Vercel's request-scoped OIDC identity to the Credential interface used
+ * by Firebase Admin. Google exchanges the short-lived Vercel assertion and then
+ * impersonates the narrowly scoped staging service account; no private key is
+ * downloaded or stored in Vercel.
+ */
+export function createVercelGoogleCredential(
+    config: VercelGoogleWorkloadIdentityConfig,
+): Credential {
+    const client = createExternalAccountClient(config);
 
     return {
         async getAccessToken(): Promise<GoogleOAuthAccessToken> {
@@ -88,4 +115,20 @@ export function createVercelGoogleCredential(
             };
         },
     };
+}
+
+/**
+ * Firestore's Admin adapter only accepts certificate credentials or its own
+ * Application Default Credential class. The native Google Cloud client does
+ * accept a GoogleAuth instance, so expose the same federated client through
+ * that supported path without introducing a service-account private key.
+ */
+export function createVercelGoogleAuth(
+    config: VercelGoogleWorkloadIdentityConfig,
+): GoogleAuth {
+    return new GoogleAuth({
+        authClient: createExternalAccountClient(config),
+        projectId: config.projectId,
+        scopes: [GOOGLE_CLOUD_SCOPE],
+    });
 }

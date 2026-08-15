@@ -1,12 +1,18 @@
 # Appwrite → Firebase Authentication Bridge and Firestore Rules Design
 
+> **Updated boundary (2026-08-14):** This bridge is now part of the active
+> staging architecture, and the Appwrite UID is the universal Firestore owner
+> ID for both Next.js Preview and Expo staging. Postgres canonical identity
+> references below are historical. See `STACK_ARCHITECTURE.md`.
+
 **Status:** the candidate Rules are published only in the isolated staging
-Firebase project. The token and authenticated-revocation routes are validated
-end to end through a public, path-restricted Vercel staging relay backed by a
-protected Preview and keyless Google Workload Identity Federation. The
-replacement Expo checkout is pointed at those staging resources and its guarded
-synthetic smoke test passes. The Appwrite webhook is not registered — **do not
-deploy or publish any of this to production.**
+Firebase project. Token/revocation and the authenticated product API are
+validated end to end through a public, path-restricted Vercel staging relay
+backed by a protected Preview and keyless Google Workload Identity Federation.
+The replacement Expo client no longer accesses Firestore or Firebase Storage
+for product data; custom-token Firebase Auth remains only for older-client
+compatibility. The Appwrite webhook is not registered — **do not deploy or
+publish any of this to production.**
 
 This design is anchored to the shipped Expo source at commit
 `5b37d367c7119961ca98cd52645fdc79c3499626` (App Store version `1.0.0`,
@@ -222,7 +228,7 @@ changes:
 | Streak counters and `last_checkin_date` are client-controlled | Move streak calculation/update to a server transaction |
 | Check-ins and completions use random IDs, so the client can create duplicates | Use deterministic owner/date/action IDs or server endpoints to enforce one check-in/action completion per period |
 | Community subscribes to the entire `messages` collection | Subscribe/query by `room_id` and apply a bounded limit |
-| Profile-photo code calls a Firebase Storage bucket that is not enabled | Keep upload disabled until the bucket, lifecycle, App Check plan, and Storage Rules are tested |
+| Historical shipped profile-photo code calls a Firebase Storage bucket that is not enabled | **Superseded:** the replacement client uploads through the authenticated API into isolated staging Appwrite Storage; production Firebase Storage remains disabled |
 | Client timestamps are ISO strings supplied by the device | Prefer server timestamps or server-owned mutations for security-sensitive ordering |
 
 Proposed `public_profiles/{uid}` fields:
@@ -430,7 +436,11 @@ The server-side Firebase Admin SDK bypasses these Rules. Every server route must
 therefore perform its own authentication, authorization, validation, rate
 limiting, and audit logging.
 
-## 4. Storage Rules target
+## 4. Historical Firebase Storage Rules target
+
+> **Superseded (2026-08-14):** The replacement client uses the authenticated
+> Next.js API and Appwrite Storage. This section is retained only to explain
+> why the old direct Firebase upload must not be re-enabled.
 
 Firebase Storage is currently not enabled. If profile photos remain on Firebase
 during the compatibility window, enable and test a staging bucket first. The
@@ -442,8 +452,9 @@ target policy is:
 - no list access and default deny;
 - App Check enforcement only after the replacement build includes and proves it.
 
-Do not enable the production bucket merely to satisfy the currently broken
-profile-photo path. Vercel Blob remains the final migration target.
+Do not enable the production bucket merely to satisfy the old profile-photo
+path. Appwrite Storage is the current staging destination; Vercel Blob is no
+longer an active migration requirement.
 
 ## 5. Required emulator test matrix
 

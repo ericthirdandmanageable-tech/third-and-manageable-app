@@ -177,7 +177,7 @@ export default async function OverviewPage() {
               App signup dashboard
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-gray-300 sm:text-base">
-              This view reads Postgres users and uses the
+              This view reads staging Firestore profiles and uses the
               <span className="mx-1 rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-white">
                 created_at
               </span>

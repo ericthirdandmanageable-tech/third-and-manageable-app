@@ -1,5 +1,11 @@
 # Firebase and App Store Safe Handoff
 
+> **Updated boundary (2026-08-14):** The Next.js redesign now intentionally
+> uses the isolated staging Appwrite/Firebase projects. Warnings below against
+> connecting the web app to Firebase apply to the production project, not the
+> staging project. Neon/Postgres migration steps are historical. See
+> `STACK_ARCHITECTURE.md` for the active source-of-truth decision.
+
 **Status:** the production Firebase Web app configuration for project
 `third-and-manageable-app` and the shipped Expo source are now known. The
 released app uses Appwrite project `69906e3f0020c208d8e7` for identity and uses

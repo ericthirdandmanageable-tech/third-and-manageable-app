@@ -5,14 +5,14 @@
  *
  * Every endpoint is typed here and nowhere else.
  *
- * Every id on the wire is a UUID string. The Drizzle baseline replaced the
- * integer primary keys the prototype was written against, so `Number(postId)`
- * on a route param is now `NaN` — the conversions are gone, not relaxed.
+ * IDs on the wire are opaque Appwrite or Firestore strings. Never parse them
+ * as numbers or assume UUID formatting.
  */
 
 const BASE = "/api";
 
-const TOKEN_KEY = "tm_access_token";
+const SESSION_HINT_KEY = "tm_appwrite_session_hint";
+const RETIRED_TOKEN_KEY = "tm_access_token";
 const USER_KEY = "tm_user";
 
 /*
@@ -24,9 +24,15 @@ const USER_KEY = "tm_user";
 const browser = () => typeof window !== "undefined";
 
 export const authStorage = {
-    getToken: () => (browser() ? localStorage.getItem(TOKEN_KEY) : null),
-    setToken: (t: string) => {
-        if (browser()) localStorage.setItem(TOKEN_KEY, t);
+    // This is only a rendering hint. The credential is an HttpOnly Appwrite
+    // cookie and cannot be read by JavaScript.
+    getToken: () =>
+        browser()
+            ? localStorage.getItem(SESSION_HINT_KEY) || localStorage.getItem(RETIRED_TOKEN_KEY)
+            : null,
+    setToken: (value: string) => {
+        void value;
+        if (browser()) localStorage.setItem(SESSION_HINT_KEY, "1");
     },
     getUser: (): ApiUser | null => {
         if (!browser()) return null;
@@ -43,7 +49,8 @@ export const authStorage = {
     },
     clear: () => {
         if (!browser()) return;
-        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(SESSION_HINT_KEY);
+        localStorage.removeItem(RETIRED_TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
     },
 };
@@ -69,15 +76,12 @@ async function authenticatedMutation(
     path: string,
     body: Record<string, unknown>,
 ): Promise<ApiMutationResult> {
-    const token = authStorage.getToken();
-    if (!token) return { ok: false, message: "Sign in to continue." };
+    if (!authStorage.getToken()) return { ok: false, message: "Sign in to continue." };
     try {
         const response = await fetch(`${BASE}${path}`, {
             method: "POST",
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
             body: JSON.stringify(body),
         });
         const payload = (await response.json().catch(() => ({}))) as {
@@ -105,11 +109,14 @@ async function request<T>(
         ...(opts.headers as Record<string, string>),
     };
     if (opts.auth !== false) {
-        const token = authStorage.getToken();
-        if (token) headers.Authorization = `Bearer ${token}`;
+        // The HttpOnly Appwrite session cookie is sent automatically.
     }
     try {
-        const res = await fetch(`${BASE}${path}`, { ...opts, headers });
+        const res = await fetch(`${BASE}${path}`, {
+            ...opts,
+            headers,
+            credentials: "same-origin",
+        });
         if (!res.ok) {
             // 401 cleared by the auth context elsewhere; just signal failure here
             return null;

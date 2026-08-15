@@ -61,8 +61,13 @@ export function stringField(
 }
 
 export function uuidField(value: unknown, name: string): string {
-    if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
-        throw new ApiError(422, `${name} must be a UUID`);
+    if (
+        typeof value !== "string" ||
+        value.length < 1 ||
+        value.length > 128 ||
+        !/^[A-Za-z0-9._-]+$/.test(value)
+    ) {
+        throw new ApiError(422, `${name} must be a valid document ID`);
     }
     return value;
 }

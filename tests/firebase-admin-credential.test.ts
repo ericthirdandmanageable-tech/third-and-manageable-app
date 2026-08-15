@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const credentialMocks = vi.hoisted(() => ({
     fromJSON: vi.fn(),
+    GoogleAuth: vi.fn(),
     getAccessToken: vi.fn(),
     getVercelOidcToken: vi.fn(),
 }));
@@ -14,17 +15,44 @@ vi.mock("google-auth-library", () => ({
     ExternalAccountClient: {
         fromJSON: credentialMocks.fromJSON,
     },
+    GoogleAuth: credentialMocks.GoogleAuth,
 }));
 
-import { createVercelGoogleCredential } from "@/lib/firebase-admin-credential";
+import {
+    createVercelGoogleAuth,
+    createVercelGoogleCredential,
+} from "@/lib/firebase-admin-credential";
 
 describe("Vercel OIDC Firebase Admin credential", () => {
     beforeEach(() => {
         credentialMocks.fromJSON.mockReset();
         credentialMocks.getAccessToken.mockReset();
         credentialMocks.getVercelOidcToken.mockReset();
+        credentialMocks.GoogleAuth.mockReset();
         credentialMocks.fromJSON.mockReturnValue({
             getAccessToken: credentialMocks.getAccessToken,
+        });
+    });
+
+    it("exposes the federated client through GoogleAuth for Firestore", () => {
+        const authClient = {
+            getAccessToken: credentialMocks.getAccessToken,
+        };
+        credentialMocks.fromJSON.mockReturnValueOnce(authClient);
+
+        createVercelGoogleAuth({
+            projectNumber: "123456789",
+            projectId: "staging-project",
+            serviceAccountEmail:
+                "vercel-preview@staging-project.iam.gserviceaccount.com",
+            workloadIdentityPoolId: "vercel",
+            workloadIdentityProviderId: "vercel",
+        });
+
+        expect(credentialMocks.GoogleAuth).toHaveBeenCalledWith({
+            authClient,
+            projectId: "staging-project",
+            scopes: ["https://www.googleapis.com/auth/cloud-platform"],
         });
     });
 
