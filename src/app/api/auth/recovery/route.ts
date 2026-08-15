@@ -22,9 +22,15 @@ export async function POST(request: Request) {
       await createAppwriteRecovery(email, recoveryUrl());
     } catch (error) {
       // Do not reveal whether an email belongs to an account.
-      if (error instanceof AppwriteException && [400, 404].includes(error.code)) {
+      if (error instanceof AppwriteException && error.code === 404) {
         return Response.json({ status: "ok" });
       }
+      const diagnostic = error as { code?: string | number; type?: string; message?: string };
+      console.error("Password recovery request failed", {
+        code: diagnostic.code ?? "unknown",
+        type: diagnostic.type ?? "unknown",
+        message: String(diagnostic.message ?? "unknown").slice(0, 300),
+      });
       throw error;
     }
 
