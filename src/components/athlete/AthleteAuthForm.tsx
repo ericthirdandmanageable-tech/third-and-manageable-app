@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import clsx from "clsx";
 
@@ -179,6 +180,14 @@ export default function AthleteAuthForm({
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                 </label>
+
+                {mode === "login" && (
+                    <div className="text-right">
+                        <Link href="/forgot-password" className="text-xs text-white/50 underline decoration-white/20 underline-offset-4 hover:text-white">
+                            Forgot password?
+                        </Link>
+                    </div>
+                )}
 
                 {error && (
                     <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-red-200">

@@ -134,6 +134,18 @@ export async function createAppwriteAccount(input: {
   });
 }
 
+export async function createAppwriteRecovery(email: string, url: string): Promise<void> {
+  await createAppwriteAdminAccount().createRecovery({ email, url });
+}
+
+export async function updateAppwriteRecovery(
+  userId: string,
+  secret: string,
+  password: string,
+): Promise<void> {
+  await createAppwriteAdminAccount().updateRecovery({ userId, secret, password });
+}
+
 export async function setAppwriteSessionCookie(session: Models.Session): Promise<void> {
   if (!session.secret) {
     throw new Error("Appwrite did not return an SSR session secret");

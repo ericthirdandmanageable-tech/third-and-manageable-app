@@ -36,6 +36,11 @@ npm run dev
 Open [http://localhost:3000/login](http://localhost:3000/login). The admin login
 is at [http://localhost:3000/admin/login](http://localhost:3000/admin/login).
 
+Athlete password recovery is available at `/forgot-password` and uses Appwrite's
+recovery email flow. Add each deployed web origin as a platform in the staging
+Appwrite project. Vercel deployments use `VERCEL_URL` automatically; set
+`APP_PUBLIC_URL` when a stable public origin should be used in recovery links.
+
 Local Firestore access should use emulators or a staging-only service account.
 Vercel Preview uses keyless Google Workload Identity. Never place production
 Appwrite/Firebase credentials or a Firebase private key in this repository.
