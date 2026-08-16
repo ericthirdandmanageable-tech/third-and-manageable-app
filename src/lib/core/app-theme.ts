@@ -18,7 +18,10 @@ export const getSchoolAppThemeSignal = (primary: string): string =>
     ensureTextContrast(primary, APP_THEME_GLASS_BASE, WCAG_AA_TEXT);
 
 /**
- * Public URL roots rendered by `(athlete)/(shell)`. Keep this list explicit:
+ * Public URL roots rendered with the athlete theme. Most live in
+ * `(athlete)/(shell)`; `/onboarding` mounts its own provider so the original
+ * flow can use the same Liquid Glass appearance without theming `/login`.
+ * Keep this list explicit:
  * the root layout's pre-paint script runs before React knows which route group
  * is active, and treating every non-auth URL as athlete UI leaks its tokens
  * into `/admin` and the root 404 boundary.
@@ -27,6 +30,7 @@ export const APP_SHELL_ROUTE_PREFIXES = [
     "/clipboard",
     "/community",
     "/game-plan",
+    "/onboarding",
     "/profile",
     "/progress",
     "/support",

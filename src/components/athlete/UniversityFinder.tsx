@@ -106,7 +106,7 @@ export default function UniversityFinder({
             />
             <Search
                 aria-hidden="true"
-                className="pointer-events-none absolute right-4 top-[1.15rem] h-4 w-4 text-white/50"
+                className="pointer-events-none absolute right-4 top-[1.15rem] h-4 w-4 text-text-tertiary"
             />
 
             {open && value.trim() && (
@@ -114,12 +114,12 @@ export default function UniversityFinder({
                     id={listboxId}
                     role="listbox"
                     aria-label="U.S. universities"
-                    className="absolute z-40 mt-2 max-h-[42svh] w-full overflow-y-auto overscroll-contain rounded-2xl border border-white/16 bg-[#111b2c]/98 p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+                    className="liquid-glass absolute z-40 mt-2 max-h-[42svh] w-full overflow-y-auto overscroll-contain rounded-2xl border border-border-subtle bg-bg-elevated p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.28)]"
                 >
                     {searchIsStale ? (
-                        <p className="px-3 py-3 text-sm text-white/65">Searching…</p>
+                        <p className="px-3 py-3 text-sm text-text-secondary">Searching…</p>
                     ) : !universities && !directoryUnavailable ? (
-                        <p className="px-3 py-3 text-sm text-white/65">
+                        <p className="px-3 py-3 text-sm text-text-secondary">
                             Loading university directory…
                         </p>
                     ) : results.length ? (
@@ -139,18 +139,18 @@ export default function UniversityFinder({
                                     className={clsx(
                                         "flex min-h-12 w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition",
                                         index === activeIndex
-                                            ? "bg-volt/12 text-white"
-                                            : "text-white/78 hover:bg-white/7 hover:text-white",
+                                            ? "bg-volt/12 text-text-primary"
+                                            : "text-text-secondary hover:bg-bg-surface hover:text-text-primary",
                                     )}
                                 >
                                     <span className="min-w-0 flex-1">
                                         <span className="block text-sm font-semibold leading-snug">
                                             {name}
                                         </span>
-                                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-white/55">
+                                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-text-tertiary">
                                             <span>{city}, {state}</span>
                                             {isMainCampus === 1 && (
-                                                <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[10px] font-medium text-white/70">
+                                                <span className="rounded-full bg-bg-surface px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
                                                     Main campus
                                                 </span>
                                             )}
@@ -163,7 +163,7 @@ export default function UniversityFinder({
                             );
                         })
                     ) : (
-                        <p className="px-3 py-3 text-sm leading-relaxed text-white/65">
+                        <p className="px-3 py-3 text-sm leading-relaxed text-text-secondary">
                             {directoryUnavailable
                                 ? "The directory is unavailable. You can still continue with the name you entered."
                                 : "No matching university. You can still continue with the name you entered."}

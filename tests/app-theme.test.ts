@@ -12,10 +12,11 @@ describe("app theme scope", () => {
         "/community",
         "/community/forum/post",
         "/game-plan/path/example",
+        "/onboarding",
         "/profile",
         "/progress",
         "/support",
-    ])("recognizes athlete shell path %s", (pathname) => {
+    ])("recognizes themed athlete path %s", (pathname) => {
         expect(isAppShellPath(pathname)).toBe(true);
     });
 
@@ -23,7 +24,6 @@ describe("app theme scope", () => {
         "/admin",
         "/admin/login",
         "/login",
-        "/onboarding",
         "/api/health",
         "/not-a-real-route",
     ])("does not leak athlete theming onto %s", (pathname) => {

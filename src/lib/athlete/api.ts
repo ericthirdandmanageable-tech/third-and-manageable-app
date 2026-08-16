@@ -72,6 +72,14 @@ export interface ApiMutationResult {
     message: string;
 }
 
+export interface ApiOnboardingAnswers {
+    athlete_status: "current" | "former";
+    sport: string;
+    display_name: string;
+    school: string;
+    group_interest: boolean;
+}
+
 async function authenticatedMutation(
     path: string,
     body: Record<string, unknown>,
@@ -254,6 +262,8 @@ export const api = {
     /* ---------- Game plan ---------- */
     getGamePlan: () => request<ApiGamePlan>("/game-plan"),
     submitIntake: (answers: Record<string, string>) =>
+        request("/profile/intake", { method: "POST", body: JSON.stringify(answers) }),
+    submitOnboarding: (answers: ApiOnboardingAnswers) =>
         request("/profile/intake", { method: "POST", body: JSON.stringify(answers) }),
     getProfile: () =>
         request<{
