@@ -1,5 +1,16 @@
 import type { UsUniversity } from "./us-universities";
 
+function normalizedUniversityName(value: string | null | undefined): string {
+    return (value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
+export function universitySelectionChanged(
+    currentUniversity: string | null | undefined,
+    nextUniversity: string | null | undefined,
+): boolean {
+    return normalizedUniversityName(currentUniversity) !== normalizedUniversityName(nextUniversity);
+}
+
 const SEARCH_STOP_WORDS = new Set(["and", "at", "in", "of", "the"]);
 const universitySearchIndex = new Map<
     number,

@@ -8,12 +8,14 @@ import type {
 } from "firebase-admin/firestore";
 
 import { getAdminFirestore } from "@/lib/firebase-admin";
+import { universitySelectionChanged } from "@/lib/core/university-search";
 
 export interface ProductProfile extends DocumentData {
   user_id: string;
   email?: string;
   display_name?: string;
   school?: string | null;
+  school_id?: string | null;
   sport?: string;
   athlete_status?: string;
   transition_status?: string;
@@ -186,6 +188,55 @@ export async function updateProductProfile(
   if (!existing.exists) return null;
   await reference.set({ ...values, updated_at: isoNow() }, { merge: true });
   return (await reference.get()).data() as ProductProfile;
+}
+
+/**
+ * Applies athlete-editable profile fields and revokes school-backed verification
+ * in the same transaction when the selected school changes. Pending requests are
+ * cancelled so a link issued for the previous school cannot verify the new one.
+ */
+export async function updateProductProfileFromAthlete(
+  userId: string,
+  values: Partial<ProductProfile>,
+): Promise<ProductProfile | null> {
+  const database = getAdminFirestore();
+  const profileReference = database.collection("profiles").doc(userId);
+  const pendingRequests = database
+    .collection("verification_requests")
+    .where("user_id", "==", userId)
+    .limit(20);
+
+  const result = await database.runTransaction(async (transaction) => {
+    const existing = await transaction.get(profileReference);
+    if (!existing.exists) return null;
+
+    const current = existing.data() as ProductProfile;
+    const schoolChanged =
+      values.school !== undefined && universitySelectionChanged(current.school, values.school);
+    const now = isoNow();
+    const nextValues: Partial<ProductProfile> = { ...values, updated_at: now };
+
+    if (schoolChanged) {
+      const requests = await transaction.get(pendingRequests);
+      for (const request of requests.docs) {
+        if (request.data().status === "pending") {
+          transaction.update(request.ref, { status: "cancelled", resolved_at: now });
+        }
+      }
+      Object.assign(nextValues, {
+        verified: false,
+        verification_requested: false,
+        verification_requested_at: null,
+        university_email: null,
+        university_email_normalized: null,
+      });
+    }
+
+    transaction.set(profileReference, nextValues, { merge: true });
+    return { ...current, ...nextValues } as ProductProfile;
+  });
+
+  return result;
 }
 
 export async function listUserDocuments<T extends DocumentData>(

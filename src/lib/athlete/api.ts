@@ -275,6 +275,7 @@ export const api = {
     updateProfile: (patch: {
         display_name?: string;
         school?: string;
+        school_id?: string;
         status?: string;
         headline?: string;
     }) => request<ApiUser>("/profile", { method: "PATCH", body: JSON.stringify(patch) }),

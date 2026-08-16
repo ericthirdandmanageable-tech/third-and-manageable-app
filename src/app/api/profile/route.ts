@@ -2,7 +2,7 @@ import { requireUser, type AthleteUser } from "@/lib/athlete-api/auth";
 import { ApiError, jsonError, readObject, stringField } from "@/lib/athlete-api/http";
 import {
   getProductProfile,
-  updateProductProfile,
+  updateProductProfileFromAthlete,
   type ProductProfile,
 } from "@/lib/firestore-product";
 
@@ -90,7 +90,7 @@ export async function PATCH(request: Request) {
     if (profilePic !== undefined) values.profile_pic = profilePic || null;
     if (body.group_interest !== undefined) values.group_interest = body.group_interest;
     if (body.current_quarter !== undefined) values.current_quarter = body.current_quarter;
-    const profile = await updateProductProfile(user.id, values);
+    const profile = await updateProductProfileFromAthlete(user.id, values);
     if (!profile) throw new ApiError(404, "Profile not found");
     return Response.json(profileJson({
       ...user,
@@ -98,6 +98,8 @@ export async function PATCH(request: Request) {
       school: profile.school || null,
       status: (profile.transition_status as typeof user.status) || user.status,
       headline: profile.headline || null,
+      verified: profile.verified === true,
+      verificationRequested: profile.verification_requested === true,
     }, profile));
   } catch (error) {
     return jsonError(error);

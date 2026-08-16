@@ -24,6 +24,7 @@ import {
 import clsx from "clsx";
 
 import AccountVerification from "@/components/athlete/AccountVerification";
+import UniversityFinder from "@/components/athlete/UniversityFinder";
 import { api } from "@/lib/athlete/api";
 import { useAppTheme } from "@/lib/athlete/app-theme";
 import { useAuth } from "@/lib/athlete/auth";
@@ -31,6 +32,7 @@ import { useCheckIns } from "@/lib/athlete/use-checkins";
 import { useGamePlan } from "@/lib/athlete/use-game-plan";
 import type { AppTheme } from "@/lib/core/app-theme";
 import { getPath } from "@/lib/core/paths";
+import { universitySelectionChanged } from "@/lib/core/university-search";
 
 /*
  * Profile — the career-defining page. Who you were (sport, role, years),
@@ -99,16 +101,21 @@ export default function ProfilePage() {
         headline: string;
     } | null>(null);
     const [busy, setBusy] = useState(false);
+    const [saveError, setSaveError] = useState("");
 
     const editing = form !== null;
-    const startEditing = () =>
+    const startEditing = () => {
+        setSaveError("");
         setForm({
             name: user?.display_name ?? "",
             school: user?.school ?? "",
             status: user?.status ?? "transitioning",
             headline: user?.headline ?? "",
         });
+    };
     const status = form?.status ?? user?.status ?? "transitioning";
+    const schoolChanged =
+        form !== null && universitySelectionChanged(user?.school, form.school);
 
     // Intake summary (sport/role/years) — from the backend when authed, local
     // intake answers otherwise.
@@ -124,6 +131,7 @@ export default function ProfilePage() {
     const save = async () => {
         if (!form) return;
         setBusy(true);
+        setSaveError("");
         const res = await api.updateProfile({
             display_name: form.name.trim() || undefined,
             school: form.school.trim(),
@@ -134,6 +142,8 @@ export default function ProfilePage() {
         if (res) {
             await refreshUser();
             setForm(null);
+        } else {
+            setSaveError("We couldn't save your profile. Please try again.");
         }
     };
 
@@ -171,13 +181,25 @@ export default function ProfilePage() {
                             </h2>
                         )}
                         {editing ? (
-                            <input
-                                value={form.school}
-                                aria-label="School"
-                                onChange={(e) => setForm({ ...form, school: e.target.value })}
-                                placeholder="School"
-                                className="w-full bg-bg-elevated border border-border-subtle rounded-xl px-3 py-2 text-[13px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt mt-1"
-                            />
+                            <div className="mt-1">
+                                <UniversityFinder
+                                    value={form.school}
+                                    onChange={(school) => setForm({ ...form, school })}
+                                    label="School / University"
+                                    placeholder="Find your university"
+                                    required
+                                    inputClassName="min-h-11 w-full rounded-xl border border-border-subtle bg-bg-elevated px-3 text-[13px] text-text-primary outline-none transition placeholder:text-text-tertiary focus:border-volt focus:ring-1 focus:ring-volt"
+                                />
+                                {schoolChanged && (
+                                    <p
+                                        role="status"
+                                        className="mt-2 text-[12px] leading-relaxed text-amber-300"
+                                    >
+                                        Changing your university will remove your current verification.
+                                        You&apos;ll need to verify again after saving.
+                                    </p>
+                                )}
+                            </div>
                         ) : (
                             <p className="text-[13px] text-text-tertiary">
                                 {[user?.school, user?.email].filter(Boolean).join(" · ") ||
@@ -270,20 +292,30 @@ export default function ProfilePage() {
                 </div>
 
                 {editing && (
-                    <div className="flex gap-2 mt-5">
-                        <button
-                            onClick={save}
-                            disabled={busy || !form.name.trim()}
-                            className="bg-volt text-volt-ink font-semibold px-5 py-2.5 rounded-full text-[14px] flex items-center gap-2 hover:bg-volt/90 disabled:opacity-40 transition-all"
-                        >
-                            <Check className="w-4 h-4" /> {busy ? "Saving…" : "Save"}
-                        </button>
-                        <button
-                            onClick={() => setForm(null)}
-                            className="px-5 py-2.5 rounded-full text-[14px] text-text-tertiary hover:text-text-secondary flex items-center gap-2 transition-colors"
-                        >
-                            <X className="w-4 h-4" /> Cancel
-                        </button>
+                    <div className="mt-5">
+                        {saveError && (
+                            <p role="alert" className="mb-3 text-[13px] text-danger">
+                                {saveError}
+                            </p>
+                        )}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={save}
+                                disabled={busy || !form.name.trim() || !form.school.trim()}
+                                className="bg-volt text-volt-ink font-semibold px-5 py-2.5 rounded-full text-[14px] flex items-center gap-2 hover:bg-volt/90 disabled:opacity-40 transition-all"
+                            >
+                                <Check className="w-4 h-4" /> {busy ? "Saving…" : "Save"}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setForm(null);
+                                    setSaveError("");
+                                }}
+                                className="px-5 py-2.5 rounded-full text-[14px] text-text-tertiary hover:text-text-secondary flex items-center gap-2 transition-colors"
+                            >
+                                <X className="w-4 h-4" /> Cancel
+                            </button>
+                        </div>
                     </div>
                 )}
             </section>
