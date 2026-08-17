@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Activity,
+    Bell,
     CheckCircle2,
     ChevronRight,
     Compass,
@@ -83,7 +84,17 @@ export default function CheckInPage() {
         <div className="p-6 md:p-10 max-w-3xl mx-auto animate-rise">
             {/* Header — real numbers, earned from check-in history */}
             <header className="mb-8">
-                <h1 className="font-serif text-4xl text-sand italic mb-2">Morning Check-in</h1>
+                <div className="flex items-start justify-between gap-4">
+                    <h1 className="font-serif text-4xl text-sand italic mb-2">Morning Check-in</h1>
+                    <button
+                        type="button"
+                        onClick={() => router.push("/notifications")}
+                        aria-label="Open notifications"
+                        className="rounded-full border border-border-subtle bg-bg-surface p-2.5 text-text-tertiary transition hover:border-volt/50 hover:text-volt"
+                    >
+                        <Bell className="h-5 w-5" />
+                    </button>
+                </div>
                 <button
                     onClick={() => router.push("/progress")}
                     className="font-mono text-[11px] uppercase tracking-widest text-text-tertiary flex items-center gap-2 hover:text-text-secondary transition-colors"

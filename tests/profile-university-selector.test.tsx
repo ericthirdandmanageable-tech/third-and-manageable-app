@@ -7,8 +7,11 @@ import ProfilePage from "../src/app/(athlete)/(shell)/profile/page";
 import { api, type ApiUser } from "@/lib/athlete/api";
 import { useAuth } from "@/lib/athlete/auth";
 
+const push = vi.fn();
+const replace = vi.fn();
+
 vi.mock("next/navigation", () => ({
-    useRouter: () => ({ push: vi.fn() }),
+    useRouter: () => ({ push, replace }),
 }));
 
 vi.mock("@/lib/athlete/auth", () => ({ useAuth: vi.fn() }));
@@ -58,6 +61,8 @@ const user: ApiUser = {
 
 describe("profile university selector", () => {
     beforeEach(() => {
+        push.mockReset();
+        replace.mockReset();
         refreshUser.mockReset().mockResolvedValue(undefined);
         vi.mocked(useAuth).mockReturnValue({
             user,
@@ -104,5 +109,22 @@ describe("profile university selector", () => {
             headline: "",
         }));
         expect(refreshUser).toHaveBeenCalledOnce();
+    });
+
+    it("requires an explicit destructive confirmation before account deletion", async () => {
+        const deleteAccount = vi.spyOn(api, "deleteAccount").mockResolvedValue({ status: "deleted" });
+        render(<ProfilePage />);
+
+        fireEvent.click(screen.getByRole("button", { name: "Delete account" }));
+        const confirmButton = screen.getByRole("button", { name: "Delete my account" });
+        expect(confirmButton.hasAttribute("disabled")).toBe(true);
+
+        fireEvent.change(screen.getByLabelText(/Type DELETE to confirm/), {
+            target: { value: "DELETE" },
+        });
+        fireEvent.click(confirmButton);
+
+        await waitFor(() => expect(deleteAccount).toHaveBeenCalledOnce());
+        expect(replace).toHaveBeenCalledWith("/login");
     });
 });

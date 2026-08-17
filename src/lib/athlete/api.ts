@@ -196,6 +196,18 @@ export interface ApiComment {
     replies?: ApiComment[];
 }
 
+export interface ApiNotification {
+    id: string;
+    user_id: string;
+    type: "checkin" | "streak" | "gameplan" | "milestone" | "welcome" | "mention";
+    title: string;
+    body: string;
+    icon: string;
+    timestamp: string;
+    read: boolean;
+    related_id?: string;
+}
+
 export interface ApiPost {
     id: string;
     forum_id: string;
@@ -327,6 +339,20 @@ export const api = {
             body: JSON.stringify({ target_type: targetType, target_id: targetId, value: 1 }),
         }),
 
+    /* ---------- Notifications ---------- */
+    notifications: (limit = 50) =>
+        request<ApiNotification[]>(`/notifications?limit=${Math.min(Math.max(limit, 1), 100)}`),
+    markNotificationRead: (notificationId: string) =>
+        request<{ updated: number }>("/notifications", {
+            method: "PATCH",
+            body: JSON.stringify({ notification_id: notificationId }),
+        }),
+    markAllNotificationsRead: () =>
+        request<{ updated: number }>("/notifications", {
+            method: "PATCH",
+            body: JSON.stringify({ mark_all: true }),
+        }),
+
     /* ---------- Support / artifacts ---------- */
     artifacts: () => request<{ id: string; unlocked: boolean; title: string }[]>("/artifacts"),
     peerSupport: () =>
@@ -336,4 +362,5 @@ export const api = {
             method: "POST",
             body: JSON.stringify({ message }),
         }),
+    deleteAccount: () => request<{ status: "deleted" }>("/account", { method: "DELETE" }),
 };

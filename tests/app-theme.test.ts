@@ -13,9 +13,13 @@ describe("app theme scope", () => {
         "/community/forum/post",
         "/game-plan/path/example",
         "/onboarding",
+        "/notifications",
+        "/perks",
+        "/privacy",
         "/profile",
         "/progress",
         "/support",
+        "/terms",
     ])("recognizes themed athlete path %s", (pathname) => {
         expect(isAppShellPath(pathname)).toBe(true);
     });

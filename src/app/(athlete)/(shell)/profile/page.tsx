@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+    Bell,
     Check,
     ChevronRight,
+    FileText,
     Flame,
     GraduationCap,
     LifeBuoy,
@@ -13,9 +15,12 @@ import {
     RefreshCw,
     Route,
     Sparkles,
+    ShieldCheck,
     Sunset,
     Target,
     TrendingUp,
+    Trash2,
+    Trophy,
     Watch,
     X,
     Zap,
@@ -25,7 +30,7 @@ import clsx from "clsx";
 
 import AccountVerification from "@/components/athlete/AccountVerification";
 import UniversityFinder from "@/components/athlete/UniversityFinder";
-import { api } from "@/lib/athlete/api";
+import { api, authStorage } from "@/lib/athlete/api";
 import { useAppTheme } from "@/lib/athlete/app-theme";
 import { useAuth } from "@/lib/athlete/auth";
 import { useCheckIns } from "@/lib/athlete/use-checkins";
@@ -74,9 +79,13 @@ const APPEARANCE_OPTIONS: {
 ];
 
 const ACCOUNT_ROWS = [
+    { icon: Bell, label: "Notifications", to: "/notifications", danger: false },
     { icon: TrendingUp, label: "Progress & artifacts", to: "/progress", danger: false },
+    { icon: Trophy, label: "Perks", to: "/perks", danger: false },
     { icon: RefreshCw, label: "Retake the skill intake", to: "/game-plan?retake=1", danger: false },
     { icon: LifeBuoy, label: "Support — crisis lines & help", to: "/support", danger: true },
+    { icon: ShieldCheck, label: "Privacy Policy", to: "/privacy", danger: false },
+    { icon: FileText, label: "Terms & Conditions", to: "/terms", danger: false },
 ];
 
 export default function ProfilePage() {
@@ -102,6 +111,10 @@ export default function ProfilePage() {
     } | null>(null);
     const [busy, setBusy] = useState(false);
     const [saveError, setSaveError] = useState("");
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deletePhrase, setDeletePhrase] = useState("");
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     const editing = form !== null;
     const startEditing = () => {
@@ -149,6 +162,20 @@ export default function ProfilePage() {
 
     const committedPath = getPath(data.committedPathId ?? undefined);
     const sport = intake.sport;
+
+    const deleteAccount = async () => {
+        if (deletePhrase !== "DELETE") return;
+        setDeleting(true);
+        setDeleteError("");
+        const result = await api.deleteAccount();
+        setDeleting(false);
+        if (!result) {
+            setDeleteError("We couldn't delete your account. Nothing was removed; please try again.");
+            return;
+        }
+        authStorage.clear();
+        router.replace("/login");
+    };
 
     return (
         <div className="p-6 md:p-10 max-w-3xl mx-auto animate-rise">
@@ -518,16 +545,29 @@ export default function ProfilePage() {
                     </button>
                 ))}
                 {user ? (
-                    <button
-                        onClick={async () => {
-                            await signOut();
-                            router.push("/login");
-                        }}
-                        className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-bg-elevated transition-colors"
-                    >
-                        <LogOut className="w-5 h-5 text-text-tertiary" />
-                        <span className="flex-1 text-[15px] text-text-secondary">Sign out</span>
-                    </button>
+                    <>
+                        <button
+                            onClick={async () => {
+                                await signOut();
+                                router.push("/login");
+                            }}
+                            className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-bg-elevated transition-colors"
+                        >
+                            <LogOut className="w-5 h-5 text-text-tertiary" />
+                            <span className="flex-1 text-[15px] text-text-secondary">Sign out</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setDeleteOpen(true);
+                                setDeleteError("");
+                            }}
+                            className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-danger/5 transition-colors"
+                        >
+                            <Trash2 className="w-5 h-5 text-danger" />
+                            <span className="flex-1 text-[15px] text-danger">Delete account</span>
+                        </button>
+                    </>
                 ) : (
                     <button
                         onClick={() => router.push("/onboarding")}
@@ -541,6 +581,35 @@ export default function ProfilePage() {
                     </button>
                 )}
             </section>
+
+            {deleteOpen && user && (
+                <section role="dialog" aria-modal="true" aria-labelledby="delete-account-title" className="mt-6 rounded-[20px] border border-danger/40 bg-danger/5 p-6">
+                    <h2 id="delete-account-title" className="text-lg font-semibold text-danger">Permanently delete your account?</h2>
+                    <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">
+                        This removes your profile, check-ins, Game Plan progress, Clipboard history,
+                        community activity, notifications, and profile photo. It cannot be undone.
+                    </p>
+                    <label htmlFor="delete-confirmation" className="mt-4 block text-[12px] font-medium text-text-secondary">
+                        Type <span className="font-mono text-danger">DELETE</span> to confirm
+                    </label>
+                    <input
+                        id="delete-confirmation"
+                        value={deletePhrase}
+                        onChange={(event) => setDeletePhrase(event.target.value)}
+                        autoComplete="off"
+                        className="mt-2 w-full rounded-xl border border-danger/30 bg-bg-elevated px-4 py-3 font-mono text-sm text-text-primary outline-none focus:border-danger"
+                    />
+                    {deleteError && <p role="alert" className="mt-3 text-[13px] text-danger">{deleteError}</p>}
+                    <div className="mt-4 flex flex-wrap gap-3">
+                        <button type="button" onClick={deleteAccount} disabled={deletePhrase !== "DELETE" || deleting} className="rounded-full bg-danger px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+                            {deleting ? "Deleting…" : "Delete my account"}
+                        </button>
+                        <button type="button" onClick={() => { setDeleteOpen(false); setDeletePhrase(""); setDeleteError(""); }} className="rounded-full border border-border-subtle px-5 py-2.5 text-sm text-text-secondary hover:text-text-primary">
+                            Cancel
+                        </button>
+                    </div>
+                </section>
+            )}
         </div>
     );
 }

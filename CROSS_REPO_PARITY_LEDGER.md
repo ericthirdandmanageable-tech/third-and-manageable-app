@@ -1,6 +1,6 @@
 # Third & Manageable cross-repo parity ledger
 
-Last reconciled: 2026-08-14
+Last reconciled: 2026-08-17
 
 This is the progress record for the ground-up web redesign, the replacement
 Expo client, and the public staging relay. Repository histories and worktrees
@@ -11,10 +11,31 @@ this migration.
 
 | Surface | Location | Responsibility | State |
 | --- | --- | --- | --- |
-| Web/API/admin | `3rd_and_manageable` | Canonical authenticated API, Firestore ownership, protected Vercel Preview, web/admin UI | Active working copy; latest verified Preview is `third-and-manageable-51vcoiuwe-ling-iq.vercel.app` |
-| Replacement native app | `third-and-manageable-unified-liquid-glass` | Expo Router UI, EAS/TestFlight lineage, device integrations | Active isolated worktree; not merged or pushed by this session |
+| Web/API/admin | `3rd_and_manageable` | Canonical authenticated API, Firestore ownership, protected Vercel Preview, web/admin UI | `main` contains convergence plus original onboarding/profile parity; Notifications, Perks, legal, and deletion UI are the current local slice pending Preview deployment |
+| Replacement native app | `third-and-manageable-unified-liquid-glass` | Expo Router UI, EAS/TestFlight lineage, device integrations | Active isolated worktree; branch is one commit ahead of remote and the authenticated-product-API migration remains uncommitted |
 | Canonical native repo | `third-and-manageable-app` | Existing app history and App Store lineage | Kept separate; no direct edits in this slice |
-| Staging relay | `third-and-manageable-staging-relay` | Public JWT-authenticated, path-restricted ingress to protected Preview | Deployed at `third-and-manageable-mobile-staging.vercel.app` |
+| Staging relay | `third-and-manageable-staging-relay` | Public JWT-authenticated, path-restricted ingress to protected Preview | Versioned and deployed, but the current mobile data handler/rewrite/test changes remain uncommitted |
+
+## Web production-app parity
+
+The web redesign now carries the established production experiences that were
+still absent after the onboarding port:
+
+| Experience | Web implementation | Evidence |
+| --- | --- | --- |
+| Notifications | `/notifications`; canonical list/read API, mark-one, mark-all, and type destinations | `tests/notifications-page.test.tsx` |
+| Perks | `/perks`; all twelve production rewards, calculated from exact check-in/completion/streak data | `tests/perks.test.ts` |
+| Privacy and Terms | Public `/privacy` and `/terms`, linked from Profile | app-theme route coverage and production build |
+| Account deletion | Profile danger action, `DELETE` confirmation, server-owned `/account` cleanup | `tests/profile-university-selector.test.tsx` |
+
+These routes are locally verified but are not yet claimed live on the last
+verified protected Preview. See `CURRENT_EXECUTION_PLAN.md` for the ordered
+continuation plan.
+
+Vercel currently labels the latest `main` deployment (`2721949`) as Production,
+while Standard Protection requires a LingIQ team login. Treat this as a
+protected technical target, not as public-product production, until the Git
+production-branch convention is explicitly resolved.
 
 ## UI reachability restoration
 
@@ -67,23 +88,27 @@ ownership migration rather than a data-copy migration:
 
 | Surface | Automated | Live |
 | --- | --- | --- |
-| Web/API/admin | ESLint clean; 22 files / 169 tests pass; Next.js production build passes | Protected Preview smoke passes registration, onboarding, check-in, game plan, six admin views, Appwrite Storage upload, and image/account cleanup |
+| Web/API/admin | ESLint clean; 26 files / 181 tests pass; TypeScript and Next.js production build pass with Notifications, Perks, Privacy, Terms, and deletion UI routes | The last protected Preview smoke passes registration, onboarding, check-in, game plan, six admin views, Appwrite Storage upload, and image/account cleanup; the current parity slice still needs its own Preview deploy/smoke |
 | Replacement mobile | TypeScript clean; ESLint clean; 36 tests pass; local and EAS Preview environment guards pass | Relay smoke passes identity, Firebase compatibility, profile, game plan, notifications, artifacts, community, and cleanup. Multipart relay forwarding is contract-tested and the upstream upload is live-proven; the expanded end-to-end rerun is deferred after Appwrite synthetic-account rate limiting. EAS iOS internal Preview `cab31413-a4d7-484a-bbd9-401111434756` compiled successfully; packaged-JS inspection confirms staging IDs/full relay path and no production Appwrite ID or Gemini key. |
 | Staging relay | 8 Node tests pass, including nested rewrite, allowlist, bearer bounds, JSON/query, and multipart forwarding | Production alias deployed and verified against latest protected Preview |
 
 ## Remaining release work
 
-1. Run on-device accessibility and screen-by-screen QA, including community
+1. Review, commit, and push the separate mobile worktree and relay changes so
+   the working authenticated stack is no longer represented only by dirty trees.
+2. Build a separate Simulator artifact. The current Preview IPA is for ad-hoc
+   physical devices only; verify the personal iPhone UDID before rebuilding it.
+3. Run on-device accessibility and screen-by-screen QA, including community
    polling behavior, push permission flows, profile-image size/type failures,
    OAuth, password recovery, and legal/support links.
-2. Install finished EAS iOS Preview build
+4. Install a correctly provisioned EAS iOS Preview build
    `cab31413-a4d7-484a-bbd9-401111434756` on the registered device and complete
    the on-device checks above. It uses the production bundle identifier, so it
    may replace another installed build of the app on that device.
-3. Re-run App Store privacy metadata/review-account checks before any external
+5. Re-run App Store privacy metadata/review-account checks before any external
    TestFlight or App Review submission.
-4. Manually remove the at least seven visible synthetic Appwrite staging accounts
+6. Manually remove the at least seven visible synthetic Appwrite staging accounts
    after explicit destructive-action confirmation.
-5. Keep Neon documented only as a future relational/analytics option. Any
+7. Keep Neon documented only as a future relational/analytics option. Any
    future proposal needs source-of-truth, backfill, reconciliation, rollback,
    and compatibility plans before code or credentials are restored.

@@ -21,6 +21,8 @@ and prevent a Production deployment from publishing against staging.
 
 Read [STACK_ARCHITECTURE.md](STACK_ARCHITECTURE.md) before changing providers,
 credentials, identity, Firestore collections, or repository boundaries.
+The reconciled delivery order and current cross-worktree risks are in
+[CURRENT_EXECUTION_PLAN.md](CURRENT_EXECUTION_PLAN.md).
 
 ## Local development
 

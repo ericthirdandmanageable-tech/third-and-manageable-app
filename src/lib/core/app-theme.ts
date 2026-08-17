@@ -31,9 +31,13 @@ export const APP_SHELL_ROUTE_PREFIXES = [
     "/community",
     "/game-plan",
     "/onboarding",
+    "/notifications",
+    "/perks",
+    "/privacy",
     "/profile",
     "/progress",
     "/support",
+    "/terms",
 ] as const;
 
 export const isAppShellPath = (pathname: string): boolean =>

@@ -4,11 +4,13 @@ import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+    Bell,
     CheckSquare,
     ClipboardList,
     LifeBuoy,
     Target,
     TrendingUp,
+    Trophy,
     UserRound,
     Users,
 } from "lucide-react";
@@ -176,11 +178,25 @@ function ShellChrome({ children }: { children: React.ReactNode }) {
                 </nav>
                 <div className="p-4 border-t border-border-subtle space-y-1">
                     <Link
+                        href="/notifications"
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-all duration-200 text-[15px]"
+                    >
+                        <Bell className="w-5 h-5" />
+                        Notifications
+                    </Link>
+                    <Link
                         href="/progress"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-all duration-200 text-[15px]"
                     >
                         <TrendingUp className="w-5 h-5" />
                         Progress
+                    </Link>
+                    <Link
+                        href="/perks"
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-all duration-200 text-[15px]"
+                    >
+                        <Trophy className="w-5 h-5" />
+                        Perks
                     </Link>
                     <Link
                         href="/support"
