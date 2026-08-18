@@ -1,16 +1,17 @@
 # Canonical mobile and web consolidation plan
 
-**Status:** audited on 2026-08-18. The liquid-glass mobile branch is clean,
-pushed, built, and validated on a registered iPhone. It has not been merged
-into mobile `main`. The Next.js web/API/admin history remains separate and must
-not be overlaid on the Expo project root.
+**Status:** updated on 2026-08-18. The liquid-glass mobile history has been
+fast-forwarded into mobile `main` and pushed to `origin/main`. The Next.js
+web/API/admin history has been imported beneath `web/` on the local
+`consolidate/web-history` branch. That consolidation branch has not been
+pushed or deployed.
 
 ## Consolidation outcome
 
-`third-and-manageable-app` will remain the canonical Git repository and retain
+`third-and-manageable-app` remains the canonical Git repository and retains
 the existing Expo, EAS, App Store Connect, bundle identifier, signing, and
-TestFlight lineage. The `3rd_and_manageable` history can later join it as a
-separate `web/` deploy root.
+TestFlight lineage. The `3rd_and_manageable` history is imported as a separate
+`web/` deploy root.
 
 Keep Expo at the repository root during the first consolidation. This avoids
 changing the native project root used by EAS. Configure Vercel to deploy the
@@ -42,15 +43,15 @@ application.
 
 | Area | Verified state |
 | --- | --- |
-| Mobile baseline | `third-and-manageable-app/main` is `fd906a8` |
-| Mobile candidate | Product code baseline `a880402`; the branch contains nine product commits plus documentation updates and is zero behind `main` |
-| Remote preservation | The candidate is clean and matches `origin/codex/unified-liquid-glass`; no pull request exists |
-| Mobile checks | 36 tests pass; TypeScript and ESLint pass |
-| Expo Doctor | 20 of 21 checks pass; nine Expo SDK 57 packages need patch-version alignment |
+| Mobile baseline | `third-and-manageable-app/main` and `origin/main` are `72e2a43` (`fix: align mobile career and Expo contracts`) |
+| Mobile integration | The nine liquid-glass product commits, the consolidation documentation, and the contract/configuration fixes are in `main` |
+| Mobile checks | 37 tests, TypeScript, and ESLint pass |
+| Expo Doctor | 21 of 21 checks pass after aligning the nine Expo SDK 57 patch versions |
 | Device artifact | EAS Preview `fe86da59-09d9-411f-95da-5d338924558a`, app `1.0.1` build `11`, is signed for both registered iPhones |
 | Physical validation | Installation, email authentication, password recovery, Sign in with Apple, and Google sign-in pass |
 | Simulator artifact | Standalone Preview `0ed29796-b992-41c4-a3c3-80a0afdd08ea` launches without Metro |
-| Web/API/admin checks | 183 tests pass; TypeScript, ESLint, and the Next.js production build pass |
+| Web/API/admin import | `consolidate/web-history` contains merge commit `6e82e17`, which retains `3rd_and_manageable/main` as a parent and places its tree under `web/` |
+| Web/API/admin checks | After import, 183 tests, TypeScript, ESLint, and the Next.js production build pass from `web/` |
 | Temporary relay | Retired; its Vercel project is deleted and the former hostname returns `404` |
 | Original admin export | Superseded by `3rd_and_manageable`; clean archive commit `0b6d21d79707` was moved to the macOS Trash |
 
@@ -77,16 +78,13 @@ The authenticated API covers profile and account deletion, check-ins,
 Clipboard, career intake and commitments, legacy community and moderation,
 support, notifications, push-token registration, and profile images.
 
-## Gaps found in the comparison
+## Remaining gaps before a production TestFlight build
 
 Resolve these contract and configuration gaps before a production TestFlight
 build.
 
 ### Product-contract gaps
 
-- Career path IDs disagree. Mobile uses `nine-to-five` and `shift`; the server
-  accepts `nine_to_five` and `overnight`. Those mobile commitments currently
-  receive `400 Unknown path`.
 - Mobile carries a 99-school search list, while the web owns 3,879 schools.
   Mobile should consume a generated subset or server-backed search based on one
   canonical institution identifier.
@@ -99,18 +97,11 @@ build.
 
 ### Mobile cleanup gaps
 
-- `lib/supabase.ts` is tracked but unused and Supabase is not an installed
-  dependency.
-- `.env.example` still advertises Appwrite database and collection IDs that the
-  replacement client no longer reads.
-- `functions/daily-reminder` describes an Appwrite Function but implements a
-  Firebase Admin process that expects long-lived service-account fields. It is
-  not the supported reminder architecture.
 - `firestore.indexes.json` needs an explicit server/emulator owner after the
   client-side Firestore migration.
-- Expo Doctor reports patch mismatches for Expo, Router, Notifications,
-  Sharing, Splash Screen, Image Picker, Constants, Dev Client, and Build
-  Properties.
+- Reminder delivery has no supported server-owned scheduler or Expo receipt
+  cleanup. The obsolete mixed-runtime `functions/daily-reminder` implementation
+  was removed rather than deployed.
 
 ### Server and deployment gaps
 
@@ -129,46 +120,45 @@ build.
 
 ### Repository-state gaps
 
-- Mobile `main` does not contain the nine liquid-glass product commits or the
-  updated consolidation documentation.
-- The mobile candidate has no pull request, although it can fast-forward onto
-  `main` without conflict.
-- `3rd_and_manageable/main` has two local documentation commits not yet pushed.
+- The `consolidate/web-history` branch is local only. It must be reviewed and
+  pushed before it can become the shared consolidation branch.
+- `3rd_and_manageable/main` remains three commits ahead of its remote, but all
+  three committed documentation updates are retained by the `web/` import.
 - The web checkout also contains an unrelated modified `AGENTS.md` and an
-  untracked `nbj-write-clearly/` folder. Decide their ownership before importing
-  committed web history; do not absorb local tool state accidentally.
+  untracked `nbj-write-clearly/` folder. Neither local-only item was imported.
 
 ## Consolidation sequence
 
-### Phase 1 — finish the mobile candidate
+### Phase 1 — completed mobile integration
 
-1. Align the nine Expo SDK patch versions reported by Expo Doctor.
-2. Replace the mobile career path IDs with the canonical server IDs and add a
-   contract test covering every commit-able path.
-3. Remove the unused Supabase module and stale collection-ID environment
-   examples.
-4. Move reminder ownership to the authenticated server plan; do not deploy the
-   current mixed-runtime function with long-lived Firebase credentials.
-5. Update and rerun the 36 mobile tests, TypeScript, ESLint, Expo Doctor, and a
-   staging environment check.
-6. Fast-forward mobile `main` from `fd906a8` to the reviewed candidate and push
-   `origin/main`.
-7. Remove the liquid-glass folder with `git worktree remove` only after the
-   remote `main` commit and worktree status are verified.
+1. Aligned the nine Expo SDK patch versions. Expo Doctor now passes all 21
+   checks.
+2. Replaced `nine-to-five` and `shift` with the server IDs `nine_to_five` and
+   `overnight`, and added a test that covers every commit-able career path.
+3. Removed `lib/supabase.ts`, stale Appwrite database and collection variables
+   from `.env.example`, and the obsolete mixed-runtime reminder function.
+4. Reran the mobile test suite, TypeScript, ESLint, and Expo Doctor. The suite
+   has 37 passing tests.
+5. Fast-forwarded `main` from `fd906a8` to `72e2a43` and pushed `origin/main`.
+6. Verified the pushed commit and clean worktree status, then removed the
+   liquid-glass worktree with `git worktree remove`.
 
 ### Phase 2 — import the web history without changing behavior
 
-1. Resolve or preserve the two unpushed web documentation commits and leave
-   unrelated local files out of the import.
-2. Create a consolidation branch from the updated mobile `main`.
-3. Add `3rd_and_manageable` as a temporary Git remote and import its history
-   under `web/` without squashing it into an untraceable file copy.
-4. Keep the Expo and Next.js package manifests, lockfiles, and scripts separate
-   during this phase.
-5. Set the Vercel project Root Directory to `web` and deploy a staging Preview.
-6. Prove that the imported web tree still passes 183 tests, TypeScript, ESLint,
-   the production build, and the direct mobile-stack smoke.
-7. Prove that EAS Preview still builds from the repository root and that the
+1. Completed: preserved the three committed web documentation updates. The
+   source worktree's modified `AGENTS.md` and untracked tool folder were left
+   out of the import.
+2. Completed: created `consolidate/web-history` from updated mobile `main`.
+3. Completed: added `3rd_and_manageable` as a temporary remote and imported
+   its history under `web/` without squashing it. The temporary remote was then
+   removed.
+4. Completed: kept the Expo and Next.js package manifests, lockfiles, and
+   scripts separate.
+5. Completed: verified the imported web tree with 183 tests, TypeScript,
+   ESLint, and a production build.
+6. Set the Vercel project Root Directory to `web` and deploy a staging Preview.
+7. Run the direct mobile-stack smoke against that Preview.
+8. Prove that EAS Preview still builds from the repository root and that the
    resulting IPA contains the direct staging API configuration.
 
 ### Phase 3 — centralize contracts deliberately
@@ -206,8 +196,8 @@ UI components and web UI components in their respective applications.
 
 ## Release boundary
 
-The candidate is suitable for staging integration work, not a production
-submission. No new TestFlight or App Store build has been submitted from this
-branch. Because the branch changes native modules and build configuration, the
-next promoted release must be a new binary rather than a JavaScript-only
-update.
+The integrated mobile code is suitable for staging integration work, not a
+production submission. No new TestFlight or App Store build has been submitted
+from this history. Because the history changes native modules and build
+configuration, the next promoted release must be a new binary rather than a
+JavaScript-only update.
