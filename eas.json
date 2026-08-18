@@ -31,6 +31,12 @@
         "APP_VARIANT": "staging"
       }
     },
+    "preview-simulator": {
+      "extends": "preview",
+      "ios": {
+        "simulator": true
+      }
+    },
     "staging": {
       "distribution": "internal",
       "environment": "preview",
