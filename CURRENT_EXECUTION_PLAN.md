@@ -14,9 +14,9 @@ working-tree state with `VERCEL_MIGRATION_PLAN.md`, the Expo worktree's
 | Vercel phases 0–2 | Complete: one Next.js app, Route Handlers, protected Preview, admin and athlete surfaces | Keep the historical detail, but do not re-run the retired FastAPI/Neon work |
 | Vercel phase 3 | Its Neon/Auth.js destination is superseded | Appwrite Auth + Appwrite UID + Firestore is implemented and authoritative; no Neon dual-write or data export is planned |
 | Vercel phase 4 | Mixed | Profile images moved to Appwrite Storage. Cron reminders, product analytics, error monitoring, and final WAF/rate-limit evidence remain open |
-| Vercel phase 5 | Mostly implemented in the replacement Expo worktree | All five mobile product domains use the authenticated Next.js API; Gemini is server-side. Physical-device/release proof is still open |
+| Vercel phase 5 | Implemented in the replacement Expo worktree | All five mobile product domains use the authenticated Next.js API; Gemini is server-side. Build 11 passed physical-device authentication and recovery checks |
 | Expo completed slice | Implemented and compiled as EAS Preview build 11 | Preserve the separate Expo history and existing App Store bundle/signing lineage |
-| Expo next slices | Not complete | Accessibility/device QA, push delivery, OAuth/recovery, profile upload, polling, community-model decision, and old-client retirement evidence remain release gates |
+| Expo next slices | Not complete | Accessibility QA, push delivery, profile upload, polling, the community-model decision, and old-client retirement evidence remain release gates |
 
 ## Repository reality
 
@@ -26,8 +26,10 @@ working-tree state with `VERCEL_MIGRATION_PLAN.md`, the Expo worktree's
 - `third-and-manageable-app` is the canonical native history. The replacement
   worktree is `codex/unified-liquid-glass`; its convergence and direct-ingress
   commits are pushed to the remote branch.
-- `third-and-manageable-staging-relay` has a clean checkpoint at `edcd19d` and
-  is frozen as rollback source until the replacement device build passes.
+- The temporary `third-and-manageable-staging-relay` is retired. Its Vercel
+  project was deleted after build 11 passed physical authentication and
+  recovery checks. Clean checkpoint `edcd19d5aba4` remains recoverable from the
+  macOS Trash until the Trash is emptied.
 - The original admin export has no unique application code to recover.
 
 On 2026-08-18, the project disabled Vercel Authentication and created a distinct
@@ -78,14 +80,15 @@ Port proven production-app experiences before inventing net-new features:
 
 ### Slice 4 — native release qualification
 
-- Build a separate iOS Simulator artifact; the current internal Preview IPA is
-  explicitly a physical-device build and cannot install in Simulator.
-- Confirm the personal iPhone UDID is present in the ad-hoc provisioning
-  profile, regenerate only the staging profile if needed, then rebuild.
+- [x] Build and launch a standalone iOS Simulator artifact without Metro.
+- [x] Include both registered iPhones in the ad hoc provisioning profile and
+  inspect the signed build 11 IPA.
+- [x] Pass physical-device email, recovery, Apple, and Google authentication
+  checks.
 - Run VoiceOver, Dynamic Type, Reduce Motion/Transparency, contrast,
-  low-memory, OAuth, recovery, deletion, upload, polling, and Android checks.
-- Build from the pushed direct-ingress mobile branch after the Appwrite Web
-  platform hostname is updated.
+  low-memory, deletion, upload, polling, and Android checks.
+- [x] Build from the pushed direct-ingress mobile branch after updating the
+  Appwrite Web platform hostname.
 
 ### Slice 5 — controlled production cutover
 

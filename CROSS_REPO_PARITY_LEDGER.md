@@ -3,9 +3,9 @@
 Last reconciled: 2026-08-18
 
 This is the progress record for the ground-up web redesign and the replacement
-Expo client. The former relay remains a temporary rollback artifact only.
-Repository histories and worktrees remain separate. `repo_differences.md` is
-source material and is not edited by this migration.
+Expo client. The temporary relay is retired. The two product repository
+histories and their worktrees remain separate. `repo_differences.md` is source
+material and is not edited by this migration.
 
 ## Current source-of-truth map
 
@@ -14,7 +14,7 @@ source material and is not edited by this migration.
 | Web/API/admin | `3rd_and_manageable` | Canonical authenticated API, Firestore ownership, public staging Preview, web/admin UI | `staging` has a stable public alias and passed the direct mobile-stack smoke |
 | Replacement native app | `third-and-manageable-unified-liquid-glass` | Expo Router UI, EAS/TestFlight lineage, device integrations | Convergence and direct-ingress commits are pushed on `codex/unified-liquid-glass` |
 | Canonical native repo | `third-and-manageable-app` | Existing app history and App Store lineage | Kept separate; no direct edits in this slice |
-| Legacy staging relay | `third-and-manageable-staging-relay` | Rollback ingress for the already-built IPA only | Clean checkpoint `edcd19d`; retire after replacement device verification |
+| Retired staging relay | Former `third-and-manageable-staging-relay` | Historical direct-ingress rollback implementation | Vercel project deleted after device verification; clean checkpoint `edcd19d5aba4` moved to the macOS Trash |
 
 ## Web production-app parity
 

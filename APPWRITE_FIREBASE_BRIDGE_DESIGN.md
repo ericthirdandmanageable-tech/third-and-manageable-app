@@ -87,12 +87,12 @@ Preview subject for `ling-iq/third-and-manageable`. No JSON key exists.
 The service account has Firebase Authentication Admin only in the staging
 project so `revokeRefreshTokens()` can run without a long-lived credential.
 
-The public client origin is the generated Vercel URL
-`https://third-and-manageable-mobile-staging.vercel.app`, owned by the separate
-`ling-iq/third-and-manageable-mobile-staging` project. It accepts only POSTs to
-the token and authenticated-revocation paths, then supplies the protected
-Preview bypass credential upstream. The bypass secret is never present in the
-Expo environment or response.
+The public client now calls the stable `3rd_and_manageable` staging Preview
+directly. The former
+`https://third-and-manageable-mobile-staging.vercel.app` relay and its Vercel
+project were deleted on 2026-08-18 after replacement build 11 passed physical
+authentication and recovery checks. No bypass secret is present in the Expo
+environment or the live web project's environment.
 
 `POST /api/mobile/auth/firebase-token`
 

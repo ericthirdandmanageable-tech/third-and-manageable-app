@@ -10,9 +10,10 @@ The product intentionally remains split across repositories:
   supported web/admin API implementation.
 - `third-and-manageable-app` plus its Expo worktrees: native iOS product,
   EAS/TestFlight/App Store source, and production mobile release lineage.
-- `third-and-manageable-staging-relay`: frozen rollback source for the old EAS
-  Preview build. Delete it after the direct-ingress device gates in
-  `DIRECT_STAGING_CUTOVER.md` pass.
+
+The temporary `third-and-manageable-staging-relay` and its Vercel project were
+retired on 2026-08-18 after the direct-ingress physical-device gates passed. No
+separate relay service remains in the supported architecture.
 
 Histories are not merged. Shared behavior is ported deliberately and verified
 against the same staging integrations.

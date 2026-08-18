@@ -1,11 +1,9 @@
 # Direct mobile staging cutover
 
-**Status:** direct API traffic is live and smoke-tested as of 2026-08-18. The
-Appwrite Web platform uses the stable staging hostname. A replacement physical
-Preview build is signed for both registered iPhones, and a standalone simulator
-artifact is also available. The legacy relay remains online only until the
-physical build passes authentication and recovery checks on the registered
-iPhone.
+**Status:** complete as of 2026-08-18. Direct API traffic is live and
+smoke-tested, the replacement physical Preview build passed device sign-in and
+recovery checks, and the legacy relay has been retired. The Appwrite Web
+platform and Expo staging builds use the stable staging hostname directly.
 
 ## Destination
 
@@ -42,6 +40,14 @@ admin checks. Preview environment guards require the staging Appwrite project
 - Passed the direct live smoke for identity, Firebase compatibility, profile,
   game plan, notifications, profile images, artifacts, community, and account
   cleanup.
+- Passed physical-device authentication and recovery checks on build `11`,
+  including Sign in with Apple and Google sign-in.
+- Deleted the Vercel project `third-and-manageable-mobile-staging`. Its former
+  stable hostname returns `404`, and the live web project has no relay bypass
+  environment variable.
+- Removed `third-and-manageable-staging-relay` from the workspace. Its clean
+  Git checkpoint `edcd19d5aba4` is recoverable from the macOS Trash until the
+  Trash is emptied.
 
 ## EAS build evidence
 
@@ -68,22 +74,17 @@ admin checks. Preview environment guards require the staging Appwrite project
   installed on the local iPhone 17 simulator and opened the redesigned sign-in
   screen without Metro. Its compiled bundle contains no legacy relay URL.
 
-## Remaining cutover gates
+## Cutover result
 
-1. Install physical Preview build `fe86da59` on the registered iPhone and verify
-   that it launches.
-2. Verify sign-in, OAuth, and password recovery on the installed physical
-   build. Repeat the applicable checks on the standalone simulator build.
-3. Confirm no supported build uses
-   `third-and-manageable-mobile-staging.vercel.app`.
-4. Remove the legacy relay's Vercel bypass secret and deployment, then delete
-   the local relay checkout. Destructive removal requires a separate explicit
-   confirmation at that time.
+The registered physical iPhone installed and launched build `fe86da59` without
+an integrity error. Device tests passed for email authentication, password
+recovery, Sign in with Apple, and Google sign-in. The inspected IPA uses the
+direct staging origin and contains no relay reference. The relay retirement is
+therefore complete.
 
 ## Rollback
 
-Until the physical replacement build passes the authentication and recovery
-checks, keep the legacy relay deployment unchanged. To roll back a test build,
-restore its EAS public origin variables to
-`third-and-manageable-mobile-staging.vercel.app` and rebuild. Do not add a
-second product-data write path or change production provider projects.
+The deleted relay is no longer a rollback path. To roll back a staging client,
+build the last known-good mobile commit against the direct staging hostname and
+the same isolated Appwrite and Firebase projects. Do not recreate the relay,
+add a second product-data write path, or change production provider projects.
