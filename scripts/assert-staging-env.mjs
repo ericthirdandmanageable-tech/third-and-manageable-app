@@ -5,9 +5,9 @@ const expected = {
   EXPO_PUBLIC_APPWRITE_PROJECT_ID: "69906dfc003364b9847e",
   EXPO_PUBLIC_FIREBASE_PROJECT_ID: "third-and-manageable-staging",
   EXPO_PUBLIC_AUTH_BRIDGE_URL:
-    "https://third-and-manageable-mobile-staging.vercel.app",
+    "https://third-and-manageable-git-staging-ling-iq.vercel.app",
   EXPO_PUBLIC_PRODUCT_API_URL:
-    "https://third-and-manageable-mobile-staging.vercel.app/api/mobile/data",
+    "https://third-and-manageable-git-staging-ling-iq.vercel.app/api",
 };
 
 function parseEnvironment(source) {
@@ -60,4 +60,4 @@ if (env.EXPO_PUBLIC_GEMINI_API_KEY?.trim()) {
   );
 }
 
-console.log("Staging environment verified: Appwrite, Firebase, and auth bridge are isolated.");
+console.log("Staging environment verified: Appwrite, Firebase, and the direct web API are isolated.");

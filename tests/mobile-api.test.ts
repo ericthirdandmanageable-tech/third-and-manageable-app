@@ -9,12 +9,12 @@ import {
 
 test("product API URL must be a credential-free HTTPS URL", () => {
   assert.equal(
-    getProductApiBase("https://relay.example/api/mobile/data/"),
-    "https://relay.example/api/mobile/data",
+    getProductApiBase("https://staging.example/api/"),
+    "https://staging.example/api",
   );
-  assert.throws(() => getProductApiBase("http://relay.example"));
-  assert.throws(() => getProductApiBase("https://user:secret@relay.example"));
-  assert.throws(() => getProductApiBase("https://relay.example?secret=value"));
+  assert.throws(() => getProductApiBase("http://staging.example"));
+  assert.throws(() => getProductApiBase("https://user:secret@staging.example"));
+  assert.throws(() => getProductApiBase("https://staging.example?secret=value"));
 });
 
 test("creates a fresh Appwrite JWT and sends only the expected request", async () => {
@@ -27,7 +27,7 @@ test("creates a fresh Appwrite JWT and sends only the expected request", async (
         return { jwt: `jwt-${jwtCalls}` };
       },
     },
-    getConfiguredUrl: () => "https://relay.example/api/mobile/data",
+    getConfiguredUrl: () => "https://staging.example/api",
     fetcher: async (input, init) => {
       captured = { input: String(input), init };
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
@@ -40,7 +40,7 @@ test("creates a fresh Appwrite JWT and sends only the expected request", async (
   });
 
   assert.equal(jwtCalls, 1);
-  assert.equal(captured?.input, "https://relay.example/api/mobile/data/profile");
+  assert.equal(captured?.input, "https://staging.example/api/profile");
   assert.deepEqual(captured?.init?.headers, {
     Authorization: "Bearer jwt-1",
     "Content-Type": "application/json",
@@ -51,7 +51,7 @@ test("creates a fresh Appwrite JWT and sends only the expected request", async (
 test("maps safe API errors without exposing upstream internals", async () => {
   const api = createMobileApi({
     account: { createJWT: async () => ({ jwt: "jwt" }) },
-    getConfiguredUrl: () => "https://relay.example/api/mobile/data",
+    getConfiguredUrl: () => "https://staging.example/api",
     fetcher: async () =>
       new Response(JSON.stringify({ detail: "No check-in today" }), {
         status: 404,

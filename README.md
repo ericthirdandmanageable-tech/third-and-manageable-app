@@ -8,15 +8,15 @@ canonical mobile repository and the Next.js redesign remain separate.
 - Appwrite owns identity and native provider sessions.
 - Every product request creates a fresh Appwrite JWT and calls
   `EXPO_PUBLIC_PRODUCT_API_URL`.
-- The public staging relay forwards only allowlisted athlete routes to the
-  protected Next.js Preview; the Vercel bypass secret never enters the app.
+- The public Next.js staging deployment validates every mobile Appwrite JWT
+  directly. No relay or Vercel protection-bypass secret enters the app.
 - Firestore and Appwrite Storage are server-owned for new clients. Firebase
   Auth custom tokens remain only for compatibility with older clients.
 - Gemini runs behind `/clipboard/chat`; no AI provider key is bundled.
 
 Run `npm run check:staging-env`, `npm run typecheck`, `npm test`, and
 `npm run lint` before creating an EAS Preview build. Run
-`npm run smoke:staging-auth` after either the protected Preview or relay changes.
+`npm run smoke:staging-auth` after the direct staging API or provider settings change.
 
 ## Current iOS Preview
 
@@ -28,7 +28,7 @@ iPhone. Use the build page's **Install** action before 2026-08-28. Because it
 uses `com.thirdandmanageable.app`, installing it may replace another installed
 Third & Manageable build on that device. It was not submitted to TestFlight or
 App Store Connect. Packaged-JavaScript inspection confirmed the staging
-Appwrite/Firebase IDs and full relay path, with no production Appwrite ID or
+Appwrite/Firebase IDs and the former relay path, with no production Appwrite ID or
 Gemini environment key present.
 
 This is an [Expo](https://expo.dev) project using Expo Router.

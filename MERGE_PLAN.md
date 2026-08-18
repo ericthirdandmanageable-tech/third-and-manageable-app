@@ -25,7 +25,9 @@ The refreshed interface uses university-specific color signals inside one shared
 ## Architecture decisions
 
 - Keep Expo Router as the only client navigation layer.
-- Keep Appwrite as the current account system and preserve the existing mobile bridge while making its decision logic dependency-injected and testable.
+- Keep Appwrite as the current account system. The mobile client calls the
+  public staging Next.js routes directly with short-lived Appwrite JWTs; the
+  Firebase token exchange remains a compatibility endpoint in that API.
 - Keep Firestore as the canonical product store while routing all replacement-client product access through authenticated Next.js handlers.
 - Keep Gemini and provider credentials behind the server boundary.
 - Centralize theme tokens in `constants/app-theme.ts` and expose accessibility-aware runtime values through `context/app-theme.tsx`.

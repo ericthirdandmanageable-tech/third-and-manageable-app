@@ -7,8 +7,8 @@ import { initializeApp } from "firebase/app";
 
 const EXPECTED_APPWRITE_PROJECT = "69906dfc003364b9847e";
 const EXPECTED_FIREBASE_PROJECT = "third-and-manageable-staging";
-const EXPECTED_BRIDGE_ORIGIN =
-  "https://third-and-manageable-mobile-staging.vercel.app";
+const EXPECTED_API_ORIGIN =
+  "https://third-and-manageable-git-staging-ling-iq.vercel.app";
 
 function parseEnvironment(source) {
   return Object.fromEntries(
@@ -28,8 +28,8 @@ const env = parseEnvironment(await readFile(new URL("../.env.local", import.meta
 if (
   env.EXPO_PUBLIC_APPWRITE_PROJECT_ID !== EXPECTED_APPWRITE_PROJECT ||
   env.EXPO_PUBLIC_FIREBASE_PROJECT_ID !== EXPECTED_FIREBASE_PROJECT ||
-  env.EXPO_PUBLIC_AUTH_BRIDGE_URL !== EXPECTED_BRIDGE_ORIGIN ||
-  env.EXPO_PUBLIC_PRODUCT_API_URL !== `${EXPECTED_BRIDGE_ORIGIN}/api/mobile/data`
+  env.EXPO_PUBLIC_AUTH_BRIDGE_URL !== EXPECTED_API_ORIGIN ||
+  env.EXPO_PUBLIC_PRODUCT_API_URL !== `${EXPECTED_API_ORIGIN}/api`
 ) {
   throw new Error("Refusing to run outside the isolated staging projects.");
 }
@@ -67,9 +67,9 @@ async function appwriteRequest(path, method, body) {
 }
 
 const suffix = `${Date.now()}-${randomBytes(4).toString("hex")}`;
-const email = `relay-smoke-${suffix}@example.test`;
+const email = `direct-smoke-${suffix}@example.test`;
 const password = `Staging-${randomBytes(18).toString("base64url")}!`;
-const userId = `relay_${randomBytes(12).toString("hex")}`;
+const userId = `direct_${randomBytes(12).toString("hex")}`;
 
 let firebaseAuth;
 let firebaseUser;

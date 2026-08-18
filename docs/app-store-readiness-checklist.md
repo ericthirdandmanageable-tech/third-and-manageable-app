@@ -1,6 +1,6 @@
 # App Store Readiness Checklist
 
-Last updated: August 14, 2026
+Last updated: August 18, 2026
 
 EAS internal Preview `cab31413-a4d7-484a-bbd9-401111434756` compiled
 successfully for the registered iPhone using isolated staging providers. It is
