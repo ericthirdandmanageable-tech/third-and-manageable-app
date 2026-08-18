@@ -26,11 +26,17 @@ working-tree state with `VERCEL_MIGRATION_PLAN.md`, the Expo worktree's
 - `third-and-manageable-app` is the canonical native history. The replacement
   worktree is `codex/unified-liquid-glass`; its convergence and direct-ingress
   commits are pushed to the remote branch.
+- The planned source-control consolidation keeps Expo at the canonical mobile
+  repository root and imports the web history under `web/`. Vercel and EAS keep
+  separate deploy roots. Complete the audited gates in the mobile
+  `MERGE_PLAN.md` before importing either history.
 - The temporary `third-and-manageable-staging-relay` is retired. Its Vercel
   project was deleted after build 11 passed physical authentication and
   recovery checks. Clean checkpoint `edcd19d5aba4` remains recoverable from the
   macOS Trash until the Trash is emptied.
-- The original admin export has no unique application code to recover.
+- The original admin export had no unique application code to recover. Its
+  clean read-only checkpoint `0b6d21d79707` was moved to the macOS Trash on
+  2026-08-18.
 
 On 2026-08-18, the project disabled Vercel Authentication and created a distinct
 `staging` branch. Its stable Preview alias uses only Preview-scoped staging

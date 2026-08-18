@@ -3,9 +3,11 @@
 Last reconciled: 2026-08-18
 
 This is the progress record for the ground-up web redesign and the replacement
-Expo client. The temporary relay is retired. The two product repository
-histories and their worktrees remain separate. `repo_differences.md` is source
-material and is not edited by this migration.
+Expo client. The temporary relay is retired. The two product histories and
+their worktrees remain separate during validation. The planned consolidation
+will preserve Expo at the canonical repository root and import the web history
+under `web/`; it will not combine the EAS and Vercel deploy roots.
+`repo_differences.md` is source material and is not edited by this migration.
 
 ## Current source-of-truth map
 

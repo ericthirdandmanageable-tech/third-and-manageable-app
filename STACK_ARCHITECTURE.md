@@ -4,7 +4,7 @@
 
 ## Repository boundary
 
-The product intentionally remains split across repositories:
+The product currently remains split across repositories:
 
 - `3rd_and_manageable`: ground-up Next.js redesign, Vercel Preview, and the
   supported web/admin API implementation.
@@ -15,8 +15,12 @@ The temporary `third-and-manageable-staging-relay` and its Vercel project were
 retired on 2026-08-18 after the direct-ingress physical-device gates passed. No
 separate relay service remains in the supported architecture.
 
-Histories are not merged. Shared behavior is ported deliberately and verified
-against the same staging integrations.
+The planned Git consolidation keeps Expo at the root of
+`third-and-manageable-app` and imports this Next.js history under `web/`.
+Vercel and EAS remain separate deploy roots even after the histories share one
+repository. See the Expo worktree's `MERGE_PLAN.md` for the audited sequence.
+Until that sequence is executed, shared behavior is ported deliberately and
+verified against the same staging integrations.
 
 ## Current backend decision
 
