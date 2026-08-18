@@ -1,10 +1,11 @@
 # Direct mobile staging cutover
 
 **Status:** direct API traffic is live and smoke-tested as of 2026-08-18. The
-Appwrite Web platform uses the stable staging hostname, and replacement EAS
-artifacts are available for a physical iPhone and a standalone simulator. The
-legacy relay remains online only until the physical build passes authentication
-and recovery checks on the registered iPhone.
+Appwrite Web platform uses the stable staging hostname. A replacement physical
+Preview build is signed for both registered iPhones, and a standalone simulator
+artifact is also available. The legacy relay remains online only until the
+physical build passes authentication and recovery checks on the registered
+iPhone.
 
 ## Destination
 
@@ -48,11 +49,20 @@ admin checks. Preview environment guards require the staging Appwrite project
   `fb6bbc3e`](https://expo.dev/accounts/eric.thirdandmanageable/projects/third-and-manageable-app/builds/fb6bbc3e-1dfd-4563-8d8d-474802343b47)
   installed and launched successfully. It correctly opens the Expo development
   client and requires Metro.
-- [Physical Preview build
+- Superseded [physical Preview build
   `8c46752f`](https://expo.dev/accounts/eric.thirdandmanageable/projects/third-and-manageable-app/builds/8c46752f-6376-4edb-8c18-b1f0f9d690fa)
   finished successfully. Its embedded provisioning profile contains iPhone
   UDID ending in `001E`. Its compiled bundle contains the direct staging API,
-  OAuth, and recovery URLs and no legacy relay URL.
+  OAuth, and recovery URLs and no legacy relay URL. It cannot install on the
+  newer registered phone.
+- [Replacement physical Preview build
+  `fe86da59`](https://expo.dev/accounts/eric.thirdandmanageable/projects/third-and-manageable-app/builds/fe86da59-09d9-411f-95da-5d338924558a)
+  finished successfully as app version `1.0.1`, build `11`. Inspection of the
+  downloaded IPA confirms bundle ID `com.thirdandmanageable.app`, Apple team
+  `583NR5LZHR`, and a provisioning profile for both iPhones, with UDIDs ending
+  in `001E` and `401C`. Its compiled bundle contains the direct staging Vercel
+  origin, isolated staging Appwrite and Firebase project IDs, and no legacy
+  relay URL.
 - [Standalone simulator Preview build
   `0ed29796`](https://expo.dev/accounts/eric.thirdandmanageable/projects/third-and-manageable-app/builds/0ed29796-b992-41c4-a3c3-80a0afdd08ea)
   installed on the local iPhone 17 simulator and opened the redesigned sign-in
@@ -60,7 +70,7 @@ admin checks. Preview environment guards require the staging Appwrite project
 
 ## Remaining cutover gates
 
-1. Install the new physical Preview build on the registered iPhone and verify
+1. Install physical Preview build `fe86da59` on the registered iPhone and verify
    that it launches.
 2. Verify sign-in, OAuth, and password recovery on the installed physical
    build. Repeat the applicable checks on the standalone simulator build.
