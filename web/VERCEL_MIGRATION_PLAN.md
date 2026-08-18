@@ -1,0 +1,1113 @@
+# Third & Manageable — Vercel Consolidation Plan
+
+> **Direct-ingress update (2026-08-18):** The public staging relay described in
+> historical phases below was superseded by the public `staging` branch in
+> `3rd_and_manageable` and deleted after physical-device validation passed. See
+> `DIRECT_STAGING_CUTOVER.md` for the active topology and validation evidence.
+
+> **Superseded architecture notice (2026-08-14):** Neon/Postgres and the
+> proposed Auth.js cutover below are historical. The active decision is
+> Appwrite Auth + Firestore product data for the isolated Vercel Preview. See
+> `STACK_ARCHITECTURE.md`. The historical sequence remains below only as an
+> audit trail.
+
+**Goal:** collapse the original multi-vendor footprint (Render + Firebase + Appwrite + Google AI + un-hosted Vite SPA) onto Vercel, keeping Firebase temporarily only as a mobile identity/data compatibility dependency. Sequenced to serve the three-step objective:
+
+1. Situate `web-prototype` into the foundation of the pre-redesign app (`third-and-manageable-admin-main`).
+2. Migrate backend + frontend dependencies onto Vercel.
+3. Keep building on that combined foundation.
+
+Companion documents: `FEATURE_ANALYSIS.md` (feature/architecture inventory), `WEB_PROTOYPE_DEBRIEF.md` (prototype state), `REDESIGN_BRIEF.md` (product direction).
+
+---
+
+## 0. Current Status — read this first
+
+**All original scoping questions are resolved.** Decisions, in one place:
+
+| Decision            | Answer                                                                                                                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend             | **Next.js Route Handlers complete.** The temporary FastAPI bridge and Python runtime are retired (§2.2, Phase 2)                                                                               |
+| Repo shape          | **One** Next.js app, **one** Vercel project, no monorepo (§2.0)                                                                                                                                |
+| Runtime topology    | **One Next.js service** in one Vercel project; browser and mobile API traffic use same-origin `/api/*` Route Handlers. No Python service, `/bridge` rewrite, or cross-origin API base remains. |
+| Vercel plan         | Pro, already held (§5)                                                                                                                                                                         |
+| Firestore data      | **Retain** the CWRU pilot data; scripted export in Phase 3 (§7.2)                                                                                                                              |
+| Firebase retirement | **Hold.** Do not delete Firebase until the replacement mobile release is adopted, or until a compatibility/token-validation bridge makes old clients safe to retire (§2.3, Phase 3)            |
+| User sign-in        | Preserve existing Google and Apple account continuity; implement Auth.js + provider-subject identity mapping (§2.4, §6.7)                                                                      |
+| Admin authorization | Explicit database allowlist/role assignments, protected by signed sessions and append-only admin-action audit logs (§6.1, §6.7)                                                                |
+| Weekly actions      | **Fifteen categorized habits** — admin's taxonomy wins, backend's `a1`–`a4` is replaced (§6.5)                                                                                                 |
+| Compliance gate     | Purchase Vercel's HIPAA add-on and complete the BAA **before any live workload may handle PHI** (§6.8)                                                                                         |
+
+> **Pinned production release blocker:** Keep the admin dashboard protected and
+> preview-only until Auth.js provider sign-in, explicit database roles, and the
+> §6.8 compliance gate are complete. The forged legacy cookie is fixed and the
+> dashboard no longer accesses production Firestore, but bootstrap shared-password
+> auth is not the final production authorization model.
+
+### Phase 0 progress
+
+- [x] **Step 1 — `git init`.** Repo created on `main`; initial commit `479ceeb`, 143 files. Root `.gitignore` excludes `node_modules/`, `.venv/`, `dist/`, `*.db`, `.env`.
+- [x] **§6.2 credential sanitization** — done _before_ the first commit, so nothing sensitive is in history. Preview admin/session/JWT credentials were replaced and no Firebase private key remains in Vercel. Revoking the legacy Google service-account key still requires project-owner IAM access (see §6.2).
+- [x] **Step 2 — promote the admin app to the repo root.** Commit `27f496c`; pure `git mv`, no source changes. Three scoping fixes the move forced: `tsconfig`/`eslint` now exclude `web-prototype/` and `backend/` (the root `**/*.ts` include would otherwise typecheck the Vite SPA's 32 files); `next.config.ts` pins `turbopack.root` (a lockfile in a parent directory was winning workspace-root inference); the admin `.gitignore` folded into the root one.
+  - Follow-on commit `0230ae1` made **`firebase-admin` initialise lazily** (`adminDb` → `getAdminDb()`, originally 12 files). It had run `cert()`/`initializeApp()` at module scope, so Next page-data collection failed without service-account vars. Phase 3 step 20 has since removed every Firestore call and `getAdminDb`; the module remains identity-only through the mobile compatibility window (§2.3).
+  - `next build` passes: 19 routes, every Firestore-backed page/route correctly `ƒ` (dynamic); only `/login` and `/_not-found` prerender.
+- [x] **Step 3 — provision and validate Neon Postgres.** Vercel project **created and linked**: `ling-iq/third-and-manageable` (`prj_QaCgXSSn1sXJSob2T0qhYSLiJ1ek`). Neon resource `third-and-manageable-db` is provisioned on the free plan in `iad1`, connected to production/preview/development, and injects pooled + unpooled Postgres variables. It was deliberately provisioned with `auth=false`; the first empty resource was immediately replaced after Neon's default `auth=true` conflicted with the Auth.js decision. On 2026-08-06, branch `codex-preview-auth-20260806` applied both migrations, the guarded canonical-identity suite passed all four transaction/concurrency cases, and the broader baseline passed all 20 tables, repeat migration, constraint, role/identity, and immutable-audit checks in separately created disposable databases. Those databases were removed. The branch is isolated from Preview via environment-specific URLs and auto-deletes on 2026-08-07.
+  - ⚠️ `vercel link` auto-detected `backend/` and wrote a `vercel.json` rewriting **`/(.*)` → the FastAPI service**, which would have shadowed the entire admin app. **Deleted.** Worth knowing for Phase 2 step 11: Vercel detects and bridges the FastAPI service natively, so §2.2 is less work than assumed — but that config must not land until step 11.
+- [x] **Step 4 — SQLAlchemy → Drizzle baseline revised before application.** The initial 12-table draft has been replaced by a 19-table baseline implementing §3.1: UUID domain IDs; provider-subject identities and Firebase UID mapping support; normalized emails; isolated legacy credentials; revocable session records; active admin-role grants; trigger-enforced append-only audit logs; FK-backed post/comment votes; `date`/`timestamptz`; and database checks, uniqueness rules, partial/composite indexes, and soft-delete/retention fields. `npm run db:test:neon` applied the migration twice to an isolated temporary database in the Neon project, wrote identity/role/audit fixtures, proved constraint and audit-immutability rejection, and removed the database. Repeat the same acceptance test on a real Neon branch before marking Step 3 complete.
+- [x] **Step 5 — protected smoke deploy.** On 2026-08-09 a fresh Preview
+      completed the manifest, application-auth, Deployment Protection, Neon, and
+      production-startup gates. `/` returned 200; the legacy forged admin cookie
+      redirected; an empty login returned 401. Firebase private-key variables
+      remained absent.
+
+#### ⚠️ Step 5 outcome — production went public, and was taken down
+
+`vercel deploy` without `--prod` still shipped to **production**: Vercel auto-promotes a project's _first_ deployment. It was reachable with no Deployment Protection, and **§6.1 was confirmed exploitable in the wild** — `curl -H 'Cookie: admin_session=authenticated' .../users` was served the dashboard instead of being redirected to `/login`. It returned 500 only because the Firebase vars are unset; with them set, that response is every user's email and journal entries.
+
+Deployment `dpl_5ow9wGMVv7hzvAAUURiVednVXdU3` was removed, and Vercel now reports no deployments. **No application data was returned during the observed checks** because Firestore was unreachable and the admin password was unset; there is no evidence of data exposure. Without a complete access-log/forensic review, do not turn that evidence into the stronger absolute claim that exposure was impossible.
+
+Related, found while checking: `/api/login` compares `password === process.env.ADMIN_PASSWORD`. With the env var unset, a POST that **omits** `password` compares `undefined === undefined` and **succeeds**. Fix alongside §6.1.
+
+**Historical gate (now closed):** the §6.1 code fix had to be configured and
+verified in a protected smoke deployment. The required sequence was:
+
+1. Add `.vercelignore` plus a deployment-manifest check that fails if local env files, databases, Python virtual environments, caches, reference apps, or other forbidden residue enter the upload.
+2. Make application auth independently secure: fail closed when secrets are absent, replace the constant cookie with a cryptographically signed session, use `proxy.ts` for early page gating, and retain authoritative authorization checks inside every server action/Route Handler.
+3. Keep Deployment Protection enabled as defense in depth. Current Vercel state is `all_except_custom_domains`: Vercel-owned deployment URLs are protected, but a future custom production domain is not. Application auth therefore remains mandatory; revisit the protection mode/plan before attaching a live custom domain.
+4. Test the revised database baseline on a disposable Neon branch.
+5. Set only the secrets needed for the protected smoke deployment. Vercel currently has **only Neon-managed database variables**—no admin-auth or Firebase values. Firebase remains on hold until access is restored; never restore unrotated values (§6.2).
+
+The signed shared-password session in Phase 0 is a bootstrap control, not the final identity system. Before the admin portal handles real data, replace it with the §6.7 Auth.js Google/Apple flow, explicit admin role assignment, revocation, and audit logging.
+
+**Current security baseline (verified in protected Preview):**
+
+- `.vercelignore` reduces Vercel's upload to runtime source only; the 2026-08-11 dry run contained 172 files / 5.49 MB with `framework=nextjs`. `npm run check:vercel-manifest` consumes Vercel CLI's own JSON and rejects secret/env files, databases, caches, reference apps, business artifacts, or a non-Next.js framework.
+- Bootstrap auth now fails closed unless a 16+ byte password and 32+ byte signing secret exist. It uses constant-time password comparison and an 8-hour signed `HttpOnly; SameSite=Strict` session whose key changes when either secret rotates. The old `admin_session=authenticated` cookie is ignored and cleared.
+- `src/proxy.ts` gates the current admin page routes; dashboard layouts and all seven privileged handlers keep their independent server-side checks.
+- Unit, build, and live regression checks prove missing configuration → 503/no cookie, old/forged/tampered cookies → redirect, wrong password → 401, and a valid signed cookie is the only token that reaches the data layer.
+- Next.js is updated from 16.1.6 to 16.2.12. Firebase Admin is pinned to 13.6.1: 14.2.0 pulls ESM-only `jose` 6 through `jwks-rsa` 4, which Next's deployed CommonJS external loader cannot require. The compatible 13.6 line uses `jwks-rsa` 3 / `jose` 4. Patched transitive versions remain pinned with `overrides`; the production audit is still clean — see technical go-live blocker 1 above.
+
+**Committed since:** `d53d186` dependency remediation · `ea2f93f` FastAPI bridge on the UUID/timestamptz baseline · `7235b14` Phase 1 step 6 · `de6688c` athlete port · `c8ba5e8` prototype retirement · `490f5df` registry-test fix.
+
+### Phase 1 progress — complete
+
+Steps 6–10 are all done; **`web-prototype/` is deleted.** The athlete app is the
+product surface at `/`, the admin portal lives at `/admin/*` behind the proxy
+gate, and both build from one Next.js app in one Vercel project.
+
+- **28 routes** build clean: 11 athlete URLs (+ a catch-all), 7 admin, 9 API, plus `ƒ Proxy (Middleware)`.
+- **Verified against a running production build**, not the diff: every athlete route 200s, `/nope` 404s, all six privileged admin paths 307 to `/admin/login`, the §6.1 forged `admin_session=authenticated` cookie still redirects, and `POST /api/login {}` does not authenticate.
+- **152 automated checks**: 53 Vitest (including login-first NUX and
+  authenticated-shell gating, honest fresh-system defaults, DST calendar math,
+  same-origin bridge routing, auth-transition hydration, university theme
+  selection, proxy/session, and registry parity) + 99 pytest. `tsc`, `eslint`,
+  `drizzle-kit check`, and
+  `npm run check:audit` (0 production vulnerabilities) all clean.
+- Fonts are self-hosted; zero requests to Google's font CDN.
+- What the port could not carry over verbatim — UUID ids, prerender-safe storage access, the lost `navigate(state)` channel, revocable sign-out, and five more — is in **§4.1**. Read that before reviewing the diff.
+
+Athlete pages remain client components and athlete auth remains a revocable
+bearer token while the admin uses a signed bootstrap cookie. The Route Handler
+cutover is complete; final identity unification remains Phase 3 §6.7 work.
+
+Step 10's protected redeploy is complete. Production release remains governed
+by the mobile adoption, IAM/key-revocation, provider, and §6.8 compliance gates.
+
+Project settings note: `vercel link` initially pinned the framework preset to **Services**. Phase 2 briefly used explicit Next.js + FastAPI services for the migration bridge, then returned the same project to **Next.js**. `vercel.json`, the live build, and the upload guard now agree on the final Next.js-only topology.
+
+### Phase 2 progress — complete locally and in protected Preview
+
+- All seven Python route groups are implemented as Next.js Route Handlers under
+  `/api/*`; `src/lib/athlete/api.ts` now uses that same-origin prefix directly.
+- Clipboard coaching uses Vercel AI SDK/Gateway with current model
+  `google/gemini-3.6-flash`, the original crisis-safety and invisible-adaptation
+  instructions, per-user hashed attribution, and the deterministic offline
+  fallback when Gateway auth or the provider is unavailable.
+- The last Python suite passed all 104 cases before removal. Its applicable
+  auth, revocation, moderation, validation, journey, check-in, weekly-action,
+  profile, community, vote, support, and API-contract behavior is covered by
+  Vitest plus an eight-case disposable-Neon Route Handler flow, including the
+  Postgres-backed admin reads and transactional audit log.
+- Protected Preview deployment `dpl_CwVW7U3Z8HxU65cArRqpoKSdhsBz` passed
+  health, auth/revocation, Neon, nine-forum seed, intake, check-in, game-plan,
+  and all six admin-view smoke checks; its synthetic user was deleted.
+- `backend/`, Python requirements/lock/runtime files, `/bridge`, Services
+  rewrites, bridge env variables, proxy code, parity-only tests, and generated
+  caches are removed. `vercel.json` and the manifest guard now require Next.js.
+
+### Mobile recovery and security checkpoint — 2026-08-05
+
+The source/build/control-plane inventory is now sufficient to replace the old
+compiled-bundle assumptions with verified production facts:
+
+- [x] **Production source recovered and matched.** Public repository
+      `ericthirdandmanageable-tech/third-and-manageable-app`, commit
+      `5b37d367c7119961ca98cd52645fdc79c3499626`, exactly matches EAS/App Store
+      build `1.0.0 (6)`. Current connected GitHub access is read-only (`push=false`).
+- [x] **Expo/EAS inventoried read-only.** Personal owner
+      `eric.thirdandmanageable`; project ID
+      `7d162617-1e50-4351-8de0-519f8063bc4d`; no GitHub integration, update
+      branches/channels/groups, or native update deployments. Production build
+      `77386922-d216-4514-b889-2ac8f9299143` and its IPA artifact have expired,
+      but the source commit is preserved. EAS signing assets are valid; no APNs key
+      is associated; the App Store Connect API key exists and succeeded for builds
+      5 and 6; the App Store Connect app link is not configured. Do not rotate,
+      recreate, transfer, or submit with these assets during inventory.
+- [x] **Appwrite identity architecture confirmed.** Frankfurt project
+      `69906e3f0020c208d8e7` holds 95 users and is identity-only. Google OAuth is
+      enabled. A 2026-08-09 read-only audit found Apple OAuth enabled with the
+      staging-named Service ID in production; treat that as configuration drift
+      requiring owner review, not as proof of a production-tested Apple flow.
+      TablesDB has one empty profile
+      table; Storage, Functions, Messaging, webhooks, and API keys are effectively
+      unused. Preserve original Apple platform `6990c81edd5bbeb8502e`; hold duplicate
+      IDs `6a72715a000a8eae9a59`, `6a737c0500343aa54f6f`, and
+      `6a737cc10012451f9dff`. See `APPWRITE_PLATFORM_INVENTORY.md`; no platform was
+      edited or deleted.
+- [x] **Firebase production state confirmed.** Project
+      `third-and-manageable-app` (Spark, Firestore `nam5`) has only a registered Web
+      app; Firebase Auth is not configured and Storage is not enabled. The Expo
+      client uses Appwrite `$id` as the Firestore document/`user_id` ownership key.
+      Live collections are `ai_chat_sessions`, `checkins`, `completions`,
+      `content_reports`, `messages`, `notifications`, `profiles`, `push_tokens`,
+      `rooms`, `support_requests`, and `user_blocks`. Cloud Messaging HTTP v1 is
+      enabled; the Firebase Web API key has API restrictions but no application
+      restriction. Current access cannot manage App Check.
+- [x] **Critical Firestore exposure confirmed.** Production Rules allow every
+      read and write until `2029-03-16`. This is the highest active data risk, but a
+      direct lockdown would break every shipped client because those clients have no
+      Firebase identity. Rules stay frozen until the authenticated replacement build
+      reaches the §2.3 adoption gate.
+- [x] **Apple signing identity cross-checked.** Bundle
+      `com.thirdandmanageable.app`, Apple team `583NR5LZHR`, and distribution
+      certificate serial `4CF0E967DDA77E345A81154D2E9D4A0A` agree across Apple,
+      Expo, and the downloaded provisioning profile. The inspected profile permits
+      production push registration, does not include native Sign in with Apple,
+      and the certificate/profile expire `2027-02-19`. The downloaded profile was
+      regenerated on `2026-08-05` and has UUID
+      `120429ea-c45c-4407-8c9d-9fb55251ff34`, different from Expo's previously
+      displayed profile UUID; do not replace or upload it until reconciled.
+- [x] **Apple account inventory completed read-only.** See
+      `third-and-manageable-apple-inventory-2026-08-05.md`. App Store record
+      `6759578111` is iOS 1.0 Ready for Distribution; TestFlight builds 5 and 6 are
+      expired with no active build. Explicit Bundle ID resource `ZYXT54UX5B` has
+      In-App Purchase and Push Notifications enabled, but not Sign in with Apple or
+      Associated Domains. App Store profile `S9D8F69W72` is active through
+      `2027-02-19`; Ad Hoc profile `W26Q9R9V74` is invalid. Two iOS Distribution
+      certificates are visible. APNs auth key `ZM9KBD5N8X` is team-scoped for all
+      topics and sandbox/production, but Expo still has no push key associated with
+      this project; private `.p8` custody and consumers remain to be confirmed.
+      Services IDs are empty, so Apple login is not configured. Current App Store
+      Connect access is App Manager; no Apple settings were changed.
+- [x] **Bridge and Rules design completed locally.** See
+      `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`: a replacement Expo client exchanges a
+      15-minute Appwrite JWT at a Vercel endpoint for a Firebase custom token whose
+      UID is the verified Appwrite `$id`. Candidate owner-scoped Firestore Rules,
+      Firebase refresh-token revocation, Appwrite session webhooks, emulator tests,
+      TestFlight/adoption gates, and rollback sequencing are documented. The source
+      audit also proved strict Rules require a private/public profile split plus
+      server-only mention notifications, account deletion, and streak mutation.
+- [x] **Firestore Rules emulator gate passed locally (2026-08-05).** The
+      isolated harness in `firebase-emulator/` is hard-locked to
+      `demo-third-and-manageable-rules`; its runner forwards no cloud credentials or
+      application secrets. All 16 tests across 6 suites pass, proving bridge-claim
+      enforcement, anonymous denial, owner isolation, community-safe reads,
+      server-only privileged operations, supported shipped query shapes, and
+      unknown-collection default deny. `firebase-emulator/README.md` records the
+      intentional client incompatibilities that must be fixed before rollout.
+- [x] **Mocked mobile token bridge implemented locally (2026-08-05).** The
+      Node.js Route Handler at `POST /api/mobile/auth/firebase-token` rejects
+      missing, malformed, and oversized credentials before either provider; creates
+      a fresh JWT-scoped Appwrite Server SDK client; verifies identity with
+      `Account.get()`; rejects disabled users; and mints a Firebase custom token
+      whose UID is exactly the verified Appwrite `$id`, with only
+      `auth_source=appwrite` and `bridge_version=1`. Every response is `no-store`,
+      provider errors are generic, and tokens/vendor exception bodies are not
+      logged. The handler and adapters have 17 mocked tests. No live credential,
+      provider call, Firebase Auth change, Firestore write, or deployment occurred.
+- [x] **Mocked canonical identity transaction implemented locally (2026-08-05).**
+      The bridge now runs a request-scoped Postgres transaction after Appwrite
+      verification and before Firebase token minting. It serializes each verified
+      Appwrite `$id`, resolves `(appwrite, $id)` and `(firebase, $id)` only through
+      `auth_identities`, creates at most one placeholder canonical user when neither
+      mapping exists, attaches a missing side idempotently, updates last-use times,
+      verifies the persisted pair, and fails closed if the two subjects point at
+      different users. Email is absent from the mapping API and cannot trigger a
+      merge. Six mocked-persistence transaction tests plus two new route-order and
+      failure tests pass; the focused bridge/mapping/provider suite is 25 tests.
+      No live database or provider call, credential use, Firebase/Auth/Firestore
+      change, or deployment occurred.
+
+- [x] **Canonical identity transaction verified on a disposable Neon branch
+      (2026-08-06).** A guarded runner applied the real Drizzle migrations to a
+      uniquely named temporary database on the one-off branch and exercised the
+      production Neon transaction adapter for first-use mapping, missing-side
+      attachment, collision rejection, idempotency, and six-way concurrent
+      serialization. All four integration cases passed; the temporary database was
+      removed, the branch was deleted in Neon, and its endpoint was confirmed dead.
+      The broader Step 3 baseline acceptance remains open until
+      `npm run db:test:neon` also runs on a disposable branch.
+- [x] **Bridge rate limiting, keyless staging identity, and protected-Preview
+      exchange validated (2026-08-06).** The route checks Vercel Firewall after Appwrite verifies
+      the subject and before Postgres/Firebase work, uses the verified subject only
+      as the SDK's hashed rate-limit key, returns `429` + `Retry-After`, and fails
+      closed if the SDK rule is missing or blocked. Structured outcome telemetry is
+      limited to `succeeded`, `rejected`, `rate_limited`, or `unavailable` plus the
+      bridge version. It records no token, UID, IP, email, error body, or canonical
+      user ID, and telemetry failure cannot change the auth response. The focused
+      mocked bridge/mapping/provider suite is now 30 tests, plus the 4 live-Neon
+      integration cases. The `mobile-auth-verified-user` SDK rule is live as a
+      10-per-60-second fixed-window rule. A separate live 60/minute IP rule remains
+      log-only. Staging uses Appwrite project `69906dfc003364b9847e`, Firebase
+      project `third-and-manageable-staging` (project number `371113500992`), and a
+      dedicated keyless service account. Vercel Preview OIDC is restricted to the
+      exact `ling-iq/third-and-manageable` Preview subject through Google pool
+      `vercel-preview` / provider `vercel`; no service-account key exists. A
+      protected Preview returned 401 for missing credentials and 200 for a real
+      staging Appwrite JWT, minted a Firebase custom token whose UID matched the
+      verified Appwrite `$id`, and produced only 200/429 results in an 11-request
+      rate run (9 succeeded, the final 2 were limited). All ten temporary Appwrite
+      users were deleted afterward. The IP rule remains observation-only; its
+      dashboard event still needs confirmation from a browser logged into Vercel.
+
+  The protected Preview is intentionally not a functioning athlete web-login
+  environment yet. `/login` renders, but its existing email/password form still
+  calls `/bridge/auth/login` and `/bridge/auth/register`; no `/bridge/*` route is
+  deployed until the FastAPI Service topology lands at Phase 2 step 11. The
+  current generic form error is therefore expected and is not evidence that the
+  staging Appwrite/Firebase bridge failed. Vercel runtime inspection confirmed
+  the final deployment was healthy and received no `/bridge/*` invocation.
+
+  The staging run also exposed two deployment-only defects now fixed: Firebase
+  Admin 14's ESM/CJS incompatibility, and Neon interactive transactions over the
+  pooled hostname. Canonical mapping now uses the direct
+  `DATABASE_URL_UNPOOLED` endpoint with Neon's documented `ws` constructor,
+  while ordinary query paths retain pooled `DATABASE_URL`.
+
+**Revocation synchronization implemented and end-to-end staging-smoked
+(2026-08-06):**
+`POST /api/mobile/auth/revoke` verifies a still-live Appwrite JWT before
+revoking the same Firebase UID, and
+`POST /api/mobile/auth/appwrite-webhook` validates Appwrite's exact-URL/raw-body
+HMAC-SHA1 signature plus staging project/webhook identity before accepting only
+session-delete or user-status events. Both paths are no-store, bounded,
+token-free in logs, fail closed, and tolerate repeated webhook delivery through
+Firebase's idempotent revocation operation. The new focused suite passes 31
+tests. Both routes are deployed in the protected Preview. Missing route auth
+returns 401, an invalid webhook signature returns 401, and a correctly signed
+synthetic webhook reaches Firebase revocation and fails generically for the
+intentionally nonexistent UID; runtime logs contain no token or UID. The
+replacement client now reaches token exchange and authenticated revocation
+through the separate public Vercel project
+`ling-iq/third-and-manageable-mobile-staging` at
+`https://third-and-manageable-mobile-staging.vercel.app`. The relay exposes
+only those two POST paths and holds the protected Preview automation-bypass
+credential server-side. It never forwards arbitrary paths, incoming cookies,
+or client-supplied bypass headers. The Appwrite webhook route is deliberately
+not exposed; registration remains gated on a separately managed public
+callback and signing/bypass-secret lifecycle.
+
+**Replacement Expo bootstrap implemented locally (2026-08-06):** the recovered
+mobile repository now initializes Firebase Auth with React Native
+`AsyncStorage` persistence, exchanges a fresh `account.createJWT()` at the
+bridge, calls `signInWithCustomToken()`, verifies the returned Firebase UID
+equals the Appwrite `$id`, and fails closed by clearing Firebase state. New
+email/password and OAuth sessions roll back if bootstrap fails; restored
+sessions bootstrap before Firestore-backed data is exposed; sign-out revokes
+server-side before clearing Firebase and deleting the Appwrite session. Seven
+focused client tests, TypeScript, and focused ESLint checks pass. The repository's
+full lint still has three pre-existing `react/no-unescaped-entities` errors and
+nine warnings outside these changes; its production dependency audit also has
+31 pre-existing findings and must be remediated separately before release.
+
+Staging client registration is also complete: Firebase app
+`1:371113500992:web:2e553021f4dd4c34371aa5` (nickname
+`Third & Manageable Staging Expo`) was created in the staging project, Firebase
+Auth is active, and the staging Appwrite project now has an iOS React Native
+platform for `com.thirdandmanageable.app`. Public client configuration is in
+the mobile checkout's git-ignored `.env.local`, including the public staging
+relay origin. An empty Standard-edition Firestore `(default)` database now exists in
+`nam5`, and the 16-case emulator-tested bridge Rules are published there. The
+client's initial private-profile write now includes the Rules-required
+`verified: false` value.
+
+The guarded `npm run smoke:staging-auth` flow then created a synthetic staging
+Appwrite session, exchanged its JWT through the public relay, signed into
+Firebase with the returned custom token, proved the Firebase UID matched the
+Appwrite `$id`, and successfully called authenticated Firebase refresh-token
+revocation. The keyless Vercel service account has the staging-only Firebase
+Authentication Admin role required for that operation. Both synthetic
+Appwrite accounts from the initial and successful runs were deleted, and the
+staging Firebase Auth user list was confirmed empty.
+
+**Later staging mobile-auth 503 regression resolved (2026-08-06):** The
+earlier successful scripted smoke above is historical. The same protected
+Preview subsequently returned 503 from the public staging relay, including from
+an independent guarded smoke. The bridge now records only the fixed stage enum
+(`verify_appwrite`, `rate_limit`, `canonical_mapping`, `firebase_token`), a
+fixed success/failure outcome, event name, and bridge version; it never records
+an exception, request value, provider response, token, UID, email, IP, or
+connection string. Focused bridge and provider tests cover every stage marker
+and the fixed telemetry shape. A fresh protected Preview and the staging-only
+relay were redeployed, with the relay's server-side upstream origin updated to
+that Preview. A new guarded smoke then completed token exchange, UID equality,
+and revocation successfully; the corresponding protected Preview logs show
+all four stages succeeding followed by the aggregate success event. No
+production project, provider, data, Rules, or credentials were changed.
+
+The requested iOS 26.5 Simulator smoke uncovered and fixed a separate client
+startup defect: Firebase 12's Metro-resolved public Auth entrypoint did not
+provide the React Native persistence helper. The replacement app now supplies
+the documented AsyncStorage-backed LOCAL persistence contract directly, and
+TypeScript plus the seven focused mobile tests pass. Expo Go can fetch the
+staging app's iOS manifest and bundle over the LAN, but its update loader still
+times out while opening the project in this simulator. The full authenticated
+smoke has since been accepted using a compatible staging development build; do
+not treat the Expo Go transport/load failure as a mobile-auth relay regression.
+
+**Password-recovery staging status (2026-08-07):** A dedicated static return
+page is deployed at
+`https://third-and-manageable-mobile-staging.vercel.app/recovery.html` in the
+existing LingIQ staging relay. It accepts Appwrite’s recovery query parameters
+only in the browser and immediately hands them to the native
+`thirdandmanageableapp://reset-password` route; it has no server function,
+logging, or persistence, and returns `no-store`, `no-referrer`, and a strict
+Content-Security-Policy. The replacement mobile app now has request and reset
+screens, and the exact hostname
+`third-and-manageable-mobile-staging.vercel.app` was registered as a **Web**
+platform in the staging Appwrite project `fra-69906dfc003364b9847e`; the
+staging mail template/policy settings still need review before any real reset
+email is sent. Do not route a reset secret through the
+OAuth relay or an unregistered native URL. Exercise Google only after the
+staging Appwrite project has an approved Google provider configuration. Register
+the staging Appwrite webhook only after its separate public callback/protection
+lifecycle is explicit. Confirm the observation-only IP event in the Vercel
+dashboard before considering enforcement. Production Firebase Auth, Rules,
+Appwrite providers, platforms, and credentials remain unchanged.
+
+**Password-recovery native handoff smoke (2026-08-07):** A new local staging
+development client was built and installed on the iOS 26.5 simulator. A
+synthetic `thirdandmanageableapp://reset-password` link with non-sensitive
+placeholder parameters opened the reset-password screen directly. The client
+uses Expo Router’s native-intent handling plus a constrained unmatched-link
+fallback for this development-client URL shape; only a reset path carrying
+both Appwrite `userId` and `secret` parameters may enter that screen. No reset
+email was sent and no account password was changed.
+
+**Staging iOS Firestore smoke update (2026-08-06):** Expo Go 54 was installed
+on the iOS 26.5 simulator and Metro served the replacement client locally. A
+staging-only user completed registration and onboarding, and the authenticated
+Profile screen loaded. The initial post-onboarding permission denial was a
+Rules/client mismatch: the profile screen backfilled `joined_at`, but the
+strict profile-update allowlist omitted that field. The published staging Rules
+now allow an owner to set a non-empty `joined_at` once only when it is missing;
+subsequent changes, verification, and streak updates remain denied. The
+16-case local Rules suite covers the allowed one-time backfill and rejected
+repeat/protected writes, and a fresh guarded bridge smoke again passed token
+exchange, UID equality, and revocation. Production was not changed.
+
+**Apple OAuth staging status (2026-08-07):** The replacement client already
+uses Appwrite's Apple OAuth flow and contains the iOS button. A dedicated,
+staging-only Apple app identity and Service ID were created, the exact staging
+Appwrite callback was registered, and the staging Appwrite Apple provider is
+enabled using its write-only private-key field. The released Apple app identity
+and production Appwrite project were not changed. Do not record the private key
+or credential identifiers in this repository. A real iOS development-build
+round trip has now succeeded with a real Apple account: the user returned to
+the staging app authenticated. Expo Go does not establish a
+production-equivalent OAuth return path for this app, so this result applies to
+the staging development build. Sign-out, fresh Apple sign-in, and an
+owner-scoped Firestore write/reload have also been confirmed manually.
+
+### Integration ownership audit reconciliation — 2026-08-05
+
+The provider-level inventory is substantial but **not yet complete enough to
+claim an operational handoff of the App Store app**. This reconciliation checked
+all tracked Markdown files, the local runtime/configuration, the exact shipped
+Expo source commit `5b37d367c7119961ca98cd52645fdc79c3499626`, current Vercel
+project metadata, public App Store metadata, and the live domain endpoints. It
+does not supersede the no-change rules in `FIREBASE_SAFE_HANDOFF.md` or the
+provider-specific preservation gates above.
+
+#### Confirmed control-plane coverage
+
+- The recovered mobile repository's `main`/HEAD still equals the source commit
+  used for App Store build `1.0.0 (6)`. Write/admin access remains outstanding.
+- Apple Developer, App Store Connect, signing, TestFlight, roles, APNs, and
+  Sign in with Apple state are inventoried in
+  `third-and-manageable-apple-inventory-2026-08-05.md`.
+- Firebase project identity, live collection names, open Rules exposure,
+  Appwrite-as-identity behavior, and the safe compatibility sequence are
+  documented in `FIREBASE_SAFE_HANDOFF.md` and
+  `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`.
+- Appwrite project identity and Apple platform preservation IDs are documented
+  in `APPWRITE_PLATFORM_INVENTORY.md`.
+- The target Vercel project is `ling-iq/third-and-manageable`, connected to
+  `lucascardoso1/3rd_and_manageable` on `main`, with Neon-managed pooled and
+  unpooled database variables. It has no custom domain attached.
+
+#### Newly discovered gaps and corrections
+
+1. **The mobile environment template is incomplete and partially obsolete.**
+   The shipped source references all six Firebase Web client variables plus
+   `EXPO_PUBLIC_OAUTH_BRIDGE_URL`, `EXPO_PUBLIC_PRIVACY_POLICY_URL`,
+   `EXPO_PUBLIC_TERMS_URL`, and `EXPO_PUBLIC_SUPPORT_EMAIL`; none is present in
+   the mobile `.env.example`. The template instead lists unused Appwrite
+   database/collection variables even though production Appwrite is
+   identity-only. Retrieve the actual EAS environment assignments by name,
+   environment, and owner without placing their values in source or chat.
+2. **The source fallback legal/support domain is wrong.** It uses
+   `thirdandmanageable.com`, which currently has no DNS or mail records. The
+   live App Store seller site is `thirdmanageable.com`; its root, `/privacy`,
+   and `/terms` endpoints are healthy on Vercel, its nameservers are under
+   `domaincontrol.com`, and its mail is routed through Microsoft. Prove whether
+   the shipped EAS environment overrides the bad fallbacks. Also inventory the
+   registrar, DNS owner, website repository, original Vercel project, legal
+   content owner, and support mailbox.
+3. **The OAuth redirect bridge is undocumented.** The native Appwrite flow can
+   use `EXPO_PUBLIC_OAUTH_BRIDGE_URL`, but its production value, hosting project,
+   route behavior, authorized Appwrite platform/host relationship, and owner
+   have not been captured. This must be resolved before Google or Apple login
+   configuration changes.
+4. **The push sender is source-only, not an inventoried deployment.** The
+   mobile repository contains a daily-reminder script with no function package
+   manifest or Firebase deployment configuration. Its README calls it an
+   Appwrite Function while its implementation uses Firebase Admin, and the
+   Appwrite console inventory found Functions effectively unused. Treat remote
+   push delivery as unconfigured until a physical-device TestFlight test proves
+   the complete APNs → Expo → app path.
+5. **Staging Sign in with Apple is configured and smoke-tested.** The staging
+   Appwrite provider, dedicated Apple capability/Service ID, return URL, and
+   write-only private-key field are configured; a real account completed the
+   staging development-build flow, then signed out and signed back in. Keep the
+   released Apple identity and production Appwrite configuration unchanged.
+6. **Account recovery is not established.** The recovered native source has no
+   password-recovery screen or `createRecovery`/`updateRecovery` path, despite
+   older product documents describing forgot-password behavior. Inventory
+   Appwrite email/password settings, SMTP/templates, recovery URLs, password
+   policy, session policy, and abuse controls.
+7. **Operational monitoring is absent.** Neither the web nor native dependency
+   graph contains a production crash/error monitoring integration; Vercel Web
+   Analytics, which is itself not installed yet, would not cover the native
+   app. Name an approved mobile crash, backend error/trace, uptime, alerting,
+   and product-analytics stack before the replacement release.
+8. **An external care resource is an uncatalogued dependency.** The native app
+   links to the live “And Her Name Was Grace” SimplyBook page. Record partner
+   approval, link/content ownership, data-sharing expectations, monitoring, and
+   fallback behavior as part of the safety/support inventory.
+9. **Older documents contain stale production claims.** `FEATURE_ANALYSIS.md`
+   and `REDESIGN_BRIEF.md` describe Firebase Auth even though Appwrite is the
+   production identity provider, and both describe iOS 18 as the minimum while
+   the public App Store record reports iOS 15.1. `REDESIGN_BRIEF.md` §18.2 and
+   `WEB_PROTOYPE_DEBRIEF.md` still describe the former Vite/Render topology.
+   Treat this plan plus the dedicated 2026-08-05 handoff inventories as
+   authoritative until those historical documents are marked or corrected.
+10. **The historical “no deployments” statement above is no longer current.**
+    The LingIQ Vercel project now has four production-target deployments. The
+    newest deployment is protected by Vercel SSO, the project is GitHub-linked,
+    and Vercel currently exposes only Neon-managed environment variables. This
+    is a protected technical deployment, not authorization to connect live
+    Firebase/Appwrite data or attach the production custom domain.
+
+#### Remaining integration audits, in dependency order
+
+| Priority | Audit                                       | Required record / exit condition                                                                                                                                                                                                   |
+| -------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P0**   | Native GitHub ownership                     | Admin access; collaborators, deploy keys, Actions/secrets, branch protection, dependency alerts, release tags, and recovery owner recorded.                                                                                        |
+| **P0**   | Expo/EAS organization and environments      | Transfer from personal ownership; production/preview/development variable names and scopes, build/submit credentials, App Store Connect API key custody, update authority, and push credential state recorded.                     |
+| **P0**   | Firebase/GCP read-only production inventory | Rules, indexes, counts/field shapes, TTL/backups/PITR, export, IAM, service accounts/keys, API restrictions, App Check, FCM, audit logs, and billing/budget ownership recorded without user content entering the repo.             |
+| **P0**   | Domain/legal/support/OAuth bridge           | Registrar and DNS control, original Vercel project or export, website source, correct legal URLs, support mailbox, OAuth bridge URL/behavior, and rollback plan recorded.                                                          |
+| **P0**   | APNs/Expo push delivery                     | `.p8` custody and all consumers known; intended key associated with EAS; token inventory, receipts, invalid-token cleanup, timezone policy, deep-link handling, and a physical-device TestFlight test complete.                    |
+| **P1**   | Appwrite Auth control plane                 | Email/password/session/recovery settings, authorized hosts/platforms, Google client and redirects, Apple disabled state, SMTP/templates, keys, webhooks, dormant Functions, logs, billing, MFA, and recovery owners recorded.      |
+| **P1**   | Google OAuth and Gemini                     | Owning Cloud project, IAM/billing contacts, consent screen, client IDs/redirects, key restrictions, quota/budget, data retention/logging, model lifecycle, prompt governance, and server-side migration plan recorded.             |
+| **P1**   | Vercel/Neon production readiness            | Team roles/MFA/billing, Services entitlement, Deployment Protection/custom-domain behavior, environment isolation, disposable Neon branch test, roles, pooling, backup/PITR, region, and HIPAA add-on/BAA boundary complete.       |
+| **P1**   | Apple release/commercial state              | App Privacy, export compliance, age-rating questions, pricing/availability, support/review metadata, banking/agreements, active TestFlight build, provisioning UUID reconciliation, and dormant In-App Purchase decision complete. |
+| **P1**   | Operations and safety partners              | Crash/error monitoring, traces, uptime, alerts, product analytics, audit retention, support escalation, incident response, and SimplyBook partner dependency documented and tested.                                                |
+
+#### Original Vercel access decision
+
+Access to the original Vercel account is **not required** to build the new app
+and backend in `ling-iq/third-and-manageable`. It is useful for a lossless
+inventory or transfer of the existing `thirdmanageable.com` marketing/legal
+site. Without that access, migration still requires registrar/DNS control, the
+website source, authoritative legal content, support-mailbox ownership, and
+approval to repoint the domain. Do not attach or repoint the domain during the
+read-only inventory.
+
+#### Explicitly deferred, not missing production integrations
+
+- Google Play release operations remain deferred; preserve Android identifiers
+  but do not expand this audit into Play Console setup yet.
+- Apple Health, Strava, and Terra are product decisions with no current runtime
+  integration or Apple capability dependency.
+- Stripe/RevenueCat are absent. Decide monetization first; iOS digital access
+  must be reconciled with the already-enabled but unused Apple In-App Purchase
+  capability before selecting a payment SDK.
+- Vercel Blob, Cron, Edge Config, and Analytics remain target-architecture
+  components, not current production integrations. The two bridge WAF rules are
+  now live, but the IP rule remains log-only and neither rule has completed its
+  protected-preview validation gate.
+
+### Blocked on you
+
+1. **Firebase client configuration and console state are recovered; privileged access is not yet verified.** Project `third-and-manageable-app` has no Firebase Auth, Storage is disabled, and Firestore Rules allow all reads/writes until 2029-03-16. Complete the no-change, least-privilege inventory in `FIREBASE_SAFE_HANDOFF.md`; Firebase writes, Rules publication, and Vercel credential injection remain on hold.
+2. **Finish Google/Apple identity configuration and custody—not inventory.** Appwrite project `69906e3f0020c208d8e7` holds the production identities. Google and Apple now both appear enabled; Apple uses the staging-named Service ID, and neither production provider has passed the TestFlight gate. Preserve the original Appwrite platform, hold the documented duplicate platforms, confirm provider ownership/redirects, and establish private-key/APNs `.p8` custody before relying on either configuration for release.
+3. **Rotate the leaked credentials when access is restored** — admin bootstrap password, then revoke + reissue the Firebase service-account key (§6.2).
+4. **Purchase Vercel's HIPAA add-on and complete/file the BAA before go-live.** A BAA is necessary but not sufficient; the application and every downstream processor still need the §6.8 controls and their own compliance review.
+5. ~~**Accept Neon's Marketplace terms**~~ — **done.** Provisioning and disposable-branch validation are now actionable.
+6. **Direct Vercel access:** the Vercel CLI is authenticated to the `ling-iq`
+   team scope and is sufficient for the current work. A direct Vercel MCP
+   connector is not exposed in this Codex session, so there is no additional
+   MCP authorization flow available here; do not describe CLI access as MCP
+   access.
+7. ~~**Create a one-off disposable Neon branch for the canonical identity
+   transaction and baseline.**~~ — **done 2026-08-06.** Both the four-case
+   production-adapter run and the 20-table baseline acceptance passed in unique
+   disposable databases, and both databases were removed. The current protected
+   Preview branch is configured to auto-delete on 2026-08-07.
+
+### Technical go-live blockers
+
+1. ~~**Production dependency audit is not clean.**~~ — **resolved.** `npm audit --omit=dev` reports **0**, down from 16 (10 high, 5 moderate, 1 low). Findings were transitive under `firebase-admin` or `next`. Next is current; Firebase Admin is intentionally pinned to 13.6.1 because 14.2.0 fails in the deployed Next.js runtime through its ESM-only `jose` 6 dependency. `overrides` pin the patched transitive versions: postcss and sharp under `next`; uuid and the brace-expansion/minimatch/glob/rimraf/gaxios/`@tootallnate/once` chain under `firebase-admin`. The whole `firebase-admin` block disappears at the §2.3 retirement gate.
+   - `npm run check:audit` fails the production audit at `--audit-level=low`, so this cannot silently regress into the unexplained exception list §6.8 prohibits. Re-check the overrides on every `next`/`firebase-admin` bump and drop entries upstream has caught up to.
+   - **Residual, dev-only:** the full audit is 63 → 17. What remains is a single `ajv` ReDoS (`GHSA-2g4f-4pwh-qvx6`, moderate, `$data` schemas) reached only through `@vercel/static-config`, which validates _our own_ config at build time and is not attacker-controlled. It is not overridable globally — forcing ajv 8 breaks ESLint's own, unaffected, ajv 6 — and npm's nested override syntax does not match this graph. Dev tooling does not ship: the manifest guard proves the upload is runtime source only.
+2. ~~**The FastAPI bridge still models integer IDs and naive timestamps.**~~ — **resolved.** The bridge is ported onto the §3.1 baseline: UUID primary keys and JWT subjects, `timestamptz` everywhere via a `UtcDateTime` decorator that rejects naive values at the boundary, `date` for `check_ins.date` and `action_completions.week_of`, email in `user_emails` and the password hash in `password_credentials`, and the polymorphic `votes` table split into FK-backed `post_votes`/`comment_votes`. Startup no longer runs `create_all` + `alembic stamp` + `seed_forums` (§2.2 blocker 1) — Drizzle owns the schema, `python -m app.seed` owns seed data, and Alembic is deleted.
+   - Shared contract suite: **20 → 86 tests.** `tests/test_schema_contract.py` parses the generated baseline SQL and fails if a bridge column is missing from it, compiles to an incompatible type, is a naive datetime, or is an integer primary key — each verified by mutation. SQLite foreign keys are enforced in tests, so the suite no longer passes on constraints Postgres would reject.
+   - Defects the baseline exposed and this fixed: §6.3 moderation flags now actually lock accounts; `week_of` held a bare ISO week _number_, so the same week of different years collided; `/game-plan` reported every action ever completed as done this week; `seed_forums` inserted a post with `author_id=1`, writable only because the column had no integrity behind it; tokens could not be revoked (now `auth_version` + `/auth/logout`).
+   - §6.5 is resolved **in the bridge** — `action_completions.category` is NOT NULL, which forced it. See §6.5.
+
+---
+
+## 1. Complete Service & Dependency Inventory
+
+Every external dependency found across `third-and-manageable-admin-main/`, `web-prototype/`, `backend/`, `render.yaml`, and the shipped iOS bundle described in `FEATURE_ANALYSIS.md`.
+
+### 1.1 Hosting & Compute
+
+| #   | Service                                           | Where it's declared                    | What it does                            | Cost today                                                                           | Vercel verdict                                                                                                |
+| --- | ------------------------------------------------- | -------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| 1   | **Render Web Service** `third-and-manageable-api` | `render.yaml:2-11`                     | FastAPI/Uvicorn REST API                | Free tier — **spins down after 15 min idle, ~50s cold start**. $7/mo to fix          | ✅ **Migratable** — port to Next.js Route Handlers (recommended), or run as a Vercel Python Function (bridge) |
+| 2   | **Render PostgreSQL** `tm-db`                     | `render.yaml:18-22`                    | Primary relational store                | Free tier — **free Postgres instances are deleted after 30 days**; $7/mo Basic after | ✅ **Migratable** — Neon Postgres via Vercel Marketplace (free tier, native integration)                      |
+| 3   | **Next.js admin app**                             | `third-and-manageable-admin-main/`     | Operator dashboard                      | Not deployed anywhere yet                                                            | ✅ **Native** — Next 16.2.12 / React 19.2.3 / Tailwind 4, zero-config on Vercel                               |
+| 4   | ~~**Vite SPA** `web-prototype`~~                  | ~~`web-prototype/`~~                   | Redesigned athlete app                  | Was never deployed (local `vite dev` only)                                           | ✅ **Done** — ported into the App Router at Phase 1 step 7; directory deleted at step 10                      |
+| 5   | **Expo / EAS Build**                              | iOS bundle, `FEATURE_ANALYSIS.md` §5.1 | Native iOS build + App Store submission | EAS free tier / $99/yr Apple Developer                                               | ❌ **Cannot move.** Vercel does not build native binaries. EAS + Apple stay                                   |
+
+### 1.2 Data Stores
+
+| #   | Service                                | Where                                                                  | Collections / Tables                                                                                                                                                 | Vercel verdict                                                                                                                  |
+| --- | -------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 6   | **Firebase Firestore**                 | Admin app plus shipped Expo commit `5b37d36`                           | `ai_chat_sessions`, `checkins`, `completions`, `content_reports`, `messages`, `notifications`, `profiles`, `push_tokens`, `rooms`, `support_requests`, `user_blocks` | 🚨 **Open Rules, but cutover-gated.** Map/export to Postgres; strict Rules require the authenticated replacement client in §2.3 |
+| 7   | **Firebase Admin SDK service account** | `FIREBASE_PROJECT_ID` / `CLIENT_EMAIL` / `PRIVATE_KEY`                 | Server-side Firestore credentials                                                                                                                                    | ⏸️ **Temporary migration/compatibility dependency.** Rotate before reuse and remove at the §2.3 gate                            |
+| 8   | **SQLite** `third_manageable.db`       | `backend/app/config.py:16`                                             | Local dev DB, 106 KB, has real test data                                                                                                                             | ⚠️ **Not deployable** — Vercel functions have an ephemeral filesystem. Dev-only; replace with a Neon dev branch                 |
+| 9   | **Firebase Storage**                   | Shipped Expo `services/profile-pic.ts`; console service is not enabled | Profile-photo path currently calls `profile_pics/{Appwrite UID}`                                                                                                     | ✅ **Migrate to Vercel Blob.** Do not enable production Storage merely to revive this path                                      |
+
+### 1.3 Authentication
+
+| #   | Service                 | Where                                                                                      | Vercel verdict                                                                                                                                                                       |
+| --- | ----------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 10  | **Backend JWT auth**    | `backend/app/auth.py` — bcrypt + `python-jose`, HS256, 7-day                               | ✅ **Migratable, no vendor** — `jose` (TS) + `bcryptjs`/`@node-rs/bcrypt`. Self-hosted, $0                                                                                           |
+| 11  | **Firebase Auth**       | Not configured in production                                                               | ⏸️ **Temporary bridge only.** The replacement client may exchange a verified Appwrite JWT for a Firebase custom token so strict Firestore Rules can use `request.auth.uid` (§2.3)    |
+| 12  | **Appwrite Auth**       | Shipped Expo `lib/appwrite.ts` / `services/auth.ts`; project has 95 users and Google OAuth | ⏸️ **Preserve through mobile cutover.** It is the live identity source; map Appwrite UID/provider identities before retiring it                                                      |
+| 13  | **Admin password auth** | `src/lib/auth.ts`, `src/app/api/login/route.ts`                                            | ⚠️ **Phase 0 bootstrap only.** Immediately replace the unsigned cookie/fail-open login; final state is Auth.js Google/Apple + database role allowlist + audited actions (§6.1, §6.7) |
+
+### 1.4 AI / Third-Party APIs
+
+| #   | Service                    | Where                                                                                    | Vercel verdict                                                                                                                                                                                          |
+| --- | -------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 14  | **Google Gemini API**      | `backend/app/services/gemini.py`, `google-generativeai==0.8.3`, model `gemini-1.5-flash` | ✅ **Route through Vercel AI Gateway** — one key, unified billing, observability, provider failover. **Also: `gemini-1.5-flash` is retired — the model ID must be bumped regardless of this migration** |
+| 15  | **Gemini in-app (mobile)** | Original Expo bundle calls Gemini client-side                                            | ⚠️ **Security issue independent of hosting** — an in-app LLM key is extractable from the bundle. Move behind the server `/clipboard` endpoint                                                           |
+| 16  | ~~**Google Fonts CDN**~~   | ~~`web-prototype/index.html` `<link>`~~ — Inter, Instrument Serif, JetBrains Mono        | ✅ **Eliminated** at Phase 1 step 8. `next/font/google` self-hosts all three (plus Raleway for the admin); the `<link>` and both preconnects are gone                                                   |
+
+### 1.5 Platform Capabilities Currently Unserved
+
+Nothing provides these today; Vercel covers them at no added vendor cost.
+
+| #   | Need                                                                  | Vercel primitive                                                         |
+| --- | --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 17  | Daily check-in reminders, weekly action rollover, streak recompute    | **Vercel Cron** (`vercel.json` `crons`)                                  |
+| 18  | Push notifications (`NSUserNotificationsUsageDescription`)            | ❌ Not Vercel — Expo Push (free) triggered _from_ a Vercel Cron function |
+| 19  | Analytics / product metrics                                           | **Vercel Web Analytics + Speed Insights** (free on Hobby)                |
+| 20  | Rate limiting on `/auth/login` and `/clipboard/chat` (LLM cost abuse) | **Vercel WAF** rate-limit rules                                          |
+| 21  | Runtime flags — `AUTO_VERIFY`, paywall toggles, crisis-resource copy  | **Vercel Edge Config**                                                   |
+| 22  | Preview environments per PR                                           | **Vercel Preview Deployments + Neon DB branching**                       |
+
+### 1.6 Explicitly Out of Scope for Vercel
+
+- **EAS Build / App Store Connect** — native binaries and submission.
+- **Real-time presence / live chat sockets.** Community is Reddit-model request/response (`backend/app/routes/community.py`), so nothing breaks today. If live chat is ever wanted, that needs Upstash Redis or Ably — note it as a future line item, not a current one.
+- **Apple Health / Terra** integrations (`WEB_PROTOYPE_DEBRIEF.md` §8, deferred).
+
+---
+
+## 2. Recommended Target Architecture
+
+**One Next.js app. One Vercel project. One database. One language after the bridge.**
+
+`web-prototype` was a design spike built in a vacuum — it was not a second product to be merged. It contributed screens, design system, and data registries, which were rebuilt on the Next.js foundation that `third-and-manageable-admin-main` already provides. Both were Next 16 / React 19 / Tailwind 4, so component markup moved nearly verbatim. **Done at Phase 1 steps 7–10**; the router was the bulk of the work, but not all of it — see §4.1.
+
+```
+3rd_and_manageable/
+├── app/
+│   ├── (athlete)/    check-in · game-plan · clipboard · community · progress · profile · support · onboarding
+│   ├── admin/        dashboard · users · checkins · community · support · gameplans
+│   │                 (proxy.ts-gated; authoritative checks remain server-side)
+│   └── api/          Route Handlers — ported from FastAPI
+├── lib/
+│   ├── db/           Drizzle schema + migrations   ← single source of truth for data
+│   ├── core/         skill engine · path scoring · journey math · work-path registry
+│   │                 ← single source of truth for rules; imported by BOTH pages and handlers
+│   └── auth/         athlete JWT · admin session
+├── components/       shared UI, Tailwind v4 theme tokens
+└── (mobile/          Expo app — later, consumes the same Route Handlers)
+```
+
+**Everything on Vercel:** app + admin + API in one project and shared deployment · Neon Postgres (Marketplace) · Blob (photos) · Cron (reminders) · Edge Config (flags) · AI Gateway (Gemini) · WAF (rate limits) · Analytics.
+
+**Final state:** nothing on Render or Appwrite. Firebase remains temporarily for old mobile clients and is retired only at the §2.3 compatibility gate.
+
+### 2.0 Why one project, not two
+
+Two projects buy independent deploy cadence and separate blast radius — both worth paying for when different people ship the admin and the app on different schedules. That is not this team. The admin is 6 pages and 9 API routes; the cost of splitting (two builds, two env var sets, two dashboards, a workspace boundary) is concrete and the benefit is hypothetical.
+
+The blast-radius argument in particular does not hold: both halves query the same database. `proxy.ts` provides early `/admin/*` routing protection, while layouts, server actions, and Route Handlers must independently authenticate and authorize every request. Next.js also code-splits per route, so athlete users never download admin JavaScript.
+
+A single app additionally makes the §2.1 duplication fix as clean as it can get — `lib/core/paths.ts` is a plain import for both the pages and the Route Handlers. No package boundary, no workspace linking, no publish step.
+
+Domains stay flexible either way: one Vercel project can serve `thirdandmanageable.com` and `admin.thirdandmanageable.com` via a rewrite, so choosing one project now does not commit the URL structure.
+
+**Historical bridge:** Phase 2 first ran Next.js and FastAPI as Vercel Services
+with `/bridge/*` on the public app origin. That protected deployment proved the
+migration path without a second origin. Step 16 has now removed the Python
+service, rewrite, development proxy, bridge variables, and Services preset.
+
+### 2.1 Why one language, not two
+
+The Python backend's rule engine was already duplicated in the prototype. Phase
+1 moved and completed the TypeScript implementation in `src/lib/core/`; Phase 2
+then retired the Python copy:
+
+| Python                                  | Current TypeScript mirror      | Verified                                                                                                             |
+| --------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `services/journey.py`                   | `src/lib/core/journey-math.ts` | Same 90-day clamp and streak rule; TypeScript now uses DST-safe date-only ordinals matching Python `date` arithmetic |
+| `services/registry.py` `JOURNEY_PHASES` | `src/lib/core/journey.ts`      | Registry-contract test enforces phase ids/names; TypeScript also owns the day boundaries                             |
+| `services/registry.py` `WEEKLY_ACTIONS` | `src/lib/core/actions.ts`      | Registry-contract test enforces all fifteen ids, categories, kinds, and labels                                       |
+| `services/registry.py` `WORK_PATHS`     | `src/lib/core/paths.ts`        | Registry-contract test enforces ids, names, and fit ratings                                                          |
+| `services/skills.py`                    | `src/lib/core/skills.ts`       | Skill translation table                                                                                              |
+
+`tests/core-registry.test.ts` now pins the remaining single-source registries in
+CI. **The strongest argument for the port is correctness, not hosting cost.**
+Killing Render is the bonus.
+
+The rest of the backend is ordinary CRUD over 12 tables. Direct substitutions:
+
+| Python                  | TypeScript                                          |
+| ----------------------- | --------------------------------------------------- |
+| FastAPI routes          | Next.js Route Handlers (`app/api/**/route.ts`)      |
+| SQLAlchemy + Alembic    | Drizzle ORM + Drizzle Kit                           |
+| Pydantic v2 schemas     | Bounded Route Handler validators                    |
+| `python-jose`           | Node `crypto` HS256 with constant-time verification |
+| `bcrypt`                | `bcryptjs`                                          |
+| `google-generativeai`   | Vercel AI SDK via AI Gateway                        |
+| Uvicorn / `render.yaml` | Vercel Functions (Fluid Compute)                    |
+
+### 2.2 Historical bridge — completed and retired
+
+Vercel's Python runtime served the temporary ASGI bridge during the migration.
+The bridge passed its protected smoke, then was deleted after the TypeScript
+replacement passed locally, on disposable Neon, and in protected Preview.
+
+Two required fixes before that works:
+
+- ~~`backend/app/main.py:21-43` runs `create_all` + `alembic stamp` + `seed_forums` inside `@app.on_event("startup")`.~~ — **done.** The startup hook is gone; Drizzle owns the schema and `python -m app.seed` is the explicit, idempotent seed step.
+- Neon's TCP **pooler** endpoint must be used, not the direct endpoint — serverless functions exhaust direct connections. Still to wire at step 11: the bridge reads `DATABASE_URL`, which must be the pooled URL, with `DATABASE_URL_UNPOOLED` reserved for migrations as `drizzle.config.ts` already does.
+- ~~The browser client needs a deployable route to the bridge without a second
+  origin.~~ — **done locally.** `src/lib/athlete/api.ts` defaults to relative
+  `/bridge`; `next.config.ts` proxies that prefix to local uvicorn; production
+  adds the equivalent Services route at step 11.
+- ~~Production must reject the bridge's development auth defaults.~~ — **done
+  locally.** `backend/app/config.py` fails closed on a default/short
+  `JWT_SECRET`, `AUTO_VERIFY=true`, or wildcard credentialed CORS in production
+  and preview environments. The Python suite covers both rejection and the safe
+  configuration.
+
+The final runtime is one language and one Next.js service. The bullets above are
+retained as historical rationale for the deployment sequence.
+
+### 2.3 Firebase/mobile compatibility and retirement gate
+
+Firebase is frozen, not deleted. The released mobile app authenticates with
+Appwrite and then accesses Firestore without Firebase identity. Its stable data
+key is the Appwrite user `$id`; Google OAuth is enabled in Appwrite and Apple is
+currently disabled. The current open Rules are critical, but strict Rules would
+reject every released client.
+
+- Implement `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`: the replacement client creates
+  a short-lived Appwrite JWT; a server endpoint validates it with Appwrite and
+  mints a Firebase custom token whose UID is the verified Appwrite `$id`.
+- Map Appwrite UID, temporary Firebase UID, and later stable Google/Apple
+  provider subjects to the canonical Postgres user. Never trust a client UID or
+  merge by email; preserve Apple relay emails as attributes.
+- Split private `profiles` from community-safe `public_profiles`, and move
+  cross-user notification, account-deletion, and streak mutations server-side
+  before strict Rules can pass the shipped feature set.
+- Test Rules in emulators and a separate staging project, then TestFlight. Ship
+  the authenticated build while Rules remain open briefly to measure aggregate
+  bridge success and adoption.
+- Publish strict Rules only after the documented minimum-version/adoption gate
+  makes old unauthenticated clients safe to reject. Maintain a rollback window.
+- Delete Firebase/Firestore and Appwrite only after the replacement release is
+  adopted, retained data passes reconciliation, and canonical provider identity
+  continuity is proven. Keep an auditable export/retention record.
+
+### 2.4 Google/Apple protocol coverage and application controls
+
+The providers solve only identity proof:
+
+| Requirement                    | Google / Apple protocol provides it?                                                             | Application work still required                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Provider authentication        | **Yes.** Google uses OIDC; Apple returns signed identity claims keyed by issuer/audience/subject | Validate issuer, audience, nonce/state/PKCE, expiry, and verified-email claims through Auth.js                                            |
+| Stable account key             | **Yes, per provider/client:** `sub`                                                              | Store unique `(provider, provider_account_id)` identities and explicit Firebase UID mappings                                              |
+| Cross-provider account linking | **No**                                                                                           | Require a signed-in linking ceremony; never auto-link by email, especially Apple relay email                                              |
+| Admin allowlist / roles        | **No**                                                                                           | Database `admin_role_assignments`; deny-by-default and require an active role server-side                                                 |
+| Application session            | **No**                                                                                           | Auth.js high-entropy secret, signed/encrypted `HttpOnly; Secure; SameSite` session, short admin lifetime, rotation/revocation             |
+| Admin action audit log         | **No**                                                                                           | Append-only audit row for every privileged mutation, including actor, action, target, outcome, request ID, and safe before/after metadata |
+
+Use existing provider registrations where their ownership, redirect URIs, and client types are compatible. Mobile and web often require separate Apple/Google client registrations even when they belong to the same provider project; sharing a brand does not mean sharing a client secret.
+
+---
+
+## 3. Firestore → Postgres Mapping
+
+`FEATURE_ANALYSIS.md` §4.1 offered Option A (unify on SQL) vs Option B (dual-write Firestore sync). **Option A.** Option B means paying for and operating two databases forever and keeps the admin portal reading a different truth than the app.
+
+| Firestore collection | Target SQL table                                  | Columns that must be **added**                                                                                                                                                                     |
+| -------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`           | `users` + `athlete_profiles`                      | `sport` → `athlete_profiles.sport` ✅ exists; **`suspended`**, **`banned`**, **`chat_banned`**, **`verification_requested`**, **`streak`** (or derive), `joined_at` → `users.created_at` ✅ exists |
+| `checkins`           | `check_ins`                                       | **`mood`** (1–5 int — admin `/checkins` charts it; SQL only has `option`), `note` → `journal` ✅ exists                                                                                            |
+| `messages`           | `posts` + `comments`                              | ✅ maps. Admin reads `display_name`, `sport`, `content`, `room_id`, `created_at`                                                                                                                   |
+| `rooms`              | `forums`                                          | **`daily_prompt`**, **`daily_prompt_author`**, **`daily_prompt_updated_at`** (used by `/api/update-prompt`)                                                                                        |
+| `support_requests`   | `peer_support_requests` + `tech_support_requests` | ✅ maps. Admin's flat `type` field discriminates — either add a `type` column and merge into one table, or `UNION` in a view                                                                       |
+| `completions`        | `action_completions`                              | `date` (SQL has `week_of` + `completed_at`), **`category`** (§6.5)                                                                                                                                 |
+
+**Admin moderation fields (`suspended` / `banned` / `chat_banned`) have no backend enforcement today** — the API never checks them. They exist only as Firestore writes. The migration must add both the columns and the enforcement in `require_verified` / auth middleware, otherwise banning a user does nothing.
+
+### 3.1 Baseline quality and scaling requirements
+
+The baseline has never been applied, so it must encode the intended invariants now:
+
+- Use stable canonical user IDs independent of Firebase, Google, Apple, or email. `auth_identities` owns unique provider subjects; `user_emails` owns normalized/verified/primary email state. Never merge identities solely because emails match.
+- Add `admin_role_assignments` as the explicit allowlist/role source, `auth_sessions` or session-version state for revocation, and append-only `admin_audit_logs`. OAuth authentication does not imply admin authorization.
+- Use `date` for calendar dates/week starts and `timestamptz` for instants. Standardize the bridge on UTC-aware Python datetimes before it shares the schema.
+- Prefer UUID keys for externally referenced/domain entities and `bigint`/identity only for high-volume internal sequences. Do not expose enumerable IDs where they create avoidable scraping or account-correlation risk.
+- Add database checks/enums for finite states (athlete status, mood 1–5, moderation/support state, vote value, auth provider/role) and make required business fields `NOT NULL`.
+- Enforce idempotency/uniqueness: one check-in per user/date, one weekly action completion per user/action/week, one vote per user/target, one provider subject per identity, and one active primary email per user.
+- Replace polymorphic votes with FK-backed post/comment vote tables, or enforce equivalent integrity with a trigger. Prefer the split tables for predictable indexes and cascades.
+- Add query-shaped composite indexes: time-ordered check-ins per user, posts per forum, comments per post, open support queues, action history, identity lookup, and audit actor/target/time.
+- Add `created_at`/`updated_at` consistently and design soft deletion/anonymization plus retention boundaries for user/PHI records. Audit rows must survive operational record deletion without retaining unnecessary PHI.
+- Keep schema changes transactional, make seed data idempotent, run migrations as an explicit build/release step (never function startup), and test both upgrade and empty-database rebuild on disposable Neon branches.
+- Establish pooler/direct URL separation, per-environment database roles with least privilege, statement/lock timeouts, backup/PITR expectations, query monitoring, and a documented zero-downtime expand/backfill/contract migration pattern before scale demands it.
+
+---
+
+## 4. Phased Execution Plan
+
+### Directory lifecycle — what is kept, and until when
+
+`web-prototype/` and `backend/` are **retained in the initial commit as reference material**, then deleted once their content has been absorbed. Nothing is discarded up front: both remain readable (and `backend/` remains _runnable_) throughout the migration, and git history preserves them permanently after deletion.
+
+| Directory                          | Role                                                                                           | Deleted at                                                                                                                                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `third-and-manageable-admin-main/` | **The foundation.** Promoted to repo root in Phase 0                                           | — (becomes the app)                                                                                                                                           |
+| ~~`web-prototype/`~~               | Reference for screens, design system, data registries, and the API contract (`src/lib/api.ts`) | ~~End of Phase 1~~ — **deleted** at step 10. Screens are in `src/app/(athlete)/`, registries in `src/lib/core/`, the API contract in `src/lib/athlete/api.ts` |
+| ~~`backend/`~~                     | ~~Reference for API semantics + temporary FastAPI bridge~~                                     | **Deleted at Phase 2 step 16** after the 104-case Python suite and replacement checks passed                                                                  |
+| `render.yaml`                      | —                                                                                              | Phase 2 step 11, when the bridge goes live                                                                                                                    |
+
+Rationale: both ports were verified _against_ their reference directories before
+deletion. The API contract survives in `src/lib/athlete/api.ts`; runtime rules
+live in `src/lib/core/`, and replacement behavior is pinned by Vitest and the
+disposable-Neon Route Handler suite.
+
+### Phase 0 — Foundation and safe deployment prerequisites
+
+1. ~~`git init` at the repo root.~~ — **done.** Vercel's Git integration,
+   preview deploys, and rollbacks require it; runtime dependencies were
+   committed while `node_modules/`, `.venv/`, build output, local databases,
+   and env files remain ignored.
+2. Promote `third-and-manageable-admin-main` to the repo root as the single Next.js app. It is the foundation: it is already Next 16 / React 19 / Tailwind 4 and already deployable.
+3. Provision **Neon Postgres** via Vercel Marketplace (free tier). Keep
+   `DATABASE_URL` pooled for application runtime and
+   `DATABASE_URL_UNPOOLED` direct for migrations. Validate the baseline on a
+   disposable Neon branch before the primary database is touched.
+4. Replace the unapplied SQLAlchemy/Alembic history with the §3.1 Drizzle
+   baseline: canonical UUID users, provider-subject identities/Firebase UID
+   mappings, normalized emails, revocable sessions, explicit admin roles,
+   append-only audit events, relational vote integrity, UTC-aware timestamps,
+   constraints, and query-shaped indexes.
+5. After the manifest guard, secure bootstrap auth, disposable-branch migration,
+   rotated admin secrets, and Deployment Protection are all verified, perform a
+   protected smoke deployment. Keep Firebase credentials absent while Firebase
+   access is blocked.
+
+### Phase 1 — Situate the prototype (goal #1)
+
+6. ~~Move the existing admin pages under `app/admin/`; add `proxy.ts` gating `/admin/*`.~~ — **done.** Pages live in an `admin/(dashboard)` route group so the layout's redirect does not wrap `/admin/login` and send it to itself; `/admin/login` is excluded from the matcher by negative lookahead for the same reason, matching `login` exactly so a future `/admin/login-history` stays gated. The matcher is a prefix now, so a new admin page is protected when it is added rather than when someone remembers to extend a list. The login page honours the proxy's `?next=`, restricted to same-origin `/admin` paths. `/` redirects to `/admin` until step 7 replaces it. Proxy remains an optimistic routing layer only — layouts, server actions, and Route Handlers repeat authoritative authentication and role checks.
+7. ~~Port `web-prototype`'s 14 react-router routes into `app/(athlete)/`.~~ — **done.** It was **12 page components / 11 addressable URLs plus a catch-all**, not 14 routes; the count in this plan was wrong. Structure: `(athlete)/layout.tsx` provides only the auth context, and `(athlete)/(shell)/` adds the sidebar/tab chrome, so `/onboarding` gets the session without the chrome — the split the prototype achieved by keeping it out of `MainLayout`. `/` is now the athlete check-in; the step 6 redirect placeholder is deleted. Component markup moved close to verbatim; the substantive changes were all forced, and are listed in §4.1.
+8. ~~Google Fonts `<link>` → `next/font/google`~~ — **done.** Inter / Instrument Serif / JetBrains Mono are self-hosted and bound to the Tailwind `--font-{sans,serif,mono}` tokens; Raleway is retained as `--font-admin` so the admin portal keeps the typeface it shipped with. Verified against a production server: four `woff2` files served from `/_next/static/media/`, zero requests to `fonts.googleapis.com` or `fonts.gstatic.com`, and both preconnects gone.
+9. ~~Lift `src/data/*` registries and `lib/journeyMath.ts` into `lib/core/`.~~ — **done**, as `journey`, `actions`, `journey-math`, `paths`, `skills`, `checkin`, `personas`, `community`. `lib/core/actions.ts` is the TS source of truth for the fifteen habits (§6.5). The registries carry lucide icon _names_ rather than components, matching what the backend already serialises, so `lib/core` stays importable from a Route Handler without dragging `lucide-react` into a server bundle; `components/athlete/icons.tsx` resolves a name to a glyph. `tests/core-registry.test.ts` parses `services/registry.py` and fails on any drift in the action, path, or phase registries — mutation-verified in both directions.
+10. ~~Redeploy, move the client to a same-origin API, and delete
+    `web-prototype/`.~~ — **done.** The final client base is `/api`, no public API
+    override remains, and the protected Next.js-only Preview passes end-to-end.
+    The `tsconfig`/`eslint`/manifest-guard exclusions were removed, and the brand
+    favicon survives as `src/app/icon.svg`.
+
+### 4.1 What the athlete port could not carry over verbatim
+
+Step 7 was billed as "component code moves nearly verbatim; the router is the
+only real work." That held for markup. Everything below is a change the port
+_forced_ — recorded here because each one is a behavioural difference, not a
+refactor, and reviewing the diff alone would not make them obvious.
+
+| What                                                   | Why it could not move as-is                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Integer ids → UUID strings**                         | The prototype's `api.ts` typed every id as `number`, and the post page called `Number(postId)` on the route param. Against the §3.1 baseline those are `NaN` on every real id. All ids are strings now and the conversions are gone.                                                                                                                                                                                                                    |
+| **`localStorage` at render time**                      | Vite only ever rendered in a browser. App Router client components _prerender on the server_, where `localStorage` does not exist — the auth context and both hooks would have thrown at build, and any signed-in athlete would have hydrated against signed-out HTML. State now starts at its signed-out default and storage is read in an effect.                                                                                                     |
+| **`navigate(path, { state })`**                        | react-router carried the artifact "Share to forum" draft in navigation state. `next/navigation` moves URLs only. The draft goes through `sessionStorage` (`lib/athlete/forum-draft.ts`), cleared on read, rather than a query string that would put a paragraph of body text into history and any shared link.                                                                                                                                          |
+| **`useSearchParams` needs a boundary**                 | `/game-plan` reads `?retake=1`, which opts its subtree into client rendering; it is wrapped in `<Suspense>` so the rest of the route still prerenders. The param is now cleared with `router.replace` after the intake opens, so a refresh cannot reopen it.                                                                                                                                                                                            |
+| **Sign-out was local-only**                            | The prototype's `signOut` cleared `localStorage`. That makes a token unreachable from one browser, not invalid. It now calls `/auth/logout`, which bumps `auth_version` and kills the token everywhere — the revocation path added when the bridge was ported.                                                                                                                                                                                          |
+| **`getTodaysPrompt()` read the clock at module scope** | Evaluated once during prerender and again on the client, it disagrees across any day boundary the build straddles. It takes the date as an argument now, and the check-in card only renders after mount.                                                                                                                                                                                                                                                |
+| **Effects that set state synchronously**               | The React Compiler lint rules that ship with `eslint-config-next` 16 reject it, and they were right to: the profile page kept four form fields in an effect synced from `user`, which silently discarded whatever the athlete had typed if a background `/auth/me` refresh landed mid-edit. Edits are one nullable `form` object now, seeded when editing opens. Data fetches moved into cancellable async effects, which also closes the unmount race. |
+| **404 loses the tab bar**                              | react-router matched `*` _inside_ the layout. `app/not-found.tsx` is the root boundary and covers `/admin/*` too, so it cannot assume the athlete shell or its auth context. It is a self-contained page with a link home.                                                                                                                                                                                                                              |
+
+Two dependencies came with the port: `clsx` (already used throughout the
+prototype's markup) and `html-to-image` (the artifact PNG export). Both are
+zero-dependency, so `npm audit --omit=dev` stays at 0.
+
+Deliberately unchanged: these pages are still client components that fetch from
+the browser, and athlete auth is still a client-held bearer token while the
+admin uses a signed cookie. Converting data fetching to server components and
+unifying the two auth mechanisms is its own step, alongside the Phase 2 Route
+Handlers — doing it inside the router move would have made any bug ambiguous
+between the two changes, against a backend that is about to be replaced anyway.
+
+### Phase 2 — Migrate the backend (goal #2)
+
+_Bridge first (§2.2), then port behind it — decided; see §7.1._
+
+11. **Bridge (deployment-gated):** once credentials are rotated and Vercel
+    Services access is confirmed, configure Next.js and FastAPI as Services in the
+    **existing single Vercel project**, with shared deployments/env and a
+    same-origin `/bridge/*` route to FastAPI. **Protected Preview deployment
+    completed on 2026-08-09:** the web/auth smoke passed, `/bridge/health` returned
+    200, unauthenticated bridge access returned 401, and a database-backed missing
+    login returned 401. The disposable 20-table baseline and four-case canonical
+    identity transaction suite passed, and their databases were removed.
+    `render.yaml` is deleted. The remote Render service and billing must still be
+    decommissioned in Render after its traffic/rollback dependency is confirmed;
+    source deletion alone does not stop that service.
+12. ~~Port `backend/app/services/{skills,journey,registry}.py` →
+    `lib/core/`.~~ — **done during Phase 1**, with registry parity tests and
+    DST-safe date-only journey math. Keep the Python parity tests until cutover.
+13. ~~Port the 7 route modules to Route Handlers under `app/api/`.~~ — **done.**
+    The typed client now calls same-origin `/api`; auth, profile, check-ins,
+    game-plan, Clipboard, Community, artifacts, and support run on Drizzle/Neon.
+14. ~~Gemini → Vercel AI Gateway.~~ — **done.** The original
+    `SAFETY_TEMPLATE` and invisible adaptation logic are preserved; the retired
+    `gemini-1.5-flash` is replaced by the live Gateway model
+    `google/gemini-3.6-flash`. Missing Gateway auth/provider failure still falls
+    back safely and deterministically.
+15. ~~Port applicable behavior from pytest to Vitest.~~ — **done.** The final
+    Python run passed 104 cases. Replacement coverage includes local Vitest plus a
+    eight-case disposable-Neon flow for auth/revocation, moderation, validation,
+    profiles, journey/check-ins, weekly actions, Clipboard, forums/feed/comments/
+    votes, artifacts, and support.
+16. ~~Remove every FastAPI/Services residue and prove Next.js-only output.~~ —
+    **done.** `backend/`, Python dependencies/build files, `/bridge`, proxy/env
+    configuration, Services rewrites, parity-only tests, and generated caches are
+    removed. `vercel.json` and the upload-manifest gate now require `nextjs`.
+    **One project, one deployment, one language.**
+
+**Phase 2 frontend outcome.** The athlete NUX now starts
+at login, resumes incomplete accounts in onboarding, and removes fixture health,
+journey, coaching, and forum content from fresh-user and backend-error states.
+The Community surface also implements the proposal's university palettes and a
+supportive heart-only feed against the existing forum API. These frontend
+changes were retained through the Route Handler cutover and protected Preview
+smoke.
+
+### Phase 3 — Unify the data layer
+
+17. ~~Implement the §3.1 identity baseline: canonical users, provider identities/Firebase UID mapping, normalized emails, admin role assignments, revocable sessions/session version, and append-only admin audit logs.~~ — **schema and transaction foundation done.** Provider-backed admin-role enforcement waits for step 18.
+18. Configure Auth.js Google + Apple against the existing provider projects/identities where compatible. Use signed/encrypted sessions, explicit active-role lookup for every admin request, `proxy.ts` for early gating, and audited privileged mutations (§6.7).
+19. **Implementation and staging tests done; production activation gated.** The Appwrite JWT → Firebase custom-token compatibility bridge (§2.3 and `APPWRITE_FIREBASE_BRIDGE_DESIGN.md`), revocation synchronization, deterministic identity mapping, and all 16 strict-Rules emulator cases pass. Do not publish the Rules until build 8 provider auth passes on a physical iPhone and adoption opens the gate.
+20. ~~Repoint all 17 `adminDb` call sites at Drizzle and enforce `suspended` / `banned` / `chat_banned` in the application.~~ — **done.** All admin overview/users/check-ins/game-plan/community/support reads and all seven privileged mutations use Drizzle. Mutations are transactional and append audit entries; suspension/platform bans increment `auth_version`, chat bans are checked on community writes, and account deletion is an audited soft-deactivation. Firebase Admin now has no Firestore import or data call and remains only for the mobile identity compatibility window.
+21. **Blocked on production read authority:** scripted Firestore → Postgres export for the retained CWRU pilot data (84 users, check-ins, messages, support requests, and `completions`). The current Google identity cannot provision/administer the required least-privilege service account. Once an owner supplies `roles/datastore.viewer` access, build the idempotent export with the §6.4 email-leak scrub, Appwrite/provider identity reconciliation, counts, checksums, sampled verification, and rollback artifact. Do not use the client Web key as an Admin credential.
+22. **Blocked on reconciliation and mobile adoption.** Freeze Firebase writes only after step 21 passes, and keep Appwrite identity plus the temporary Firebase custom-token bridge through the mobile compatibility window. Delete either vendor only after §2.3 passes.
+
+### Phase 4 — Absorb the unserved capabilities
+
+23. Vercel Cron: daily reminders, weekly action rollover, streak recompute.
+24. Vercel Blob: profile photos.
+25. Edge Config: `AUTO_VERIFY` and the verification-policy flags (`WEB_PROTOYPE_DEBRIEF.md` §16.2 Q1 is still open).
+26. WAF rate limits on auth endpoints + `/clipboard/chat`.
+27. Web Analytics + Speed Insights.
+
+### Phase 5 — Mobile parity (goal #3, later)
+
+28. Rebuild the Expo app against the Vercel Route Handlers and Auth.js-compatible Google/Apple identity flow. Move the client-side Gemini key server-side. EAS Build stays.
+29. Release, measure adoption, enforce the minimum supported version, complete the rollback window, and only then execute the §2.3 Firebase retirement checklist.
+
+---
+
+## 5. Cost Comparison
+
+| Line item                                   | Today                                                   | After                                                                          |
+| ------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Render web service                          | $0 free tier (50s cold starts) → **$7/mo** to be usable | **$0** — gone                                                                  |
+| Render Postgres                             | $0 for 30 days → **$7/mo**                              | **$0** — Neon free tier on Vercel Marketplace                                  |
+| Firebase Firestore                          | $0 Spark → Blaze usage-based as the pilot scales        | Temporary overlap during mobile compatibility, then **$0** after the §2.3 gate |
+| Appwrite                                    | $0 free (pauses, breaks sign-in)                        | **$0** — gone                                                                  |
+| Vercel hosting (1 project)                  | n/a                                                     | **$20/mo** Pro (already held)                                                  |
+| Gemini                                      | usage-based                                             | usage-based via AI Gateway ($5 free credit)                                    |
+| Blob / Cron / Edge Config / Analytics / WAF | n/a                                                     | included                                                                       |
+| Apple Developer + EAS                       | $99/yr                                                  | unchanged                                                                      |
+
+**Final vendor count after the mobile compatibility window: 5 → 2** (Vercel + Apple/EAS), with Google as an identity/AI provider and metered AI behind the Gateway.
+
+**Pro is already held**, which settles the licensing question — Hobby's license prohibits commercial use, and the $7,500/yr Team License in `FEATURE_ANALYSIS.md` §6.3 is unambiguously commercial. Pro also unlocks the WAF rules (§1.5 #20) and longer function durations, both assumed by this plan.
+
+The Vercel CLI/MCP is authenticated to the **LingIQ Pro team**, and the linked project now has an explicit Next.js framework preset. Re-check scope before any destructive or production command.
+
+---
+
+## 6. Issues This Migration Must Fix
+
+These are pre-existing defects that the migration touches directly. Flagging rather than silently carrying them forward.
+
+### 6.1 Admin session cookie was forgeable — **critical, fixed locally**
+
+The original `src/lib/auth.ts` returned true when the cookie `admin_session`
+literally equaled `"authenticated"`. The value was not signed, encrypted, or
+derived from a secret, so anyone could set it and reach the operator portal.
+All seven mutation routes applied that same ineffective check.
+
+**Phase 0 status:** implemented and verified in protected Preview. Authentication now fails
+closed if either secret is absent/weak, uses constant-time password comparison,
+and issues an eight-hour HMAC-signed `HttpOnly; SameSite=Strict` session.
+`proxy.ts` performs early page gating, while the dashboard layout and every
+privileged Route Handler retain authoritative verification. The legacy constant
+cookie is ignored and cleared. The shared password remains a temporary
+bootstrap secret only.
+
+**Final fix before real data/go-live:** Auth.js with Google and Apple, explicit database-backed admin roles/allowlist, revocable signed/encrypted sessions, and append-only audit logs (§6.7). No provider sign-in grants admin rights automatically.
+
+### 6.2 Credentials committed to the repo
+
+`third-and-manageable-admin-main/env.example` contained a **real** admin password, a real service-account email, and a key-shaped value. `FEATURE_ANALYSIS.md` §5.2 re-published the same password in prose.
+
+**Status: sanitized before the initial commit** — both files now hold placeholders, so nothing sensitive entered git history. `backend/.env` held only a placeholder JWT secret and an empty Gemini key, and is gitignored regardless.
+
+**Current status:** Preview admin/session/JWT credentials were replaced and no
+Firebase private-key variable remains in Vercel. The legacy Firebase
+service-account key still must be revoked at its source; the current Google
+identity lacks service-account key administration, so a project owner must
+grant that IAM access or perform the revocation. Sanitizing the repository did
+not invalidate the old key.
+
+### 6.3 Moderation flags are decorative — **fixed in the Next.js API**
+
+Per §3 — `suspended` / `banned` / `chat_banned` were written by the admin portal and read by nothing, so banning a user did nothing at all.
+
+`requireUser` now returns 403 for a `banned` or `suspended` account on every
+authenticated request, while the login path also rejects both states.
+`requireVerifiedUser` additionally blocks `chat_banned` on Community writes
+while leaving the rest of the app reachable. Platform suspension/ban mutations
+increment `auth_version`, immediately invalidating already-issued sessions.
+Covered by local and disposable-Neon integration tests.
+
+### 6.4 Email exposure in community content
+
+`FEATURE_ANALYSIS.md` §1.4 — full user emails visible inside the Global Athlete Room. The new `posts`/`comments` schema stores `author_name` only, which fixes this by construction. Verify during the Firestore export that no email leaks into migrated message bodies.
+
+### 6.5 Admin and backend disagree about what a "weekly action" is — **RESOLVED: fifteen categorized habits**
+
+`(dashboard)/gameplans/page.tsx:5` hardcodes **15** action IDs in a categorized taxonomy (`career-explore`, `career-network`, `routine-morning`, `mindset-journal`, `wellness-therapy`, …). `backend/app/services/registry.py:88` defines **4** generic reps (`a1`–`a4`).
+
+These are not two copies of one model — they are two different models. The admin was built against the original app's Firestore schema; the backend was written fresh for the redesign. Nothing reconciles them.
+
+**Consequence:** when the admin routes repoint at Postgres in Phase 3, `/gameplans` returns nothing — it queries `action_completions` for IDs that the backend never writes. Phase 3 cannot complete until a taxonomy is chosen.
+
+**Decision: the admin's fifteen categorized habits win.** Consequences for the port:
+
+- `backend/app/services/registry.py` `WEEKLY_ACTIONS` (`a1`–`a4`) is **not** ported as-is. `lib/core/actions.ts` is seeded from the admin's `ACTION_LABELS` map — 5 categories × 3 actions: `career-{explore,network,resume}`, `routine-{morning,exercise,sleep}`, `mindset-{journal,gratitude,meditation}`, `social-{connect,mentor,community}`, `wellness-{therapy,nutrition,hobby}`.
+- Add a `category` column to `action_completions` (the admin groups by it), and keep `action_id` as the stable string key.
+- `web-prototype/src/data/journey.ts` `WEEKLY_ACTIONS` is likewise replaced, not ported — its `a1`–`a4` entries and their `kind` values (`REFLECTION` / `SKILL REP` / `WORLD REP`) are superseded by the category taxonomy.
+- Any existing `action_completions` rows written against `a1`–`a4` need remapping or discarding. The dev SQLite DB has some; the Firestore `completions` collection already uses the fifteen-key taxonomy, so **the retained CWRU data migrates cleanly** — it is the backend that was the outlier.
+
+**Status: done in the final TypeScript runtime.**
+`/game-plan/actions/toggle` rejects any id outside the taxonomy and writes
+`action_completions.category`. `lib/core/actions.ts` is the runtime source of
+truth, and `tests/core-registry.test.ts` pins its ids, categories, kinds, and
+labels after the Python implementation's retirement.
+
+This does tension against `REDESIGN_BRIEF`'s "keep it simple — one action, one mindset prompt, one habit." Fifteen actions is the data model; the UI can still surface one at a time. Worth revisiting as a UI question later, but it does not change the schema.
+
+### 6.6 Retired model
+
+`gemini-1.5-flash` (`services/gemini.py:102`) is retired. The safe-fallback path means this fails silently into canned responses rather than erroring — worth checking whether production is currently serving real AI at all.
+
+### 6.7 OAuth identity is not authorization
+
+Google OIDC and Sign in with Apple prove control of a provider identity; they do not implement the application's authorization or audit requirements.
+
+- Auth.js handles provider callbacks and signed/encrypted sessions. Validate exact issuer/audience/client, state, nonce, PKCE, expiry, and verified-email semantics; keep OAuth access/refresh tokens server-side and request only minimal scopes.
+- `auth_identities(provider, provider_account_id)` is the durable identity key. Keep Firebase UID mappings during the compatibility window. Never auto-link Google, Apple, password, or Firebase identities by email alone.
+- Admin access is deny-by-default. An authenticated user needs an active `admin_role_assignment`; role changes and account suspension must take effect without waiting seven days for a stale token.
+- `proxy.ts` may redirect obvious anonymous requests, but privileged data access and every mutation perform server-side session + role checks.
+- Every privileged mutation writes an append-only audit event in the same transaction where practical: actor identity/role, action, target, outcome, request ID, timestamp, and redacted before/after metadata. Never place passwords, provider tokens, session tokens, raw journal/health text, or unnecessary PHI in the log.
+
+### 6.8 HIPAA/BAA go-live gate
+
+Purchase the Vercel HIPAA add-on and complete/file the BAA before any live Vercel workload handles PHI. The BAA is one control in a shared-responsibility program, not a blanket compliance result. Before go-live:
+
+- Confirm every service that stores/transmits PHI is covered by an appropriate agreement and configuration, including Neon, logging/observability, AI providers/gateway, email/push, backups, and support tooling.
+- Complete a data-flow inventory, risk assessment, minimum-necessary review, retention/deletion policy, incident-response plan, access review, workforce/admin access controls, and audit-log retention/monitoring.
+- Prevent PHI from entering build logs, deployment manifests, analytics, error traces, AI prompts, preview deployments, or support channels without an approved purpose and safeguard.
+- Use least-privilege production roles, separate preview/test data, encrypted transport/storage, credential rotation, MFA for operators, recovery tests, and documented breach/escalation procedures.
+- Treat previews and disposable database branches as synthetic-data-only unless they are explicitly included in the compliance boundary.
+
+---
+
+## 7. Open Scoping Questions
+
+Answers change the plan; everything above is written to be true regardless.
+
+1. ~~**Backend strategy**~~ — **resolved: bridge then port.** Deploy FastAPI to Vercel's Python runtime first (Render dies immediately, stopping the 30-day Postgres deletion clock and the ~50s cold starts), then port to TypeScript route-by-route behind it. Cost of the hedge is configuring the deploy twice; benefit is nothing is ever down and the pilot keeps running.
+
+1b. ~~**Weekly-action taxonomy**~~ — **resolved: fifteen categorized habits.** The admin's taxonomy wins; the backend's `a1`–`a4` is rewritten to match. See §6.5. 2. ~~**Firestore live data**~~ — **resolved: retain.** The CWRU pilot data must survive. Phase 3 includes a scripted Firestore → Postgres export, and §6.4's email-leak scrub is mandatory, not optional. 3. ~~**Repo shape**~~ — **resolved: one Next.js app, one Vercel project, no monorepo.** `web-prototype` was a design spike built in a vacuum, not a parallel product, so there is nothing to merge — its screens and registries get rebuilt on the admin's Next.js foundation. Rationale in §2.0. 4. ~~**Vercel plan**~~ — **resolved: Pro.** The CLI/MCP account is on the LingIQ team. The HIPAA add-on and BAA remain a separate, mandatory go-live gate (§6.8). 5. **Verification policy** (`WEB_PROTOYPE_DEBRIEF.md` §16.2 Q1, still open) — roster DB, `.edu` allow-list, or manual review? The gate and tests exist; the policy decides whether Phase 4's Edge Config flag is a stopgap or the mechanism.
+
+---
+
+## 8. Item-by-Item Summary
+
+| Dependency                            | Verdict                                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Render web service                    | ✅ Migrate — Vercel Functions                                                                           |
+| Render Postgres                       | ✅ Migrate — Neon (Vercel Marketplace)                                                                  |
+| Firestore                             | ⏸️ Migrate into Postgres, then retain read/compatibility window until mobile cutover                    |
+| Firebase Admin SDK                    | ⏸️ Retain only for migration/token compatibility; remove at §2.3 gate                                   |
+| Firebase Auth                         | ⏸️ Introduce only as a temporary Appwrite custom-token bridge for strict Rules; retire with Firestore   |
+| Appwrite                              | ⏸️ Preserve the 95-user live identity source through canonical linking and mobile adoption; then retire |
+| Firebase Storage (photos)             | ✅ Migrate — Vercel Blob                                                                                |
+| Backend JWT auth                      | ✅ Replace with Auth.js-compatible signed sessions/tokens and provider identity mapping                 |
+| Admin password auth                   | ⚠️ Secure bootstrap immediately; final Auth.js + role allowlist + audit logs — §6.1/§6.7                |
+| Gemini API                            | ✅ Route via Vercel AI Gateway + bump model                                                             |
+| Gemini in mobile client               | ⚠️ Move server-side — key is extractable                                                                |
+| Google Fonts CDN                      | ✅ Eliminate — `next/font`                                                                              |
+| Next.js admin                         | ✅ Native on Vercel                                                                                     |
+| Vite SPA                              | ✅ Migrate — port to App Router                                                                         |
+| SQLite dev DB                         | ⚠️ Dev-only — replace with a Neon branch                                                                |
+| Cron / Blob / Flags / Analytics / WAF | ✅ Adopt — included                                                                                     |
+| Expo / EAS Build                      | ❌ Stays — Vercel doesn't build binaries                                                                |
+| Apple Developer Program               | ❌ Stays                                                                                                |
+| Push notifications                    | ❌ Expo Push, triggered from Vercel Cron                                                                |
+| Realtime sockets                      | ❌ Not needed today; future Upstash/Ably if live chat is added                                          |

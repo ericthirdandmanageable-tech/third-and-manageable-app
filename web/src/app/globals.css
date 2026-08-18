@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+@theme {
+    /* Typography — three voices: UI sans / editorial serif / data mono.
+       Self-hosted by `next/font/google` in app/layout.tsx, which sets these
+       CSS variables; nothing is fetched from fonts.googleapis.com at runtime. */
+    --font-sans: var(--font-inter), system-ui, sans-serif;
+    --font-serif: var(--font-instrument-serif), Georgia, serif;
+    --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+    /* The admin portal keeps the typeface it shipped with. It is a different
+       surface with a different audience, and the athlete design system was
+       never drawn for it — `font-admin` on its layouts is the whole opt-in. */
+    --font-admin: var(--font-raleway), system-ui, sans-serif;
+
+    /* Surfaces — near-black layered dark */
+    --color-bg-base: #0b0c0e;
+    --color-bg-surface: #14161a;
+    --color-bg-elevated: #1c1f26;
+    --color-border-subtle: #262a33;
+
+    /* Text — warm whites */
+    --color-text-primary: #f4f2ec;
+    --color-text-secondary: #9ba1ac;
+    --color-text-tertiary: #7f8794;
+
+    /* Accent — volt: a signal, not a wash */
+    --color-volt: #c8f04b;
+    --color-volt-ink: #11130a;
+
+    /* Editorial — sand, for words that matter */
+    --color-sand: #e8dcc8;
+
+    /* Data hues — metric contexts only */
+    --color-sleep: #8b93f8;
+    --color-activity: #f0854b;
+    --color-hrv: #e86a8a;
+
+    --color-danger: #e5484d;
+}
+
+@layer base {
+    body {
+        @apply bg-bg-base text-text-primary antialiased font-sans;
+    }
+}
+
+/* ---------- App theme: liquid glass (Sideline Dusk / Campus Colors) ---------- */
+/*
+ * Toggled via `data-app-theme` on <html> (lib/athlete/app-theme.tsx).
+ * With no attribute — or `data-app-theme="legacy"` — nothing below applies
+ * and the app renders exactly as it does today: the near-black/volt shell
+ * defined in the `@theme` block above.
+ *
+ * Every component already reads color through these same custom properties
+ * via Tailwind utilities (`bg-bg-surface`, `text-volt`, …) rather than hex
+ * literals, so redefining the tokens here re-skins the whole app without
+ * editing a single component's className.
+ */
+[data-app-theme="dusk"],
+[data-app-theme="school"] {
+    --color-bg-base: #eef4fc;
+    --color-bg-surface: rgba(255, 255, 255, 0.6);
+    --color-bg-elevated: rgba(255, 255, 255, 0.8);
+    --color-border-subtle: rgba(22, 35, 62, 0.12);
+
+    --color-text-primary: #16233e;
+    --color-text-secondary: #46536d;
+    --color-text-tertiary: #59657e;
+
+    --color-volt: #2f6fed;
+    --color-volt-ink: #ffffff;
+    --color-sand: #ea8a57;
+
+    --color-sleep: #6d7fe0;
+    --color-activity: #ea8a57;
+    --color-hrv: #d1607f;
+    --color-danger: #c8394b;
+}
+
+/* Campus Colors starts from the same glass base as Sideline Dusk; the
+   school's own palette (resolved from `community-theme.ts`) is layered on
+   top as an inline style on the shell root — see ShellLayout — so it only
+   needs a JS dependency, never a second copy of these tokens. */
+
+[data-app-theme="dusk"] .app-shell,
+[data-app-theme="school"] .app-shell {
+    background-image:
+        radial-gradient(ellipse 55% 40% at 88% -8%, #ffd6a8 0%, transparent 55%),
+        linear-gradient(165deg, #eef4fc 0%, #dce8fb 55%, #eef4fc 100%);
+    background-repeat: no-repeat;
+}
+
+/* Liquid Glass is the functional layer: navigation, toolbars, and transient
+   controls. Content cards intentionally keep the standard surface materials
+   above so hierarchy stays obvious and the glass never becomes visual noise. */
+.liquid-glass {
+    backdrop-filter: blur(24px) saturate(1.45);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.38),
+        inset 0 -1px 0 rgba(8, 18, 36, 0.18),
+        0 14px 36px rgba(8, 18, 36, 0.14);
+}
+
+[data-app-theme="dusk"] .liquid-glass,
+[data-app-theme="school"] .liquid-glass {
+    border-color: rgba(22, 35, 62, 0.14);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.82),
+        inset 0 -1px 0 rgba(22, 35, 62, 0.2),
+        0 14px 36px rgba(31, 55, 96, 0.16);
+}
+
+/* Shared iPhone-safe viewport primitives. `svh` follows the visible viewport
+   when browser chrome or the keyboard is present; env() keeps controls clear
+   of the Dynamic Island and home indicator in the installed app. */
+.safe-viewport {
+    min-height: 100vh;
+    min-height: 100svh;
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+.mobile-tab-bar {
+    right: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: 0.75rem;
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    .liquid-glass {
+        background-color: var(--color-bg-surface);
+        backdrop-filter: none;
+        box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+    }
+
+    [data-app-theme="dusk"] .liquid-glass,
+    [data-app-theme="school"] .liquid-glass {
+        background-color: rgba(255, 255, 255, 0.96);
+    }
+}
+
+/* ---------- Signature elements ---------- */
+
+/* The Yard Line — 1px volt gradient rule under headers and on artifacts */
+.yard-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-volt), transparent);
+}
+
+/* Film grain — one notch from invisible, hero/artifact surfaces only */
+.grain {
+    position: relative;
+}
+.grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-rise {
+    animation: rise 300ms ease-out both;
+}
+
+@keyframes disclosure {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-disclosure {
+    animation: disclosure 250ms ease-out both;
+}
+
+@keyframes fill-bar {
+    from {
+        width: 0;
+    }
+}
+.animate-fill {
+    animation: fill-bar 800ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-rise,
+    .animate-disclosure,
+    .animate-fill {
+        animation: none;
+    }
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    @apply bg-bg-elevated rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-border-subtle;
+}

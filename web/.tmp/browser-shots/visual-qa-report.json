@@ -1,0 +1,547 @@
+[
+  {
+    "name": "current-login-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/current-login-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/login",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "The season changed. Your discipline didn’t.",
+      "Pick up where you left off."
+    ],
+    "clipped": []
+  },
+  {
+    "name": "old-entry-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/old-entry-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:5174/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Morning Check-in",
+      "What does your daily routine look like now? How has it changed?"
+    ],
+    "clipped": [],
+    "errors": []
+  },
+  {
+    "name": "current-login-desktop",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/current-login-desktop.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/login",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1000,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "The season changed. Your discipline didn’t.",
+      "Pick up where you left off."
+    ],
+    "clipped": []
+  },
+  {
+    "name": "old-entry-desktop",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/old-entry-desktop.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:5174/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1000,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Morning Check-in",
+      "What does your daily routine look like now? How has it changed?"
+    ],
+    "clipped": [],
+    "errors": []
+  },
+  {
+    "name": "fresh-home-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-home-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Morning Check-in",
+      "Add context when you're ready",
+      "What does your daily routine look like now? How has it changed?"
+    ],
+    "clipped": [
+      {
+        "tag": "button",
+        "text": "I'm building a new structure piece by piece.",
+        "left": 49,
+        "right": 341,
+        "top": 790,
+        "bottom": 869
+      }
+    ]
+  },
+  {
+    "name": "fresh-game-plan-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-game-plan-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/game-plan",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Your Game Plan",
+      "What the game taught you",
+      "Path Fit",
+      "This Week's Actions"
+    ],
+    "clipped": []
+  },
+  {
+    "name": "fresh-clipboard-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-clipboard-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/clipboard",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "The Clipboard"
+    ],
+    "clipped": []
+  },
+  {
+    "name": "fresh-community-bgsu-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-community-bgsu-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/community",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "BGSU Community",
+      "Explore topics",
+      "What's one thing you're working on right now—on or off the field?",
+      "Recent conversations",
+      "Start the first conversation"
+    ],
+    "clipped": [
+      {
+        "tag": "button",
+        "text": "Need Support",
+        "left": 580,
+        "right": 730,
+        "top": 22,
+        "bottom": 62
+      },
+      {
+        "tag": "button",
+        "text": "Careers & Business",
+        "left": 359,
+        "right": 548,
+        "top": 350,
+        "bottom": 392
+      },
+      {
+        "tag": "button",
+        "text": "Life Goals",
+        "left": 556,
+        "right": 681,
+        "top": 350,
+        "bottom": 392
+      },
+      {
+        "tag": "button",
+        "text": "Ask the Community",
+        "left": 689,
+        "right": 880,
+        "top": 350,
+        "bottom": 392
+      },
+      {
+        "tag": "button",
+        "text": "Wins This Week",
+        "left": 888,
+        "right": 1055,
+        "top": 350,
+        "bottom": 392
+      },
+      {
+        "tag": "button",
+        "text": "FAShare something with the community…",
+        "left": 16,
+        "right": 730,
+        "top": 692,
+        "bottom": 762
+      },
+      {
+        "tag": "button",
+        "text": "Write the first post",
+        "left": 278,
+        "right": 468,
+        "top": 1031,
+        "bottom": 1071
+      },
+      {
+        "tag": "button",
+        "text": "Need support? You're not alone.Talk with the community or access support resourc",
+        "left": 16,
+        "right": 730,
+        "top": 1136,
+        "bottom": 1214
+      },
+      {
+        "tag": "a",
+        "text": "Clipboard",
+        "left": 346,
+        "right": 409,
+        "top": 777,
+        "bottom": 836
+      },
+      {
+        "tag": "a",
+        "text": "Community",
+        "left": 493,
+        "right": 564,
+        "top": 777,
+        "bottom": 836
+      },
+      {
+        "tag": "a",
+        "text": "Profile",
+        "left": 649,
+        "right": 696,
+        "top": 777,
+        "bottom": 836
+      }
+    ]
+  },
+  {
+    "name": "fresh-progress-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-progress-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/progress",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Your Progress",
+      "The 90-day arc",
+      "Your artifacts",
+      "What the game taught you"
+    ],
+    "clipped": [
+      {
+        "tag": "button",
+        "text": "Export",
+        "left": 24,
+        "right": 426,
+        "top": 1340,
+        "bottom": 1382
+      },
+      {
+        "tag": "button",
+        "text": "Export",
+        "left": 24,
+        "right": 426,
+        "top": 1651,
+        "bottom": 1692
+      },
+      {
+        "tag": "button",
+        "text": "Export",
+        "left": 24,
+        "right": 426,
+        "top": 1905,
+        "bottom": 1947
+      },
+      {
+        "tag": "a",
+        "text": "Profile",
+        "left": 382,
+        "right": 429,
+        "top": 777,
+        "bottom": 836
+      }
+    ]
+  },
+  {
+    "name": "fresh-profile-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-profile-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/profile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Your Profile",
+      "Fresh Athlete",
+      "Your direction",
+      "Data connections"
+    ],
+    "clipped": [],
+    "errors": []
+  },
+  {
+    "name": "fresh-home-desktop",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-home-desktop.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1000,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Morning Check-in",
+      "Add context when you're ready",
+      "What does your daily routine look like now? How has it changed?"
+    ],
+    "clipped": []
+  },
+  {
+    "name": "fresh-game-plan-desktop",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-game-plan-desktop.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/game-plan",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1000,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Your Game Plan",
+      "What the game taught you",
+      "Path Fit",
+      "This Week's Actions"
+    ],
+    "clipped": []
+  },
+  {
+    "name": "fresh-clipboard-desktop",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-clipboard-desktop.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/clipboard",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1000,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "The Clipboard"
+    ],
+    "clipped": []
+  },
+  {
+    "name": "fresh-community-bgsu-desktop",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-community-bgsu-desktop.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/community",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1000,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "BGSU Community",
+      "Explore topics",
+      "What's one thing you're working on right now—on or off the field?",
+      "Recent conversations",
+      "Start the first conversation"
+    ],
+    "clipped": []
+  },
+  {
+    "name": "fresh-progress-desktop",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-progress-desktop.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/progress",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1000,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Your Progress",
+      "The 90-day arc",
+      "Your artifacts",
+      "What the game taught you"
+    ],
+    "clipped": []
+  },
+  {
+    "name": "fresh-profile-desktop",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/fresh-profile-desktop.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/profile",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1000,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Third & Manageable",
+      "Your Profile",
+      "Fresh Athlete",
+      "Your direction",
+      "Data connections"
+    ],
+    "clipped": [],
+    "errors": []
+  },
+  {
+    "name": "onboarding-welcome-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/onboarding-welcome-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/onboarding",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "No scoreboard. No comparison. Just your journey."
+    ],
+    "clipped": []
+  },
+  {
+    "name": "onboarding-status-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/onboarding-status-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/onboarding",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "Where are you in your journey?"
+    ],
+    "clipped": []
+  },
+  {
+    "name": "onboarding-intake-first-mobile",
+    "screenshot": "/Users/lucascardoso/Documents/GitHub/3rd_and_manageable/.tmp/browser-shots/onboarding-intake-first-mobile.png",
+    "title": "Third & Manageable",
+    "url": "http://127.0.0.1:3001/onboarding",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false
+    },
+    "headings": [
+      "What's your sport?"
+    ],
+    "clipped": [],
+    "errors": []
+  }
+]
