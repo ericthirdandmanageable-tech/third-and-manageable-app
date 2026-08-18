@@ -2,10 +2,18 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { deriveCareerSkillMap, rankCareerPaths } from "../constants/career-intake";
+import { CAREER_PATHS } from "../constants/career-paths";
 import { findUniversities } from "../constants/universities";
 import { AUTHENTICATED_TAB_ROUTES } from "../constants/navigation";
 
 describe("unified product logic", () => {
+  it("uses the server's canonical ID for every commit-able career path", () => {
+    assert.deepEqual(
+      CAREER_PATHS.map(({ id }) => id).sort(),
+      ["consulting", "entrepreneurship", "gig", "nine_to_five", "overnight"],
+    );
+  });
+
   it("ranks preparation and strategy toward consulting", () => {
     const paths = rankCareerPaths({
       role: "The strategist",

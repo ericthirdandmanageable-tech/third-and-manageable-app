@@ -1,4 +1,4 @@
-import { CAREER_PATHS, type CareerPath } from "./career-paths";
+import { CAREER_PATHS, type CareerPath, type CareerPathId } from "./career-paths";
 import { getSkillMapForSport, type SkillMapEntry } from "./skill-map";
 
 export const CAREER_INTAKE_KEY = "tm-career-intake-v1";
@@ -89,23 +89,23 @@ export function rankCareerPaths(
   if (!answers) return CAREER_PATHS;
   const role = answers.role.toLowerCase();
   const favorite = answers.favorite.toLowerCase();
-  const score = new Map<string, number>();
-  const add = (id: string, points: number) =>
+  const score = new Map<CareerPathId, number>();
+  const add = (id: CareerPathId, points: number) =>
     score.set(id, (score.get(id) ?? 0) + points);
 
   if (favorite.includes("preparation")) add("consulting", 3);
   if (favorite.includes("competition")) add("entrepreneurship", 3);
-  if (favorite.includes("team")) add("nine-to-five", 3);
+  if (favorite.includes("team")) add("nine_to_five", 3);
   if (favorite.includes("mastery")) {
     add("consulting", 2);
     add("gig", 1);
   }
   if (role.includes("strategist")) add("consulting", 2);
   if (role.includes("captain") || role.includes("leader")) {
-    add("nine-to-five", 2);
+    add("nine_to_five", 2);
     add("consulting", 1);
   }
-  if (role.includes("engine")) add("shift", 1);
+  if (role.includes("engine")) add("overnight", 1);
 
   return [...CAREER_PATHS].sort(
     (left, right) => (score.get(right.id) ?? 0) - (score.get(left.id) ?? 0),

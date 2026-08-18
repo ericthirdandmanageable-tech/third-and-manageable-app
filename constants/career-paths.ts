@@ -1,5 +1,15 @@
+export const CAREER_PATH_IDS = [
+  "consulting",
+  "nine_to_five",
+  "entrepreneurship",
+  "gig",
+  "overnight",
+] as const;
+
+export type CareerPathId = (typeof CAREER_PATH_IDS)[number];
+
 export interface CareerPath {
-  id: string;
+  id: CareerPathId;
   name: string;
   icon: string;
   fit: "Strong fit" | "Explore";
@@ -46,7 +56,7 @@ export const CAREER_PATHS: CareerPath[] = [
     forumName: "The Consulting Circuit",
   },
   {
-    id: "nine-to-five",
+    id: "nine_to_five",
     name: "9–5 / Corporate",
     icon: "briefcase-outline",
     fit: "Strong fit",
@@ -108,7 +118,7 @@ export const CAREER_PATHS: CareerPath[] = [
     forumName: "Gig Life",
   },
   {
-    id: "shift",
+    id: "overnight",
     name: "Overnight / Shift",
     icon: "moon-outline",
     fit: "Explore",
