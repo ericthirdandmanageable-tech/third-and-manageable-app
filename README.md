@@ -23,6 +23,8 @@ Read [STACK_ARCHITECTURE.md](STACK_ARCHITECTURE.md) before changing providers,
 credentials, identity, Firestore collections, or repository boundaries.
 The reconciled delivery order and current cross-worktree risks are in
 [CURRENT_EXECUTION_PLAN.md](CURRENT_EXECUTION_PLAN.md).
+The relay retirement gates and rollback path are in
+[DIRECT_STAGING_CUTOVER.md](DIRECT_STAGING_CUTOVER.md).
 
 ## Local development
 
@@ -59,10 +61,10 @@ npm run check:audit
 npm run check:vercel-manifest
 ```
 
-After deploying a protected Preview:
+After deploying a Preview:
 
 ```bash
-npm run smoke:preview -- https://<protected-preview-url>
+npm run smoke:preview -- https://<preview-url>
 ```
 
 ## Deployment status
@@ -71,14 +73,13 @@ Neon is no longer part of this app. The Vercel project is disconnected from its
 Neon resource, all database variables and runtime dependencies are removed, and
 the resource is retained only as a documented future option.
 
-The staging Appwrite API key, Google Workload Identity roles, Appwrite Storage bucket,
-and Preview-only admin secrets are configured. The protected Preview at
-`third-and-manageable-51vcoiuwe-ling-iq.vercel.app` passed the authenticated
-athlete/product/profile-image smoke (including file removal during account
-deletion). The same deployment lineage passed the full web/admin smoke, and the
-public path-restricted mobile relay at
-`third-and-manageable-mobile-staging.vercel.app` passed the Appwrite-JWT product
-stack smoke. Production provider projects and variables were not changed.
+The staging Appwrite API key, Google Workload Identity roles, Appwrite Storage
+bucket, and Preview-only admin secrets are configured. Vercel Authentication is
+disabled; application-level Appwrite and admin checks remain authoritative.
+The direct `staging` branch Preview at
+`third-and-manageable-git-staging-ling-iq.vercel.app` passed the complete
+Appwrite-JWT mobile product-stack smoke on 2026-08-18. Production provider
+projects and variables were not changed.
 
 Mobile/App Store constraints remain documented in
 [FIREBASE_SAFE_HANDOFF.md](FIREBASE_SAFE_HANDOFF.md),

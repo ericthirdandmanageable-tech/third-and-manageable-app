@@ -1,20 +1,20 @@
 # Third & Manageable cross-repo parity ledger
 
-Last reconciled: 2026-08-17
+Last reconciled: 2026-08-18
 
-This is the progress record for the ground-up web redesign, the replacement
-Expo client, and the public staging relay. Repository histories and worktrees
-remain separate. `repo_differences.md` is source material and is not edited by
-this migration.
+This is the progress record for the ground-up web redesign and the replacement
+Expo client. The former relay remains a temporary rollback artifact only.
+Repository histories and worktrees remain separate. `repo_differences.md` is
+source material and is not edited by this migration.
 
 ## Current source-of-truth map
 
 | Surface | Location | Responsibility | State |
 | --- | --- | --- | --- |
-| Web/API/admin | `3rd_and_manageable` | Canonical authenticated API, Firestore ownership, protected Vercel Preview, web/admin UI | `main` contains convergence plus original onboarding/profile parity; Notifications, Perks, legal, and deletion UI are the current local slice pending Preview deployment |
-| Replacement native app | `third-and-manageable-unified-liquid-glass` | Expo Router UI, EAS/TestFlight lineage, device integrations | Active isolated worktree; branch is one commit ahead of remote and the authenticated-product-API migration remains uncommitted |
+| Web/API/admin | `3rd_and_manageable` | Canonical authenticated API, Firestore ownership, public staging Preview, web/admin UI | `staging` has a stable public alias and passed the direct mobile-stack smoke |
+| Replacement native app | `third-and-manageable-unified-liquid-glass` | Expo Router UI, EAS/TestFlight lineage, device integrations | Convergence and direct-ingress commits are pushed on `codex/unified-liquid-glass` |
 | Canonical native repo | `third-and-manageable-app` | Existing app history and App Store lineage | Kept separate; no direct edits in this slice |
-| Staging relay | `third-and-manageable-staging-relay` | Public JWT-authenticated, path-restricted ingress to protected Preview | Versioned and deployed, but the current mobile data handler/rewrite/test changes remain uncommitted |
+| Legacy staging relay | `third-and-manageable-staging-relay` | Rollback ingress for the already-built IPA only | Clean checkpoint `edcd19d`; retire after replacement device verification |
 
 ## Web production-app parity
 
@@ -28,14 +28,12 @@ still absent after the onboarding port:
 | Privacy and Terms | Public `/privacy` and `/terms`, linked from Profile | app-theme route coverage and production build |
 | Account deletion | Profile danger action, `DELETE` confirmation, server-owned `/account` cleanup | `tests/profile-university-selector.test.tsx` |
 
-These routes are locally verified but are not yet claimed live on the last
-verified protected Preview. See `CURRENT_EXECUTION_PLAN.md` for the ordered
-continuation plan.
+These routes are deployed on the public `staging` Preview. Their unit and build
+coverage is current; authenticated browser navigation remains a separate QA
+gate in `CURRENT_EXECUTION_PLAN.md`.
 
-Vercel currently labels the latest `main` deployment (`2721949`) as Production,
-while Standard Protection requires a LingIQ team login. Treat this as a
-protected technical target, not as public-product production, until the Git
-production-branch convention is explicitly resolved.
+Vercel Authentication is disabled. The `staging` branch uses Preview-scoped
+staging integrations, while `main` remains the guarded Production branch.
 
 ## UI reachability restoration
 
@@ -80,22 +78,21 @@ ownership migration rather than a data-copy migration:
 | Backfill | None for existing Firestore records. Server serializers supply defaults for legacy field variants (`journal`/`note`, mood/option, old profile fields). |
 | Reconciliation | Appwrite `$id` must equal every `user_id`/profile document owner. Live smoke asserts the Appwrite/Firebase UID match and profile round-trip. |
 | Ownership | Only authenticated Route Handlers create new-client product writes. Notifications are emitted by the owning check-in, game-plan, and community routes. |
-| Rollback | Keep the legacy field superset and strict Firestore Rules while older binaries exist. Roll back the replacement build/relay target, not by adding a second write path. |
+| Rollback | Keep the legacy field superset and strict Firestore Rules while older binaries exist. Roll back the replacement build's API origin, not by adding a second write path. |
 | Old clients | Firebase custom tokens and Rules remain temporarily. Remove them only after supported-version telemetry shows old clients are retired. |
-| Cutover evidence | Unit/contract gates plus the protected web smoke and public relay mobile smoke must pass on the exact deployments being promoted. |
+| Cutover evidence | Unit/contract gates plus the web and direct mobile smoke must pass on the exact Preview deployment being promoted. |
 
 ## Validation snapshot
 
 | Surface | Automated | Live |
 | --- | --- | --- |
-| Web/API/admin | ESLint clean; 26 files / 181 tests pass; TypeScript and Next.js production build pass with Notifications, Perks, Privacy, Terms, and deletion UI routes | The last protected Preview smoke passes registration, onboarding, check-in, game plan, six admin views, Appwrite Storage upload, and image/account cleanup; the current parity slice still needs its own Preview deploy/smoke |
-| Replacement mobile | TypeScript clean; ESLint clean; 36 tests pass; local and EAS Preview environment guards pass | Relay smoke passes identity, Firebase compatibility, profile, game plan, notifications, artifacts, community, and cleanup. Multipart relay forwarding is contract-tested and the upstream upload is live-proven; the expanded end-to-end rerun is deferred after Appwrite synthetic-account rate limiting. EAS iOS internal Preview `cab31413-a4d7-484a-bbd9-401111434756` compiled successfully; packaged-JS inspection confirms staging IDs/full relay path and no production Appwrite ID or Gemini key. |
-| Staging relay | 8 Node tests pass, including nested rewrite, allowlist, bearer bounds, JSON/query, and multipart forwarding | Production alias deployed and verified against latest protected Preview |
+| Web/API/admin | ESLint clean; 27 files / 183 tests pass; TypeScript and Next.js production build pass | Direct `staging` Preview health is `200`; unauthenticated product/auth requests fail closed; callback security headers are live |
+| Replacement mobile | TypeScript clean; ESLint clean; 36 tests pass; local and EAS Preview environment guards pass | Direct smoke passes identity, Firebase compatibility, profile, game plan, notifications, profile image, artifacts, community, and cleanup. The old EAS build still contains the relay URL; a replacement build is required. |
+| Legacy staging relay | 8 Node tests pass at checkpoint `edcd19d` | Frozen as rollback only; do not redeploy unless the direct cutover rolls back |
 
 ## Remaining release work
 
-1. Review, commit, and push the separate mobile worktree and relay changes so
-   the working authenticated stack is no longer represented only by dirty trees.
+1. Update the staging Appwrite Web platform to the stable `staging` hostname.
 2. Build a separate Simulator artifact. The current Preview IPA is for ad-hoc
    physical devices only; verify the personal iPhone UDID before rebuilding it.
 3. Run on-device accessibility and screen-by-screen QA, including community

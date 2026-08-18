@@ -1,6 +1,6 @@
 # Third & Manageable current execution plan
 
-Last reconciled: 2026-08-17
+Last reconciled: 2026-08-18
 
 This is the current plan after comparing the last two weeks of Git history and
 working-tree state with `VERCEL_MIGRATION_PLAN.md`, the Expo worktree's
@@ -24,28 +24,17 @@ working-tree state with `VERCEL_MIGRATION_PLAN.md`, the Expo worktree's
   the backend convergence, original production onboarding, and profile
   university selector work through 2026-08-16.
 - `third-and-manageable-app` is the canonical native history. The replacement
-  worktree is `codex/unified-liquid-glass`, currently one committed change ahead
-  of its remote plus an uncommitted authenticated-product-API migration.
-- `third-and-manageable-staging-relay` is versioned, but its current nested data
-  forwarding and tests are still uncommitted.
+  worktree is `codex/unified-liquid-glass`; its convergence and direct-ingress
+  commits are pushed to the remote branch.
+- `third-and-manageable-staging-relay` has a clean checkpoint at `edcd19d` and
+  is frozen as rollback source until the replacement device build passes.
 - The original admin export has no unique application code to recover.
 
-Live Vercel reconciliation on 2026-08-17 found that `main` currently deploys
-to Vercel's **Production target**, not its Preview target. Commit `2721949`
-(`uni picker profile`) is Ready there. This is still a protected technical
-surface: Standard Protection requires a LingIQ Vercel login, protected
-sourcemaps are enabled, and the staging relay has the existing automation
-bypass. It is not equivalent to a public production launch. Vercel was also
-showing an active GitHub automatic-deployment outage during this check.
-
-Before the public launch, explicitly decide whether to keep a protected
-Production-target technical environment or change the Git production branch
-so normal `main` work produces Preview deployments. Do not let the target label
-silently determine which provider credentials or compliance boundary apply.
-
-The immediate source-preservation gate is to review, commit, and push the
-mobile and relay work in their own histories. Do not copy those repositories
-into this Next.js repository.
+On 2026-08-18, the project disabled Vercel Authentication and created a distinct
+`staging` branch. Its stable Preview alias uses only Preview-scoped staging
+credentials and passed the complete direct mobile-stack smoke. `main` remains
+the Vercel Production branch and cannot use staging credentials because the
+runtime guard fails closed. See `DIRECT_STAGING_CUTOVER.md`.
 
 ## Product delivery sequence
 
@@ -64,9 +53,9 @@ Port proven production-app experiences before inventing net-new features:
   the existing server-owned `/api/account` cleanup.
 - [ ] Add browser navigation coverage for the whole authenticated web shell,
   including the newly restored destinations.
-- [ ] Deploy and smoke the exact parity commit in protected Vercel Preview.
-- [ ] Resolve the Vercel target convention above and document the chosen
-  production branch before relying on automatic Git deployments.
+- [x] Deploy and smoke the direct-ingress commit in Vercel Preview.
+- [x] Use the distinct `staging` Git branch for staging Preview deployments;
+  keep `main` as the guarded Vercel Production branch.
 
 ### Slice 2 — production community behavior
 
@@ -95,7 +84,8 @@ Port proven production-app experiences before inventing net-new features:
   profile, regenerate only the staging profile if needed, then rebuild.
 - Run VoiceOver, Dynamic Type, Reduce Motion/Transparency, contrast,
   low-memory, OAuth, recovery, deletion, upload, polling, and Android checks.
-- Commit and push the mobile and relay changes before making a new build.
+- Build from the pushed direct-ingress mobile branch after the Appwrite Web
+  platform hostname is updated.
 
 ### Slice 5 — controlled production cutover
 

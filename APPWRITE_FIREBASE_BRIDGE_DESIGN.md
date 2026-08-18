@@ -1,14 +1,15 @@
 # Appwrite → Firebase Authentication Bridge and Firestore Rules Design
 
-> **Updated boundary (2026-08-14):** This bridge is now part of the active
-> staging architecture, and the Appwrite UID is the universal Firestore owner
-> ID for both Next.js Preview and Expo staging. Postgres canonical identity
-> references below are historical. See `STACK_ARCHITECTURE.md`.
+> **Updated boundary (2026-08-18):** Expo staging now calls the public
+> `3rd_and_manageable` staging branch directly. Relay references below describe
+> the previous transport topology. The Appwrite UID remains the universal
+> Firestore owner ID. See `STACK_ARCHITECTURE.md` and
+> `DIRECT_STAGING_CUTOVER.md`.
 
 **Status:** the candidate Rules are published only in the isolated staging
 Firebase project. Token/revocation and the authenticated product API are
-validated end to end through a public, path-restricted Vercel staging relay
-backed by a protected Preview and keyless Google Workload Identity Federation.
+validated end to end through the public Vercel `staging` branch and keyless
+Google Workload Identity Federation.
 The replacement Expo client no longer accesses Firestore or Firebase Storage
 for product data; custom-token Firebase Auth remains only for older-client
 compatibility. The Appwrite webhook is not registered — **do not deploy or

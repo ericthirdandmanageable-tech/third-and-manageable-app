@@ -1,6 +1,6 @@
 # Third & Manageable stack architecture
 
-**Status:** authoritative as of 2026-08-14.
+**Status:** authoritative as of 2026-08-18.
 
 ## Repository boundary
 
@@ -10,8 +10,9 @@ The product intentionally remains split across repositories:
   supported web/admin API implementation.
 - `third-and-manageable-app` plus its Expo worktrees: native iOS product,
   EAS/TestFlight/App Store source, and production mobile release lineage.
-- `third-and-manageable-staging-relay`: narrowly scoped public relay used by
-  mobile staging builds to reach the protected Vercel Preview auth bridge.
+- `third-and-manageable-staging-relay`: frozen rollback source for the old EAS
+  Preview build. Delete it after the direct-ingress device gates in
+  `DIRECT_STAGING_CUTOVER.md` pass.
 
 Histories are not merged. Shared behavior is ported deliberately and verified
 against the same staging integrations.
@@ -77,8 +78,8 @@ Verification and operations use `verification_requests`,
 Firestore Admin uses Vercel OIDC → Google Workload Identity Federation in
 Preview. Appwrite Storage owns public profile images through the server-only
 Appwrite key. No long-lived Firebase private key belongs in Vercel.
-The replacement mobile client reaches product data only through the
-path-restricted relay and authenticated Next.js Route Handlers. Released older
+The replacement mobile client reaches product data directly through the public
+`staging` branch and authenticated Next.js Route Handlers. Released older
 clients retain the strict Rules/custom-token compatibility contract; Next.js
 does not rely on client-side Rules for authorization.
 
@@ -90,8 +91,8 @@ is:
 ```text
 Appwrite provider session
         ↓ fresh Appwrite JWT per request
-public staging relay (path/method allowlist only)
-        ↓ Vercel protection bypass kept server-side
+public Vercel `staging` branch
+        ↓
 Next.js validates JWT with Appwrite
         ↓ Appwrite UID is canonical identity
 Next.js Route Handlers
@@ -146,8 +147,9 @@ The required external setup is complete:
   authenticated server creates each image with a public-read per-file
   permission; only the server key has `files.read`/`files.write`.
 - Preview admin password/session secrets are separate Sensitive variables.
-- The staging relay production alias is intentionally the public staging
-  ingress; it currently forwards only to the protected Preview deployment.
+- Vercel Authentication is disabled. The stable `staging` branch alias is the
+  public ingress, while application routes enforce Appwrite JWT/session and
+  admin authorization.
 
 Production environment variables and provider projects were not changed.
 
@@ -163,7 +165,7 @@ npm run lint
 npm run build
 npm run check:audit
 npm run check:vercel-manifest
-npm run smoke:preview -- https://<protected-preview-url>
+npm run smoke:preview -- https://<preview-url>
 ```
 
 `/api/health` performs bounded reads against both Appwrite and Firestore. It
@@ -175,29 +177,24 @@ check-in, game plan, profile-image upload, and all admin views, then removes
 that synthetic account, its Firestore data, and its Appwrite Storage image
 through the authenticated account-deletion route.
 
-Verified live on 2026-08-14:
+Verified live through 2026-08-18:
 
-- Protected Preview:
-  `https://third-and-manageable-51vcoiuwe-ling-iq.vercel.app`
-- Public mobile staging relay:
-  `https://third-and-manageable-mobile-staging.vercel.app`
+- Public direct mobile staging origin:
+  `https://third-and-manageable-git-staging-ling-iq.vercel.app`
 - EAS iOS internal Preview build:
   `cab31413-a4d7-484a-bbd9-401111434756` (version `1.0.1`, build `11`),
   installable on the registered iPhone through the Expo build page until
   2026-08-28.
-- Protected web smoke passed session auth, Firestore product writes, all six
+- The earlier protected web smoke passed session auth, Firestore product writes, all six
   admin views, Appwrite Storage upload, and post-account-deletion file cleanup.
-- Mobile stack smoke passed identity, Firebase compatibility, profile/game
-  plan, notifications, artifacts, community, and account cleanup before the
-  profile-image step was added. Relay multipart forwarding has a passing
-  contract test, and the exact upstream profile-image path is live-proven; a
-  repeat full mobile run is temporarily deferred after Appwrite rate-limited
-  repeated synthetic account creation.
+- The direct mobile-stack smoke passed identity, Firebase compatibility,
+  profile, game plan, notifications, profile-image upload, artifacts,
+  community, and account cleanup against the stable `staging` alias.
 - The EAS Preview environment was checked directly before build; it contains
   the staging Appwrite/Firebase IDs and the path-restricted product API base,
   contains no mobile Gemini key, and no longer contains the obsolete Firebase
   Storage variable. The resulting IPA compiled successfully, and inspection of
-  its packaged JavaScript confirmed the staging IDs and full relay path while
+  its packaged JavaScript confirmed the staging IDs and former relay path while
   finding neither the production Appwrite ID nor a Gemini environment key. It
   was not submitted to TestFlight or App Store Connect.
 

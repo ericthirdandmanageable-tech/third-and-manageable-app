@@ -1,5 +1,10 @@
 # Third & Manageable — Vercel Consolidation Plan
 
+> **Direct-ingress update (2026-08-18):** The public staging relay described in
+> historical phases below is superseded by the public `staging` branch in
+> `3rd_and_manageable`. See `DIRECT_STAGING_CUTOVER.md` for the active topology,
+> validation evidence, rollback, and retirement gates.
+
 > **Superseded architecture notice (2026-08-14):** Neon/Postgres and the
 > proposed Auth.js cutover below are historical. The active decision is
 > Appwrite Auth + Firestore product data for the isolated Vercel Preview. See

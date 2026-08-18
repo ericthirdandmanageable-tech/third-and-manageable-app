@@ -1,5 +1,10 @@
 # Firebase and App Store Safe Handoff
 
+> **Direct-ingress update (2026-08-18):** Replacement Expo builds now target
+> the public `3rd_and_manageable` staging branch directly. Relay references
+> below describe the previous staging transport and remain relevant only to the
+> already-built rollback IPA. See `DIRECT_STAGING_CUTOVER.md`.
+
 > **Updated boundary (2026-08-14):** The Next.js redesign now intentionally
 > uses the isolated staging Appwrite/Firebase projects. Warnings below against
 > connecting the web app to Firebase apply to the production project, not the
