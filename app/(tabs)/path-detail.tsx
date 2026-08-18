@@ -6,14 +6,12 @@ import {
 } from "@/components/ui/liquid-glass";
 import { getCareerPath } from "@/constants/career-paths";
 import { useAppTheme } from "@/context/app-theme";
+import { getCommittedPath, setCommittedPath } from "@/services/career";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-export const COMMITTED_PATH_KEY = "tm-committed-career-path";
 
 export default function PathDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,9 +20,7 @@ export default function PathDetailScreen() {
   const [committed, setCommitted] = useState(false);
 
   useEffect(() => {
-    void AsyncStorage.getItem(COMMITTED_PATH_KEY).then((value) =>
-      setCommitted(value === id),
-    );
+    void getCommittedPath().then((value) => setCommitted(value === id));
   }, [id]);
 
   if (!path) {
@@ -38,10 +34,10 @@ export default function PathDetailScreen() {
 
   const toggleCommit = async () => {
     if (committed) {
-      await AsyncStorage.removeItem(COMMITTED_PATH_KEY);
+      await setCommittedPath(null);
       setCommitted(false);
     } else {
-      await AsyncStorage.setItem(COMMITTED_PATH_KEY, path.id);
+      await setCommittedPath(path.id);
       setCommitted(true);
     }
   };

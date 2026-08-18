@@ -6,15 +6,12 @@ import {
   createSupportRequest,
   getBlockedUserIds,
   getMessages,
-  getUserIdByDisplayName,
   getUserProfile,
-  parseMentions,
   reportMessage,
   sendMessage,
   subscribeToMessages,
   subscribeToRoom,
 } from "@/services/community";
-import { createMentionNotification } from "@/services/notification-store";
 import { Message, Profile, Room } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -234,7 +231,7 @@ export default function CommunityScreen() {
 
   // Subscribe to realtime messages
   useEffect(() => {
-    const unsubscribe = subscribeToMessages((msg) => {
+    const unsubscribe = subscribeToMessages(currentRoomId, (msg) => {
       if (msg.room_id === currentRoomId) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === msg.id)) return prev;
@@ -250,7 +247,7 @@ export default function CommunityScreen() {
     if (!messageText.trim() || !user?.$id || !profile) return;
     setSending(true);
     try {
-      const sentMsg = await sendMessage(
+      await sendMessage(
         currentRoomId,
         user.$id,
         profile.display_name,
@@ -261,19 +258,7 @@ export default function CommunityScreen() {
       );
       setMessageText("");
 
-      // Detect and process @mentions
-      const mentions = parseMentions(sentMsg.content);
-      for (const mentionName of mentions) {
-        const mentionedUserId = await getUserIdByDisplayName(mentionName);
-        if (mentionedUserId && mentionedUserId !== user.$id) {
-          await createMentionNotification(
-            mentionedUserId,
-            profile.display_name,
-            roomTitle,
-            sentMsg.id,
-          );
-        }
-      }
+      // Mention notifications are emitted by the authenticated server route.
     } catch (err: any) {
       Alert.alert("Error", err.message || "Failed to send message.");
     } finally {

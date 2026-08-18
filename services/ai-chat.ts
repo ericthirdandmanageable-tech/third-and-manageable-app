@@ -1,28 +1,16 @@
 /**
- * AI Chat History service — Firebase Firestore.
- * Persists "The Clipboard" conversations per day.
+ * Clipboard history compatibility adapter — authenticated web API.
  *
- * Collection: "ai_chat_sessions" — one doc per user per day
- * Sub-collection: "ai_chat_sessions/{sessionId}/messages" — individual messages
+ * The server persists the canonical message stream. These session-shaped
+ * functions keep the existing UI stable while daily-session grouping is
+ * retired from new clients.
  */
-import { db } from "@/lib/firebase";
-import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    limit,
-    orderBy,
-    query,
-    setDoc,
-    where,
-} from "firebase/firestore";
+import { mobileApi } from "@/lib/mobile-api";
 
 export interface AIChatSession {
   id: string;
   user_id: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   mood: number | null;
   message_count: number;
   created_at: string;
@@ -36,117 +24,88 @@ export interface AIChatMessage {
   created_at: string;
 }
 
-// ─── Sessions ─────────────────────────────────────────────────────────
+type HistoryResponse = {
+  messages: {
+    id: string;
+    role: "ai" | "user";
+    text: string;
+    created_at: string;
+  }[];
+};
 
 function todayDateStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return new Date().toISOString().slice(0, 10);
 }
 
-/**
- * Get or create today's AI chat session for a user.
- */
+async function history(): Promise<AIChatMessage[]> {
+  const response = await mobileApi<HistoryResponse>("/clipboard/history");
+  return response.messages.map((message) => ({
+    id: message.id,
+    role: message.role === "ai" ? "assistant" : "user",
+    content: message.text,
+    created_at: message.created_at,
+  }));
+}
+
 export async function getOrCreateTodaySession(
   userId: string,
   mood: number | null = null,
 ): Promise<AIChatSession> {
-  const today = todayDateStr();
-  const docId = `${userId}_${today}`;
-
-  const ref = doc(db, "ai_chat_sessions", docId);
-  const snap = await getDoc(ref);
-
-  if (snap.exists()) {
-    return { id: snap.id, ...snap.data() } as AIChatSession;
-  }
-
-  // Create new session
-  const data = {
+  const messages = await history();
+  const now = new Date().toISOString();
+  return {
+    id: "clipboard",
     user_id: userId,
-    date: today,
+    date: todayDateStr(),
     mood,
-    message_count: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    message_count: messages.length,
+    created_at: messages[0]?.created_at ?? now,
+    updated_at: messages.at(-1)?.created_at ?? now,
   };
-  await setDoc(ref, data);
-  return { id: docId, ...data };
 }
 
-/**
- * Add a message to a session and increment the message count.
- */
+/** The chat endpoint persists both turns atomically; callers retain this no-op. */
 export async function addMessageToSession(
   sessionId: string,
   role: "user" | "assistant",
   content: string,
 ): Promise<AIChatMessage> {
-  const data = {
+  void sessionId;
+  return {
+    id: `pending-${Date.now()}`,
     role,
     content,
     created_at: new Date().toISOString(),
   };
-  const ref = await addDoc(
-    collection(db, "ai_chat_sessions", sessionId, "messages"),
-    data,
-  );
-
-  // Update session message count and updated_at
-  const sessionRef = doc(db, "ai_chat_sessions", sessionId);
-  const sessionSnap = await getDoc(sessionRef);
-  if (sessionSnap.exists()) {
-    const currentCount = sessionSnap.data().message_count || 0;
-    await setDoc(
-      sessionRef,
-      {
-        message_count: currentCount + 1,
-        updated_at: new Date().toISOString(),
-      },
-      { merge: true },
-    );
-  }
-
-  return { id: ref.id, ...data };
 }
 
-/**
- * Get all messages for a session, ordered by created_at.
- */
 export async function getSessionMessages(
   sessionId: string,
 ): Promise<AIChatMessage[]> {
+  void sessionId;
   try {
-    const q = query(
-      collection(db, "ai_chat_sessions", sessionId, "messages"),
-      orderBy("created_at", "asc"),
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AIChatMessage);
+    return await history();
   } catch {
     return [];
   }
 }
 
-/**
- * Get past chat sessions for a user, ordered by date descending.
- */
 export async function getChatSessions(
   userId: string,
   count: number = 30,
 ): Promise<AIChatSession[]> {
-  try {
-    // Equality-only query — sort client-side to avoid composite index
-    const q = query(
-      collection(db, "ai_chat_sessions"),
-      where("user_id", "==", userId),
-      limit(count * 2),
-    );
-    const snap = await getDocs(q);
-    return snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as AIChatSession)
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, count);
-  } catch {
-    return [];
-  }
+  void count;
+  const messages = await getSessionMessages("clipboard");
+  if (!messages.length) return [];
+  return [
+    {
+      id: "clipboard",
+      user_id: userId,
+      date: messages.at(-1)?.created_at.slice(0, 10) ?? todayDateStr(),
+      mood: null,
+      message_count: messages.length,
+      created_at: messages[0].created_at,
+      updated_at: messages.at(-1)?.created_at ?? messages[0].created_at,
+    },
+  ];
 }

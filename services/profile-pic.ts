@@ -1,32 +1,43 @@
-/**
- * Profile picture upload service — Firebase Storage.
- * Uploads user profile images and saves the download URL to Firestore.
- */
-import { storage } from "@/lib/firebase";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { upsertProfile } from "./auth";
+/** Profile-picture upload through the authenticated product API. */
+import { account } from "@/lib/appwrite";
+import { getProductApiBase, MobileApiError } from "@/lib/mobile-api-core";
 
-/**
- * Upload a profile picture from a local URI and save the URL to the user's profile.
- * Returns the download URL.
- */
+function imageType(uri: string): "image/jpeg" | "image/png" | "image/webp" {
+  const clean = uri.split("?")[0].toLowerCase();
+  if (clean.endsWith(".png")) return "image/png";
+  if (clean.endsWith(".webp")) return "image/webp";
+  return "image/jpeg";
+}
+
 export async function uploadProfilePic(
-  userId: string,
+  _userId: string,
   localUri: string,
 ): Promise<string> {
-  // Fetch the image as a blob
-  const response = await fetch(localUri);
-  const blob = await response.blob();
-
-  // Upload to Firebase Storage under profile_pics/{userId}
-  const storageRef = ref(storage, `profile_pics/${userId}`);
-  await uploadBytes(storageRef, blob);
-
-  // Get the download URL
-  const downloadUrl = await getDownloadURL(storageRef);
-
-  // Save to Firestore profile
-  await upsertProfile({ id: userId, profile_pic: downloadUrl });
-
-  return downloadUrl;
+  const { jwt } = await account.createJWT();
+  if (!jwt) throw new Error("Appwrite returned an empty JWT.");
+  const type = imageType(localUri);
+  const extension = type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
+  const body = new FormData();
+  body.append(
+    "image",
+    { uri: localUri, name: `profile.${extension}`, type } as unknown as Blob,
+  );
+  const response = await fetch(
+    `${getProductApiBase(process.env.EXPO_PUBLIC_PRODUCT_API_URL)}/artifacts/profile-picture`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${jwt}` },
+      body,
+    },
+  );
+  const payload = (await response.json().catch(() => null)) as
+    | { detail?: string; profile_pic?: string }
+    | null;
+  if (!response.ok || !payload?.profile_pic) {
+    throw new MobileApiError(
+      response.status,
+      payload?.detail || "Profile picture upload failed.",
+    );
+  }
+  return payload.profile_pic;
 }

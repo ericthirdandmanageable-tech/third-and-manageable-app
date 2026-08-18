@@ -1,9 +1,9 @@
 /**
- * Auth service: Appwrite for authentication, Firebase Firestore for profile data.
- * The Appwrite user.$id is the universal UID used as the Firestore document ID.
+ * Auth service: Appwrite owns identity; the authenticated web API owns product data.
+ * The Appwrite user.$id is the universal UID used by the server as the Firestore owner.
  */
 import { account } from "@/lib/appwrite";
-import { db, storage } from "@/lib/firebase";
+import { mobileApi } from "@/lib/mobile-api";
 import {
   bootstrapFirebaseSession,
   clearFirebaseSession,
@@ -11,30 +11,7 @@ import {
 } from "@/lib/mobile-auth-bridge";
 import { Profile } from "@/types";
 import * as WebBrowser from "expo-web-browser";
-import {
-  DocumentData,
-  DocumentReference,
-  Query as FirestoreQuery,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  setDoc,
-  where,
-  writeBatch,
-} from "firebase/firestore";
-import { deleteObject, ref } from "firebase/storage";
 import { ID, OAuthProvider } from "react-native-appwrite";
-
-const USER_OWNED_COLLECTIONS = [
-  "checkins",
-  "completions",
-  "messages",
-  "support_requests",
-  "notifications",
-];
 
 const SESSION_VERIFY_MAX_ATTEMPTS = 6;
 const SESSION_VERIFY_BASE_DELAY_MS = 250;
@@ -50,16 +27,6 @@ function getPasswordRecoveryUrl(): string {
     );
   }
   return recoveryUrl;
-}
-
-async function upsertIdentityProfile(userId: string, email?: string | null) {
-  const payload: { user_id: string; email?: string; verified: false } = {
-    user_id: userId,
-    verified: false,
-  };
-  if (email) payload.email = email;
-
-  await setDoc(doc(db, "profiles", userId), payload, { merge: true });
 }
 
 async function bootstrapNewSession(userId: string): Promise<void> {
@@ -182,55 +149,8 @@ async function signInWithOAuth(
   await account.createSession(userId, secret);
   const user = await account.get();
   await bootstrapNewSession(user.$id);
-  await upsertIdentityProfile(user.$id, user.email);
+  await mobileApi<Profile>("/profile");
   return user;
-}
-
-async function deleteDocsByQuery(
-  queryRef: FirestoreQuery<DocumentData>,
-): Promise<void> {
-  const snapshot = await getDocs(queryRef);
-  if (snapshot.empty) return;
-
-  let batch = writeBatch(db);
-  let operationCount = 0;
-
-  for (const snapshotDoc of snapshot.docs) {
-    batch.delete(snapshotDoc.ref);
-    operationCount += 1;
-
-    if (operationCount >= 450) {
-      await batch.commit();
-      batch = writeBatch(db);
-      operationCount = 0;
-    }
-  }
-
-  if (operationCount > 0) {
-    await batch.commit();
-  }
-}
-
-async function deleteDocRefs(refs: DocumentReference<DocumentData>[]) {
-  if (!refs.length) return;
-
-  let batch = writeBatch(db);
-  let operationCount = 0;
-
-  for (const docRef of refs) {
-    batch.delete(docRef);
-    operationCount += 1;
-
-    if (operationCount >= 450) {
-      await batch.commit();
-      batch = writeBatch(db);
-      operationCount = 0;
-    }
-  }
-
-  if (operationCount > 0) {
-    await batch.commit();
-  }
 }
 
 export async function signUp(
@@ -269,7 +189,7 @@ export async function signUp(
   const session = await account.createEmailPasswordSession(email, password);
   const userId = createdUserId || session.userId;
   await bootstrapNewSession(userId);
-  await upsertIdentityProfile(userId, email);
+  await mobileApi<Profile>("/profile");
 
   try {
     return await getCurrentUserWithRetry();
@@ -282,7 +202,7 @@ export async function signUp(
 export async function signIn(email: string, password: string) {
   const session = await account.createEmailPasswordSession(email, password);
   await bootstrapNewSession(session.userId);
-  await upsertIdentityProfile(session.userId, email);
+  await mobileApi<Profile>("/profile");
 
   try {
     return await getCurrentUserWithRetry();
@@ -351,10 +271,9 @@ export async function getCurrentUser() {
 }
 
 export async function getProfile(userId: string): Promise<Profile | null> {
+  void userId;
   try {
-    const snap = await getDoc(doc(db, "profiles", userId));
-    if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() } as Profile;
+    return await mobileApi<Profile>("/profile");
   } catch {
     return null;
   }
@@ -364,90 +283,11 @@ export async function upsertProfile(
   profile: Partial<Profile> & { id: string },
 ) {
   const { id, ...data } = profile;
-  await setDoc(
-    doc(db, "profiles", id),
-    { ...data, user_id: id },
-    { merge: true },
-  );
-  const snap = await getDoc(doc(db, "profiles", id));
-  return { id: snap.id, ...snap.data() } as Profile;
+  void id;
+  return mobileApi<Profile>("/profile", { method: "PATCH", body: data });
 }
 
 export async function deleteAccount(): Promise<void> {
-  const user = await account.get();
-  const userId = user.$id;
-  await revokeFirebaseSession();
-
-  for (const collectionName of USER_OWNED_COLLECTIONS) {
-    await deleteDocsByQuery(
-      query(collection(db, collectionName), where("user_id", "==", userId)),
-    );
-  }
-
-  await deleteDocsByQuery(
-    query(collection(db, "content_reports"), where("reporter_id", "==", userId)),
-  );
-  await deleteDocsByQuery(
-    query(
-      collection(db, "content_reports"),
-      where("reported_user_id", "==", userId),
-    ),
-  );
-
-  await deleteDocsByQuery(
-    query(collection(db, "user_blocks"), where("user_id", "==", userId)),
-  );
-  await deleteDocsByQuery(
-    query(collection(db, "user_blocks"), where("blocked_user_id", "==", userId)),
-  );
-
-  const sessionSnapshots = await getDocs(
-    query(collection(db, "ai_chat_sessions"), where("user_id", "==", userId)),
-  );
-
-  for (const sessionSnapshot of sessionSnapshots.docs) {
-    await deleteDocsByQuery(
-      query(collection(db, "ai_chat_sessions", sessionSnapshot.id, "messages")),
-    );
-  }
-
-  await deleteDocRefs(sessionSnapshots.docs.map((d) => d.ref));
-
-  try {
-    await deleteDoc(doc(db, "profiles", userId));
-  } catch {
-    // Profile may already be removed.
-  }
-
-  try {
-    await deleteDoc(doc(db, "push_tokens", userId));
-  } catch {
-    // Token may not exist.
-  }
-
-  try {
-    await deleteObject(ref(storage, `profile_pics/${userId}`));
-  } catch {
-    // Profile photo may not exist.
-  }
-
-  try {
-    await account.updateStatus();
-  } catch {
-    // If updateStatus is unavailable, account sessions are still deleted below.
-  }
-
-  try {
-    await account.deleteSessions();
-  } catch {
-    // Ignore if no sessions remain.
-  }
-
-  try {
-    await account.deleteSession("current");
-  } catch {
-    // Ignore if current session has already been invalidated.
-  }
-
+  await mobileApi<{ status: "deleted" }>("/account", { method: "DELETE" });
   await clearFirebaseSession().catch(() => undefined);
 }

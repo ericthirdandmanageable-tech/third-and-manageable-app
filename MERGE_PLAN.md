@@ -2,7 +2,11 @@
 
 ## Product direction
 
-The Expo application is the source of truth for the unified product. It already owns the signed-in mobile experience, native notifications, device integrations, and App Store delivery path. The Next.js application remains a product and workflow reference while its strongest concepts are rebuilt as native Expo experiences. This avoids maintaining two competing navigation systems or embedding a web application inside the native shell.
+The Expo application owns the signed-in native experience, device integrations,
+and App Store delivery path. The Next.js redesign owns the canonical
+authenticated product API and supported web/admin experience. Repository
+histories stay separate; both clients share Appwrite identity and isolated
+staging Firestore data through the server boundary.
 
 The refreshed interface uses university-specific color signals inside one shared material system. On iOS 26 it renders native Liquid Glass; older iOS and web receive blur-backed surfaces; Android receives performant translucent materials; and Reduce Transparency receives opaque, high-contrast surfaces.
 
@@ -22,7 +26,8 @@ The refreshed interface uses university-specific color signals inside one shared
 
 - Keep Expo Router as the only client navigation layer.
 - Keep Appwrite as the current account system and preserve the existing mobile bridge while making its decision logic dependency-injected and testable.
-- Preserve Firestore and Gemini-backed check-in behavior during the visual migration; move provider calls behind a server boundary in a later security slice.
+- Keep Firestore as the canonical product store while routing all replacement-client product access through authenticated Next.js handlers.
+- Keep Gemini and provider credentials behind the server boundary.
 - Centralize theme tokens in `constants/app-theme.ts` and expose accessibility-aware runtime values through `context/app-theme.tsx`.
 - Route every reusable card, header, and action through the shared Liquid Glass primitives rather than screen-specific blur implementations.
 - Use progressive enhancement for materials so UI behavior stays consistent when native glass is unavailable.
@@ -36,17 +41,28 @@ The refreshed interface uses university-specific color signals inside one shared
 - Added the Clipboard coach, story-first career intake, skill translation data, career path ranking, path details, persisted commitments, university search, and shareable Day Counter artifact.
 - Added unit coverage for theme resolution, career ranking, skill mapping, and mobile auth bridge behavior.
 - Reconciled the native FileSystem dependency so Expo and Appwrite share one installed version while Appwrite alone resolves the compatible legacy API.
+- Built EAS iOS internal Preview `cab31413-a4d7-484a-bbd9-401111434756`
+  successfully against the isolated staging cloud environment for the
+  registered iPhone. No TestFlight/App Store submission was made.
 
 ## Next delivery slices
 
-1. Consolidate persistent product data and finish a server-owned auth/session bridge shared by mobile and web administration tools.
-2. Replace the current path community scaffold with moderated career-specific forums and verified mentor roles.
-3. Add the next shareable artifact templates: skill card, commitment card, and season recap.
-4. Replace the compact university cache with a complete College Scorecard-backed directory and managed school-brand token records.
-5. Move Gemini access behind an authenticated server proxy with rate limits, safety telemetry, and key rotation.
-6. Run VoiceOver, Dynamic Type, Reduce Motion, Reduce Transparency, contrast, low-memory, and representative Android device passes.
-7. Validate analytics and migration funnels before promoting the refresh to external TestFlight groups.
+1. Run VoiceOver, Dynamic Type, Reduce Motion, Reduce Transparency, contrast,
+   low-memory, and representative Android device passes.
+2. Install the finished EAS Preview build on the registered iPhone, then
+   exercise OAuth, recovery, push tokens, profile uploads, polling, and the
+   checks above on that real staging device.
+3. Decide whether the richer career forums replace or complement legacy rooms;
+   do not dual-write the two community models.
+4. Add the next shareable artifact templates and managed university directory.
+5. Retire Firebase custom-token compatibility only after old-client telemetry
+   and rollback criteria are satisfied.
 
 ## Release boundary
 
-This branch is a working native integration slice, not a production rollout. It deliberately does not push, deploy, alter App Store Connect, or upload a TestFlight build. Because native glass, blur, sharing, and view capture modules were added, the next TestFlight build must be a new native binary rather than a JavaScript-only update.
+This branch is a working native integration slice, not a production rollout. It
+has an internal EAS Preview IPA for the registered device, but it deliberately
+does not push, merge, alter App Store Connect, or upload a TestFlight build.
+Because native glass, blur, sharing, and view capture modules were added, any
+future TestFlight build must be a new native binary rather than a
+JavaScript-only update.

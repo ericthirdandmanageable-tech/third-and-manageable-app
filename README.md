@@ -1,6 +1,37 @@
-# Welcome to your Expo app
+# Third & Manageable replacement Expo client
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This isolated worktree contains the Liquid Glass replacement client while the
+canonical mobile repository and the Next.js redesign remain separate.
+
+## Staging architecture
+
+- Appwrite owns identity and native provider sessions.
+- Every product request creates a fresh Appwrite JWT and calls
+  `EXPO_PUBLIC_PRODUCT_API_URL`.
+- The public staging relay forwards only allowlisted athlete routes to the
+  protected Next.js Preview; the Vercel bypass secret never enters the app.
+- Firestore and Appwrite Storage are server-owned for new clients. Firebase
+  Auth custom tokens remain only for compatibility with older clients.
+- Gemini runs behind `/clipboard/chat`; no AI provider key is bundled.
+
+Run `npm run check:staging-env`, `npm run typecheck`, `npm test`, and
+`npm run lint` before creating an EAS Preview build. Run
+`npm run smoke:staging-auth` after either the protected Preview or relay changes.
+
+## Current iOS Preview
+
+EAS internal Preview build
+[`cab31413`](https://expo.dev/accounts/eric.thirdandmanageable/projects/third-and-manageable-app/builds/cab31413-a4d7-484a-bbd9-401111434756)
+finished successfully on 2026-08-14 for version `1.0.1` (build `11`). It uses
+only the isolated staging environment and is provisioned for the registered
+iPhone. Use the build page's **Install** action before 2026-08-28. Because it
+uses `com.thirdandmanageable.app`, installing it may replace another installed
+Third & Manageable build on that device. It was not submitted to TestFlight or
+App Store Connect. Packaged-JavaScript inspection confirmed the staging
+Appwrite/Firebase IDs and full relay path, with no production Appwrite ID or
+Gemini environment key present.
+
+This is an [Expo](https://expo.dev) project using Expo Router.
 
 ## Get started
 

@@ -112,26 +112,47 @@ export default function HomeScreen() {
               <Text style={[styles.campus, { color: colors.textTertiary }]} numberOfLines={1}>{campusLabel}</Text>
             </View>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              unreadCount > 0
-                ? `Notifications, ${unreadCount} unread`
-                : "Notifications"
-            }
-            onPress={() => router.push("/(tabs)/notifications")}
-          >
-            <View style={styles.notificationWrapper}>
-              <GlassSurface radius={22} interactive style={styles.notification}>
-                <Ionicons name="notifications-outline" size={19} color={colors.textPrimary} />
+          <View style={styles.headerActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                unreadCount > 0
+                  ? `Notifications, ${unreadCount} unread`
+                  : "Notifications"
+              }
+              onPress={() => router.push("/(tabs)/notifications")}
+            >
+              <View style={styles.notificationWrapper}>
+                <GlassSurface radius={22} interactive style={styles.notification}>
+                  <Ionicons name="notifications-outline" size={19} color={colors.textPrimary} />
+                </GlassSurface>
+                {unreadCount > 0 ? (
+                  <View style={[styles.badge, { backgroundColor: colors.semantic.danger }]}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Profile and settings"
+              onPress={() => router.push("/(tabs)/profile")}
+            >
+              <GlassSurface radius={22} interactive style={styles.profileButton}>
+                {profile.profile_pic ? (
+                  <Image
+                    source={{ uri: profile.profile_pic }}
+                    accessibilityIgnoresInvertColors
+                    style={styles.profileImage}
+                  />
+                ) : (
+                  <Text style={[styles.profileInitial, { color: colors.signal }]}>
+                    {profile.display_name?.trim().slice(0, 1).toUpperCase() || "A"}
+                  </Text>
+                )}
               </GlassSurface>
-              {unreadCount > 0 ? (
-                <View style={[styles.badge, { backgroundColor: colors.semantic.danger }]}>
-                  <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-                </View>
-              ) : null}
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
         </View>
 
         <GlassSurface
@@ -291,8 +312,12 @@ const styles = StyleSheet.create({
   logo: { width: 24, height: 24, tintColor: "#FFFFFF" },
   brandName: { fontFamily: "Raleway-Bold", fontSize: 13 },
   campus: { fontFamily: "DMMono-Regular", fontSize: 7, marginTop: 3, maxWidth: 220, textTransform: "uppercase", letterSpacing: 0.5 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   notificationWrapper: { width: 44, height: 44, position: "relative" },
   notification: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  profileButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  profileImage: { width: 38, height: 38, borderRadius: 19 },
+  profileInitial: { fontFamily: "DMMono-Medium", fontSize: 14 },
   badge: { position: "absolute", right: -3, top: -3, minWidth: 17, height: 17, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   badgeText: { color: "white", fontFamily: "DMMono-Medium", fontSize: 7 },
   hero: { margin: 20, marginTop: 8, padding: 24, minHeight: 235, justifyContent: "flex-end" },

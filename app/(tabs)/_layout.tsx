@@ -17,7 +17,7 @@ export default function TabLayout() {
         <Tabs.Screen name="check-in" />
         <Tabs.Screen name="game-plan" />
         <Tabs.Screen name="clipboard" />
-        <Tabs.Screen name="profile" options={{ title: "Settings" }} />
+        <Tabs.Screen name="profile" options={{ href: null, title: "Settings" }} />
         <Tabs.Screen name="path-detail" options={{ href: null }} />
         <Tabs.Screen name="progress" options={{ href: null }} />
         <Tabs.Screen name="notifications" options={{ href: null }} />

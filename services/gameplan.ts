@@ -1,109 +1,72 @@
-/**
- * Game Plan service — Firebase Firestore.
- * Collection: "completions" (auto-generated doc IDs, user_id = Appwrite UID).
- *
- * Uses a `date` field (YYYY-MM-DD) for "today" queries to avoid
- * composite indexes on range operators.
- */
-import { db } from "@/lib/firebase";
-import { GamePlanCompletion } from "@/types";
-import {
-    addDoc,
-    collection,
-    getCountFromServer,
-    getDocs,
-    limit,
-    query,
-    where,
-} from "firebase/firestore";
+/** Game Plan completion service — authenticated web API. */
+import { mobileApi } from "@/lib/mobile-api";
+import type { GamePlanCompletion } from "@/types";
 
-/** Get today's date as YYYY-MM-DD string in local timezone */
+type ApiCompletion = GamePlanCompletion & { date: string };
+type GamePlanResponse = {
+  completion_count: number;
+  completions: ApiCompletion[];
+};
+
 function todayDateStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-/**
- * Check if today's action has already been completed.
- * Uses exact equality on `date` field — no composite index needed.
- */
+async function plan(): Promise<GamePlanResponse> {
+  return mobileApi<GamePlanResponse>("/game-plan");
+}
+
 export async function getTodayCompletion(
   userId: string,
   actionId: string,
 ): Promise<GamePlanCompletion | null> {
+  void userId;
   try {
-    const q = query(
-      collection(db, "completions"),
-      where("user_id", "==", userId),
-      where("action_id", "==", actionId),
-      where("date", "==", todayDateStr()),
-      limit(1),
+    return (
+      (await plan()).completions.find(
+        (row) => row.action_id === actionId && row.date === todayDateStr(),
+      ) ?? null
     );
-    const snap = await getDocs(q);
-    if (snap.empty) return null;
-    const d = snap.docs[0];
-    return { id: d.id, ...d.data() } as GamePlanCompletion;
-  } catch (err) {
-    console.error("getTodayCompletion error:", err);
+  } catch {
     return null;
   }
 }
 
-/**
- * Mark today's action as completed.
- */
 export async function completeAction(
   userId: string,
   actionId: string,
 ): Promise<GamePlanCompletion> {
-  const data = {
-    user_id: userId,
-    action_id: actionId,
-    completed_at: new Date().toISOString(),
-    date: todayDateStr(),
-  };
-  const ref = await addDoc(collection(db, "completions"), data);
-  return { id: ref.id, ...data } as GamePlanCompletion;
+  void userId;
+  const result = await mobileApi<GamePlanResponse>("/game-plan/actions/toggle", {
+    method: "POST",
+    body: { action_id: actionId },
+  });
+  const completion = result.completions.find(
+    (row) => row.action_id === actionId && row.date === todayDateStr(),
+  );
+  if (!completion) throw new Error("The action was not saved.");
+  return completion;
 }
 
-/**
- * Get the count of total completed actions for a user.
- */
 export async function getCompletionCount(userId: string): Promise<number> {
+  void userId;
   try {
-    const q = query(
-      collection(db, "completions"),
-      where("user_id", "==", userId),
-    );
-    const snap = await getCountFromServer(q);
-    return snap.data().count;
+    return (await plan()).completion_count;
   } catch {
     return 0;
   }
 }
 
-/**
- * Get recent completions for a user (last 7 days).
- * Fetches all user completions and filters/sorts client-side to avoid composite index.
- */
 export async function getRecentCompletions(
   userId: string,
 ): Promise<GamePlanCompletion[]> {
+  void userId;
   try {
-    const q = query(
-      collection(db, "completions"),
-      where("user_id", "==", userId),
-      limit(50),
-    );
-    const snap = await getDocs(q);
-
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoStr = weekAgo.toISOString();
-
-    return snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as GamePlanCompletion)
-      .filter((c) => c.completed_at >= weekAgoStr)
+    return (await plan()).completions
+      .filter((row) => new Date(row.completed_at) >= weekAgo)
       .sort((a, b) => b.completed_at.localeCompare(a.completed_at))
       .slice(0, 7);
   } catch {

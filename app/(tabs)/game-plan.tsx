@@ -5,7 +5,6 @@ import {
   SectionLabel,
 } from "@/components/ui/liquid-glass";
 import {
-  CAREER_INTAKE_KEY,
   FAVORITE_OPTIONS,
   ROLE_OPTIONS,
   deriveCareerSkillMap,
@@ -22,10 +21,9 @@ import {
   getRecentCompletions,
   getTodayCompletion,
 } from "@/services/gameplan";
-import { createGamePlanNotification } from "@/services/notification-store";
+import { getCareerIntake, saveCareerIntake } from "@/services/career";
 import type { GamePlanCompletion } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
@@ -65,13 +63,13 @@ export default function GamePlanScreen() {
         getTodayCompletion(user.$id, todayAction.id),
         getCompletionCount(user.$id),
         getRecentCompletions(user.$id),
-        AsyncStorage.getItem(CAREER_INTAKE_KEY),
+        getCareerIntake(),
       ]);
       setAction(todayAction);
       setCompleted(Boolean(todayDone));
       setTotalCompleted(count);
       setWeekCompletions(recent);
-      if (storedIntake) setIntake(JSON.parse(storedIntake));
+      if (storedIntake) setIntake(storedIntake);
     } catch {
       // The plan shell should still render if one data source is unavailable.
     } finally {
@@ -89,7 +87,6 @@ export default function GamePlanScreen() {
       setCompleted(true);
       setTotalCompleted((value) => value + 1);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await createGamePlanNotification(user.$id);
       await loadData();
     } catch (error: any) {
       Alert.alert("Could not save", error.message || "Please try again.");
@@ -252,7 +249,7 @@ export default function GamePlanScreen() {
         initial={intake}
         onClose={() => setIntakeOpen(false)}
         onComplete={async (answers) => {
-          await AsyncStorage.setItem(CAREER_INTAKE_KEY, JSON.stringify(answers));
+          await saveCareerIntake(answers, profile?.sport ?? "other");
           setIntake(answers);
           setIntakeOpen(false);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

@@ -7,12 +7,23 @@ Expo account plan does not support custom EAS environments).
 - `production` is the only profile that selects the EAS `production` environment.
 - There is intentionally no `submit.staging` profile. Staging builds are internal distributions and cannot be submitted with the production submit profile by accident.
 - Staging must use Appwrite project `69906dfc003364b9847e`, Firebase project `third-and-manageable-staging`, and the `third-and-manageable-mobile-staging.vercel.app` auth bridge.
-- Staging must not contain the production Gemini key. Use a separate staging key or leave Gemini unset while testing.
+- Staging must not contain any `EXPO_PUBLIC_GEMINI_API_KEY`; AI credentials are
+  server-only.
+- `EXPO_PUBLIC_PRODUCT_API_URL` must be the relay's
+  `/api/mobile/data` path. The app must never contain a Vercel protection-bypass
+  secret.
 
-Before creating a staging build, keep the local staging-only `.env.local` beside this project and run:
+Before local development, keep the staging-only `.env.local` beside this
+project and run:
 
 ```bash
 npm run check:staging-env
 ```
 
-The check fails closed if the staging file is missing, points to a production backend, or contains a Gemini key that has not been explicitly separated for staging.
+The check fails closed if the staging file is missing, points to a production
+backend, omits the authenticated product API, or contains a Gemini key.
+
+The `build:dev*`, `build:staging`, and `build:preview*` scripts first load the
+selected EAS cloud environment and run the same fail-closed check against those
+injected values. This prevents a correct local `.env.local` from hiding a stale
+or incomplete cloud build environment.

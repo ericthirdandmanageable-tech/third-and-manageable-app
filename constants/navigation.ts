@@ -4,7 +4,6 @@ export const AUTHENTICATED_TAB_ROUTES = [
   "check-in",
   "game-plan",
   "clipboard",
-  "profile",
 ] as const;
 
 export type AuthenticatedTabRoute = (typeof AUTHENTICATED_TAB_ROUTES)[number];

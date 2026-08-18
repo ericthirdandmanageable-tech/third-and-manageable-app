@@ -6,6 +6,8 @@ const expected = {
   EXPO_PUBLIC_FIREBASE_PROJECT_ID: "third-and-manageable-staging",
   EXPO_PUBLIC_AUTH_BRIDGE_URL:
     "https://third-and-manageable-mobile-staging.vercel.app",
+  EXPO_PUBLIC_PRODUCT_API_URL:
+    "https://third-and-manageable-mobile-staging.vercel.app/api/mobile/data",
 };
 
 function parseEnvironment(source) {
@@ -28,9 +30,15 @@ try {
     "utf8",
   );
 } catch {
-  throw new Error(
-    "Staging builds require a local .env.local containing the isolated staging configuration.",
+  const hasInjectedStagingEnvironment = Object.keys(expected).every(
+    (name) => process.env[name]?.trim(),
   );
+  if (!hasInjectedStagingEnvironment) {
+    throw new Error(
+      "Staging checks require either a local .env.local or the isolated EAS environment variables.",
+    );
+  }
+  source = "";
 }
 
 const env = { ...parseEnvironment(source), ...process.env };
@@ -48,7 +56,7 @@ if (mismatches.length) {
 
 if (env.EXPO_PUBLIC_GEMINI_API_KEY?.trim()) {
   throw new Error(
-    "Refusing to bundle a Gemini key in staging until it is a staging-only key.",
+    "Refusing to bundle a Gemini key; AI credentials belong on the authenticated server only.",
   );
 }
 

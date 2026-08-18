@@ -41,8 +41,14 @@ describe("unified product logic", () => {
     assert.equal(findUniversities("university", 3).length, 3);
   });
 
-  it("keeps settings reachable from authenticated navigation", () => {
-    assert.ok(AUTHENTICATED_TAB_ROUTES.includes("profile"));
+  it("keeps Coach as the fifth authenticated tab", () => {
+    assert.deepEqual(AUTHENTICATED_TAB_ROUTES, [
+      "index",
+      "community",
+      "check-in",
+      "game-plan",
+      "clipboard",
+    ]);
     assert.equal(new Set(AUTHENTICATED_TAB_ROUTES).size, AUTHENTICATED_TAB_ROUTES.length);
   });
 

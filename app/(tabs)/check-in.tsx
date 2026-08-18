@@ -3,7 +3,7 @@ import { GlassListSurface, GlassSurface } from "@/components/ui/liquid-glass";
 import { useAppTheme } from "@/context/app-theme";
 import { SPORTS } from "@/constants/sports";
 import { useAuth } from "@/context/auth";
-import { ChatMessage, getAIResponse, getChatResponse } from "@/lib/gemini";
+import { ChatMessage, getChatResponse } from "@/lib/gemini";
 import {
   addMessageToSession,
   AIChatSession,
@@ -16,10 +16,6 @@ import {
   getTodayCheckIn,
   updateStreak,
 } from "@/services/checkin";
-import {
-  createCheckInNotification,
-  createStreakNotification,
-} from "@/services/notification-store";
 import { AIPersonality, CheckIn, SportKey } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
@@ -172,29 +168,21 @@ export default function CheckInScreen() {
 
     setLoading(true);
     try {
-      const response = await getAIResponse(
-        selectedMood,
-        note.trim() || null,
-        sport?.label,
-        profile?.ai_personality as AIPersonality | undefined,
-      );
-      setAiResponse(response);
-
       const checkIn = await createCheckIn(
         user.$id,
         selectedMood,
         note.trim() || null,
-        response,
+        null,
+        sport?.label,
+        profile?.ai_personality as AIPersonality | undefined,
       );
+      setAiResponse(checkIn.ai_response);
       setTodayCheckIn(checkIn);
 
       await updateStreak(user.$id);
       await refreshProfile();
 
-      // Create notifications
-      await createCheckInNotification(user.$id, selectedMood);
-      const newStreak = (profile?.streak ?? 0) + 1;
-      await createStreakNotification(user.$id, newStreak);
+      // The check-in route owns check-in and streak notifications.
     } catch (err: any) {
       Alert.alert("Error", err.message || "Failed to save check-in.");
     } finally {

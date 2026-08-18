@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { Buffer } from "node:buffer";
 import { readFile } from "node:fs/promises";
 
 import { deleteUser, getAuth, signInWithCustomToken, signOut } from "firebase/auth";
@@ -27,7 +28,8 @@ const env = parseEnvironment(await readFile(new URL("../.env.local", import.meta
 if (
   env.EXPO_PUBLIC_APPWRITE_PROJECT_ID !== EXPECTED_APPWRITE_PROJECT ||
   env.EXPO_PUBLIC_FIREBASE_PROJECT_ID !== EXPECTED_FIREBASE_PROJECT ||
-  env.EXPO_PUBLIC_AUTH_BRIDGE_URL !== EXPECTED_BRIDGE_ORIGIN
+  env.EXPO_PUBLIC_AUTH_BRIDGE_URL !== EXPECTED_BRIDGE_ORIGIN ||
+  env.EXPO_PUBLIC_PRODUCT_API_URL !== `${EXPECTED_BRIDGE_ORIGIN}/api/mobile/data`
 ) {
   throw new Error("Refusing to run outside the isolated staging projects.");
 }
@@ -72,6 +74,48 @@ const userId = `relay_${randomBytes(12).toString("hex")}`;
 let firebaseAuth;
 let firebaseUser;
 let appwriteSessionCreated = false;
+let jwt;
+
+async function productRequest(path, method = "GET", body) {
+  const response = await fetch(`${env.EXPO_PUBLIC_PRODUCT_API_URL}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(
+      `Product API ${method} ${path} failed with HTTP ${response.status}: ${detail.slice(0, 300)}`,
+    );
+  }
+  return response.json();
+}
+
+async function uploadProfilePicture() {
+  const form = new FormData();
+  form.set(
+    "image",
+    new File(
+      [Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64")],
+      "smoke.png",
+      { type: "image/png" },
+    ),
+  );
+  const response = await fetch(
+    `${env.EXPO_PUBLIC_PRODUCT_API_URL}/artifacts/profile-picture`,
+    { method: "POST", headers: { Authorization: `Bearer ${jwt}` }, body: form },
+  );
+  if (!response.ok) {
+    throw new Error(`Profile-picture upload failed with HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
+  }
+  const payload = await response.json();
+  if (!payload.profile_pic?.includes("/storage/buckets/profile-pictures/files/")) {
+    throw new Error("Profile-picture upload returned an invalid URL.");
+  }
+}
 
 try {
   await appwriteRequest("/account", "POST", {
@@ -82,7 +126,31 @@ try {
   });
   await appwriteRequest("/account/sessions/email", "POST", { email, password });
   appwriteSessionCreated = true;
-  const { jwt } = await appwriteRequest("/account/jwts", "POST", {});
+  ({ jwt } = await appwriteRequest("/account/jwts", "POST", {}));
+
+  const profile = await productRequest("/profile");
+  if (profile.id !== userId) throw new Error("Product profile identity did not match Appwrite.");
+  const updatedProfile = await productRequest("/profile", "PATCH", {
+    display_name: "Staging Relay Smoke Updated",
+  });
+  if (updatedProfile.display_name !== "Staging Relay Smoke Updated") {
+    throw new Error("Product profile write did not round-trip.");
+  }
+  await uploadProfilePicture();
+  const [gamePlan, notifications, artifacts, messages] = await Promise.all([
+    productRequest("/game-plan"),
+    productRequest("/notifications"),
+    productRequest("/artifacts"),
+    productRequest("/community/messages?room_id=global&limit=1"),
+  ]);
+  if (
+    typeof gamePlan.completion_count !== "number" ||
+    !Array.isArray(notifications) ||
+    !Array.isArray(artifacts) ||
+    !Array.isArray(messages)
+  ) {
+    throw new Error("One or more product API domains returned an invalid shape.");
+  }
 
   const bridgeResponse = await fetch(
     `${env.EXPO_PUBLIC_AUTH_BRIDGE_URL}/api/mobile/auth/firebase-token`,
@@ -128,8 +196,21 @@ try {
     throw new Error(`Bridge revocation failed with HTTP ${revokeResponse.status}.`);
   }
 
-  console.log(JSON.stringify({ event: "staging_mobile_auth_smoke", outcome: "passed" }));
+  const deletion = await productRequest("/account", "DELETE");
+  if (deletion.status !== "deleted") throw new Error("Smoke account cleanup failed.");
+  appwriteSessionCreated = false;
+
+  console.log(
+    JSON.stringify({
+      event: "staging_mobile_stack_smoke",
+      outcome: "passed",
+      domains: ["identity", "firebase_compatibility", "game_plan", "notifications", "profile_picture", "artifacts", "community"],
+    }),
+  );
 } finally {
+  if (jwt && appwriteSessionCreated) {
+    await productRequest("/account", "DELETE").catch(() => undefined);
+  }
   if (firebaseUser) {
     await deleteUser(firebaseUser).catch(() => undefined);
   }
